@@ -48,6 +48,20 @@ the current API, not speculative product capabilities.
 - Preserve unsuccessful lines and scoped reopen conditions. Historical failures
   attach to their contracts and methods, not an entire research family.
 
+## Structural search rounds
+
+Use `ResearchRound` for a batch of deep hypotheses. Supply known producer,
+consumer and return dependencies so widening includes all affected work. Prefer
+distinct mathematical mechanisms before multiple variants of one mechanism.
+Unknown savings remain eligible; paper estimates do not close a family.
+
+A move named L3/L4 is not enough: qualification also needs changed emitted
+bytes, changed contract structure, a passing artifact-bound task-adapter
+structural witness, all declared small-size cases and full verification/replay.
+Missing witnesses remain `STRUCTURAL_AUDIT_REQUIRED`. A replay failure
+quarantines that design from `best` while retaining the failed attempt.
+Read the checkout's `docs/STRUCTURAL-RESEARCH.md` for the current API and limits.
+
 ## Output
 
 Provide the line/design handle, base and changed-artifact hashes, exact tested

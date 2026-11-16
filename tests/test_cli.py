@@ -31,3 +31,22 @@ def test_cli_end_to_end(tmp_path,capsys):
     assert json.loads(capsys.readouterr().out)['passed']
     assert main(args+['best'])==0
     assert json.loads(capsys.readouterr().out)['score']>1
+
+
+def test_research_cli_checks_structure_and_continues_from_retained_best(tmp_path,capsys):
+    src=Path(__file__).parents[1]/'examples/and_fusion'
+    for name in ['base.kmx','strata.toml']:(tmp_path/name).write_bytes((src/name).read_bytes())
+    args=['--project',str(tmp_path/'strata.toml')]
+    assert main(args+['init'])==0
+    base=json.loads(capsys.readouterr().out)['and']
+    assert main(args+['research','and','--run'])==0
+    result=json.loads(capsys.readouterr().out)
+    assert result['qualified_gains']==1
+    outcome=result['outcomes'][0]
+    assert outcome['structure']['deep'] and outcome['replay']
+    assert (outcome['cost_before'],outcome['cost_after'])==(72,27)
+    assert len(outcome['labs'])==2
+    assert main(args+['research','and'])==0
+    assert json.loads(capsys.readouterr().out)['parent']==outcome['design']
+    assert main(args+['research','and','--parent',base])==0
+    assert json.loads(capsys.readouterr().out)['parent']==base

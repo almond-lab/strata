@@ -3,6 +3,7 @@ from .project import Project, Design, Line
 from .model import Contract, Region, Register, Debt, Floor, StrataError
 from .engine import Patch
 from .queries import Queries
+from .research import Hypothesis, Dependency, ResearchPolicy, ResearchRound
 
 
 def open(path='strata.toml', adapters=None):

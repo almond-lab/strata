@@ -1,0 +1,81 @@
+{
+  "kind": "original demonstration; not a Kaggle discovery",
+  "command": "strata research and --run",
+  "base": "c6166689179a3b68ad93e894b92e2c2bcf8222e7b0bc46625ba693f2ac5b0be6",
+  "qualified_gains": 1,
+  "outcome": {
+    "line": "38d22296eabc9bee8ee021ae5cc276cd44675cbe585429b20071f43e8313967a",
+    "design": "c7e608776a762f83512da7803dfbcffbebcd3931cb37ca2e736f1bd80ac36cc7",
+    "mechanism": "materialization",
+    "status": "VERIFIED_STRUCTURAL_GAIN",
+    "structure": {
+      "deep": true,
+      "structural_candidate": true,
+      "structural_witness": {
+        "passed": true,
+        "checks": {
+          "producer_consumer_return_pattern": true,
+          "direct_dirty_accumulator": true,
+          "product_word_removed": true
+        },
+        "mechanism": "eliminate_materialized_product_word",
+        "before_artifact": "75e39db5c12407c38e1d5c9601abd8d33e14f57fa7a5caeeff661d75127cb77c",
+        "after_artifact": "cd6120eac1d289a2e6f4f542bf492f6a01de169344eed8e52e3727c68f9b6a90",
+        "authority": "task adapter exact pattern witness; full-function tests remain mandatory"
+      },
+      "observed_depth": "L3",
+      "artifact_changed": true,
+      "topology_changed": true,
+      "boundary_paths": [],
+      "root_debt_changed": false,
+      "evidence": "emitted bytes plus declared contract-tree structure; not novelty or internal equivalence proof"
+    },
+    "cost_before": 72.0,
+    "cost_after": 27.0,
+    "cost_delta": -45.0,
+    "portfolio_multiplier_fixed_other_tasks": 2.6666666666666665,
+    "certificate": "dcc8c0fd35c672a004c59262aebc8968d550dbd93f9590b1e4f61967baf4e2d3",
+    "replay": true,
+    "labs": [
+      {
+        "passed": true,
+        "exhaustive": true,
+        "cases": 8,
+        "branches": 1,
+        "tested": 8,
+        "counterexample": null,
+        "scope": {
+          "bits": 1
+        },
+        "circuit_hash": "054091d1f3acdc3628a29366bb9c2573d5f73c81771844ee2787f3258f8965d9",
+        "contract_hash": "4ff4cb60b496df36ea915e9e1ced2cc85b3311e8838d8d475b46c159d37fa50f",
+        "seconds": 0.0009633318986743689
+      },
+      {
+        "passed": true,
+        "exhaustive": true,
+        "cases": 64,
+        "branches": 1,
+        "tested": 64,
+        "counterexample": null,
+        "scope": {
+          "bits": 2
+        },
+        "circuit_hash": "d7b41b8c0c7c92330128b4c340d7ef39b2108e67a38ef0244ce0d6e5f964de78",
+        "contract_hash": "8b0b792f9213ee6cb0ecba0cc29bd29e569030d8caf8ff257d3a1d8ed24d74ba",
+        "seconds": 0.0013120758812874556
+      }
+    ]
+  },
+  "next_round_uses_retained_best": true,
+  "portfolio": {
+    "tasks": {
+      "and": {
+        "design": "c7e608776a762f83512da7803dfbcffbebcd3931cb37ca2e736f1bd80ac36cc7",
+        "cost": 27.0,
+        "base_cost": 72.0
+      }
+    },
+    "score": 2.6666666666666665
+  }
+}

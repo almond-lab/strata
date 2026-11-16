@@ -15,6 +15,7 @@ def main(argv=None):
     for name in ['analyze', 'lift', 'gaps']:
         p = sub.add_parser(name); p.add_argument('task')
         if name == 'lift': p.add_argument('--confirm', action='store_true')
+    p = sub.add_parser('research');p.add_argument('task');p.add_argument('--run',action='store_true');p.add_argument('--max-lines',type=int,default=6);p.add_argument('--hypotheses');p.add_argument('--parent')
     p = sub.add_parser('price');p.add_argument('task');p.add_argument('--region', required=True);p.add_argument('--resource', required=True);p.add_argument('--delta', required=True, type=int)
     p = sub.add_parser('replay');p.add_argument('design')
     p = sub.add_parser('diff');p.add_argument('a');p.add_argument('b')
@@ -30,6 +31,14 @@ def main(argv=None):
         project = open_project(args.project)
         if args.cmd == 'init': result = project.init()
         elif args.cmd == 'best': result=project.best()
+        elif args.cmd == 'research':
+            from .research import ResearchRound, ResearchPolicy, Hypothesis
+            hypotheses=None if not args.hypotheses else [Hypothesis(**x) for x in json.loads(Path(args.hypotheses).read_text())]
+            parent=Design(project,args.parent or project.best()['tasks'][args.task]['design'])
+            if parent.record['task']!=args.task:raise StrataError('research parent belongs to a different task')
+            round_=ResearchRound(project,parent,ResearchPolicy(max_lines=args.max_lines))
+            plan=round_.plan(hypotheses)
+            result=round_.run(plan['handle']) if args.run else plan
         elif args.cmd == 'replay': result=project.replay(args.design)
         elif args.cmd == 'diff':
             a,b=Design(project,args.a),Design(project,args.b)

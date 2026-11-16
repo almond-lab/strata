@@ -35,7 +35,10 @@ class AndFusion:
             # Full episode contracts are named by occurrence, stable across offset changes.
             r = Contract('lane', (Register('a', (i,)), Register('b', (n+i,)), Register('y', (2*n+i,), role='output')),
                          reference='and-xor-bit:v1')
-            children.append(Region(f'lane-{i}', start, start+width, r, kind='and-xor', evidence='exhaustive fixture', occurrence=i))
+            steps=() if fused else tuple(Region(f'lane-{i}-{name}',start+j,start+j+1,
+                Contract(name,r.registers,reference='demo:'+name, promise='product relation established by preceding stage'),
+                kind=name,evidence='fixture-stage declaration') for j,name in enumerate(('produce','consume','cleanup')))
+            children.append(Region(f'lane-{i}', start, start+width, r, steps, kind='and-xor', evidence='exhaustive fixture', occurrence=i))
         return circuit, Region('root', 0, len(gates), root, tuple(children), kind='and-xor')
 
     @staticmethod
@@ -93,3 +96,26 @@ class AndFusion:
         if constraint != dict(region='root', resource='wire', delta=-parameters['bits']):
             raise StrataError('this fixture supports only removing the materialized product register')
         return self.build(parameters, {**implementation, 'fused': True})
+
+    def restructures(self,tree):
+        from .research import Hypothesis
+        return [Hypothesis('fuse',('root',),'materialization',
+            'A product word must cross the producer-consumer boundary',
+            'Apply each product directly to the dirty output, eliminating its word and return',
+            'Exhaust every declared small size then build, verify and replay the complete circuit',
+            implementation={'fused':True})]
+
+    def audit_restructure(self,before,old_tree,after,new_tree):
+        # Independent, narrow instruction-pattern witness, not tree-label trust.
+        n=len(new_tree.contract.registers[0].wires)
+        old=str(before).splitlines();new=str(after).splitlines()
+        old_expected=[];new_expected=[]
+        for i in range(n):
+            old_expected.extend([f'CCX q{i} q{n+i} q{3*n+i}',f'CX q{3*n+i} q{2*n+i}',f'CCX q{i} q{n+i} q{3*n+i}'])
+            new_expected.append(f'CCX q{i} q{n+i} q{2*n+i}')
+        checks=dict(producer_consumer_return_pattern=old==old_expected,direct_dirty_accumulator=new==new_expected,
+                    product_word_removed=before.num_qubits==4*n and after.num_qubits==3*n)
+        return dict(passed=all(checks.values()),checks=checks,mechanism='eliminate_materialized_product_word',
+                    before_artifact=hashlib.sha256(str(before).encode()).hexdigest(),
+                    after_artifact=hashlib.sha256(str(after).encode()).hexdigest(),
+                    authority='task adapter exact pattern witness; full-function tests remain mandatory')

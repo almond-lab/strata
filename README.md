@@ -15,6 +15,7 @@ partial features and unimplemented research milestones.
 - [Adapter guide](docs/ADAPTER-GUIDE.md): connect a real generator, reference, cost model and verifier.
 - [Troubleshooting](docs/TROUBLESHOOTING.md): failed gates, scope errors and missing evidence.
 - [Agent skill](skills/strata-research/SKILL.md): focused workflow for agents using or extending Strata.
+- [Structural research workflow](docs/STRUCTURAL-RESEARCH.md): dependency-complete episodes, diverse hypotheses, and measured candidate rounds.
 - [First real targets](docs/FIRST-REAL-TARGETS.md): decoder and chemistry integration/readiness plan.
 
 The agent skill is versioned with this repository. It is not automatically
@@ -87,6 +88,7 @@ substitute the demo verifier or fabricate a scale model for a flat gate file.
   parked-line memory, contract-level differences and deterministic replay.
 - Dependency-aware patch compatibility. Overlapping regions/ancestors or shared
   debt dependencies cannot be auto-composed. A composition still runs all gates.
+- Structural research rounds: dependency/debt closure, mechanism diversity, all configured small scales, artifact-bound depth checks, and replay quarantine.
 - Typed floors: best constructions are upper bounds; exact small-size results
   never silently become full-size lower bounds. Unknown floors stay unknown.
 - Legacy memory import: unstructured “closed” verdicts remain priced. Unbound

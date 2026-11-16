@@ -29,3 +29,9 @@ class Queries:
     def is_function_of(self, wire, at, support):
         return dict(status='unknown', wire=wire, at=at, support=support,
                     reason='no exact functional-dependency certificate; sampled equality is insufficient')
+
+    def research(self, design, hypotheses=None, policy=None, dependencies=()):
+        from .research import ResearchRound
+        plan=ResearchRound(self.project,design,policy,dependencies).plan(hypotheses)
+        return dict(handle=plan["handle"], selected=len(plan["selected"]), deferred=len(plan["deferred"]),
+                    preview=[dict(mechanism=x["hypothesis"]["mechanism"], regions=x["episode"]["regions"], readiness=x["readiness"]) for x in plan["selected"][:5]])

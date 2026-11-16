@@ -23,7 +23,7 @@ case is complete.
 | Generated exhaustive lab | Implemented supported subset | All basis inputs, dirty states, all HMR branches; budget rejects partial passes |
 | Parameterized full-scale build | Implemented adapter model | Same generator tested at bits=1,2,3 |
 | L3/L4 structural example | Implemented | Materialized-product boundary removed; certified replay |
-| Move enumeration | Partial | Typed catalog, adjacency proposals and obligations; no general synthesizer |
+| Structural research rounds | Implemented orchestration | Diverse hypotheses, dependency closure, all configured small scales, measured build/verifier/replay, structural witnesses; implementation synthesis still supplied by adapters/researchers |
 | Lineage + replay | Implemented core | Artifact tamper, stale patch and replay tests |
 | Composition | Compatibility + gated rebuild | Disjoint footprints required; no blind concatenation |
 | Negative-result memory | Implemented | Exact-small size scope; estimates priced; synthetic322-row regression |

@@ -75,7 +75,8 @@ class Project:
     def best(self):
         tasks, pairs = {}, []
         for name, task in self.tasks.items():
-            records = [(h, d) for h, d in self.store.all('design') if d['task'] == name]
+            quarantined={r['design'] for _,r in self.store.all('quarantine')}
+            records = [(h, d) for h, d in self.store.all('design') if d['task'] == name and h not in quarantined]
             if not records:
                 raise StrataError('task has no certified design: ' + name)
             # Verify referenced certificate and artifacts before considering a record.
@@ -332,7 +333,7 @@ class Line:
             if r.contract.fingerprint!=other.contract.fingerprint or old_lines[r.start:r.stop]!=new_lines[other.start:other.stop]:
                 raise StrataError('patch changed an undeclared region: '+r.id)
 
-    def lab(self, **scale):
+    def lab(self, *, limits=None, **scale):
         adapter, parent, impl = self.context()
         params = self.task.params(True)
         params.update(scale)
@@ -345,7 +346,9 @@ class Line:
         if (tree.contract.reference, tree.contract.promise, tree.contract.phase, tree.contract.failure) != (old_tree.contract.reference, old_tree.contract.promise, old_tree.contract.phase, old_tree.contract.failure):
             raise StrataError('external specification changed')
         self.validate_edit(old, old_tree, circuit, tree)
-        result = exhaustive(circuit, tree.contract, adapter.reference, params)
+        options=limits or {}
+        if set(options)-{'max_trajectories','timeout'}:raise StrataError('unknown lab limit')
+        result = exhaustive(circuit, tree.contract, adapter.reference, params, **options)
         event = dict(stage='lab', **asdict(result), implementation=digest(impl))
         self.project.store.event(self.id, event)
         return result
