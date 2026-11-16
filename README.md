@@ -15,6 +15,7 @@ partial features and unimplemented research milestones.
 - [Adapter guide](docs/ADAPTER-GUIDE.md): connect a real generator, reference, cost model and verifier.
 - [Troubleshooting](docs/TROUBLESHOOTING.md): failed gates, scope errors and missing evidence.
 - [Agent skill](skills/strata-research/SKILL.md): focused workflow for agents using or extending Strata.
+- [First real targets](docs/FIRST-REAL-TARGETS.md): decoder and chemistry integration/readiness plan.
 
 The agent skill is versioned with this repository. It is not automatically
 installed into your global Codex configuration. It can be invoked by pointing an
