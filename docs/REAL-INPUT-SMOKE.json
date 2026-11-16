@@ -1,0 +1,22 @@
+{
+  "artifact_sha256": "7df66a4e0d82f62a9ba7554756e12c3cc6c891af1bffc857b0752ff9624b0d09",
+  "scope": "SDK ingestion and analysis smoke on user cand1 inverse only; no verifier or restructuring run",
+  "metrics": {
+    "Q": 44,
+    "toffoli": 1516,
+    "t": 1,
+    "rotations": 40,
+    "instructions": 22143,
+    "accounting": "static_emitted",
+    "reaction_depth": 1262
+  },
+  "coverage": "full",
+  "analysis_seconds": 0.9320782069116831,
+  "lift": {
+    "primitive_paid_coverage": 0.9056728232189973,
+    "structural_typed_coverage": 0.0,
+    "confirmed": false,
+    "note": "Primitive coverage does not satisfy the 90% structural lifting target."
+  },
+  "published_circuit_content": false
+}

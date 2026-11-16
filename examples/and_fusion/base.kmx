@@ -1,0 +1,9 @@
+CCX q0 q3 q9
+CX q9 q6
+CCX q0 q3 q9
+CCX q1 q4 q10
+CX q10 q7
+CCX q1 q4 q10
+CCX q2 q5 q11
+CX q11 q8
+CCX q2 q5 q11

@@ -1,0 +1,23 @@
+{
+  "kind": "original structural demo, not Kaggle acceptance",
+  "baseline": {
+    "Q": 12,
+    "toffoli": 6,
+    "cost": 72.0
+  },
+  "candidate": {
+    "Q": 9,
+    "toffoli": 3,
+    "cost": 27.0
+  },
+  "small_lab": {
+    "inputs": 64,
+    "branches": 1,
+    "passed": true
+  },
+  "full_inputs": 512,
+  "replay": true,
+  "portfolio": 2.6666666666666665,
+  "architecture_changed": true,
+  "artifact": "cd6120eac1d289a2e6f4f542bf492f6a01de169344eed8e52e3727c68f9b6a90"
+}

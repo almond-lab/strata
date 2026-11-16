@@ -1,0 +1,22 @@
+[project]
+name = "and-fusion"
+engine = "kickmix"
+store = ".strata"
+sandbox = "no-network"
+[score]
+formula = "geomean(task.base_cost / task.cost)"
+[[task]]
+id = "and"
+adapter = "and_fusion"
+base = "base.kmx"
+cost = "Q * toffoli"
+resources = ["Q", "toffoli", "t"]
+max_qubits = 12
+[task.domain]
+kind = "exhaustive"
+[task.scale]
+bits = { full = 3, small = [1, 2] }
+[gates]
+order = ["lab", "build_price", "oracle_full", "official_verifier"]
+[publish]
+submit = "manual"
