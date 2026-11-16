@@ -9,6 +9,17 @@ The [product specification](docs/SPECIFICATION.md) is preserved verbatim.
 [Implementation status](docs/ACCEPTANCE.md) distinguishes working features,
 partial features and unimplemented research milestones.
 
+## Documentation
+
+- [Getting started](docs/GETTING-STARTED.md): installation, first structural change, and interpreting results.
+- [Adapter guide](docs/ADAPTER-GUIDE.md): connect a real generator, reference, cost model and verifier.
+- [Troubleshooting](docs/TROUBLESHOOTING.md): failed gates, scope errors and missing evidence.
+- [Agent skill](skills/strata-research/SKILL.md): focused workflow for agents using or extending Strata.
+
+The agent skill is versioned with this repository. It is not automatically
+installed into your global Codex configuration. It can be invoked by pointing an
+agent to its `SKILL.md`, or installed through your usual skill installation flow.
+
 ## Run the tested structural example
 
 Requires Python 3.11+ **with a compatible kickmix wheel** (the checked environment
