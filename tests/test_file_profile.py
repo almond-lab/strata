@@ -71,7 +71,7 @@ def test_nonmonotone_or_nonadditive_objective_does_not_get_fake_ceiling(tmp_path
 
 
 def test_opaque_phase_context_and_wire_signals_remain_uncertain(tmp_path):
-    circuit = km.Circuit('CCX q0 q1 q2\nCZ q2 q3\nCCX q0 q1 q2\nHMR q2 b0')
+    circuit = km.Circuit('CCX q0 q1 q2\nCZ q2 q3\nCCX q0 q1 q2\nZ_POW q2 0.25')
     report = profile_regions(circuit, lift_regions(circuit), tmp_path, max_graphs=0)
     row = report['ranked_regions'][0]
     assert row['phase_dependency']['term_count'] > 0

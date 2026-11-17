@@ -21,11 +21,12 @@ def contract_tree(circuit, lifted):
     if not lines:
         raise StrataError('cannot infer contracts from an empty circuit')
     children = []
+    from .semantic import semantic_function
     for row in lifted['regions']:
         sem = row['semantics']
-        registers = tuple(Register(f'input_q{q}', (q,), meaning='arbitrary boundary bit')
+        registers = tuple(Register(f'input_q{q}', (q,), meaning=('declared zero boundary bit' if q in sem.get('clean_input_assumptions',()) else 'arbitrary boundary bit'))
                           for q in sem['inputs'])
-        reference = digest(dict(outputs=sem['outputs'], phase=sem['phase']))
+        reference = digest(semantic_function(sem))
         contract = Contract(row['kind'], registers, 'anf:' + reference)
         children.append(Region(row['id'], row['start'], row['stop'], contract,
                                kind=row['kind'], evidence=sem['evidence']))
@@ -65,11 +66,20 @@ def _source(path, out, *, writes_candidate=False):
     return source, root, circuit
 
 
-def inspect_file(path, out, *, cost='Q*(toffoli+t/4)', max_window=256, max_variables=64, max_terms=4096):
+def inspect_file(path, out, *, cost='Q*(toffoli+t/4)', max_window=256, max_variables=64, max_terms=4096,
+                 clean_inputs=(),scan_range=None,progress=None,growth_window=8192):
     from .semantic import lift_regions
     from .file_profile import profile_regions
     source, root, circuit = _source(path, out)
-    lift = lift_regions(circuit, max_window=max_window, max_variables=max_variables, max_terms=max_terms)
+    if scan_range is not None or source.stat().st_size>=2_000_000:
+        if clean_inputs:raise StrataError('clean file promises require complete bounded inspection; range scan treats boundaries as arbitrary')
+        from .streaming import scan_circuit
+        start,stop=scan_range if scan_range else (0,None)
+        result=scan_circuit(circuit,root/'stream',source=source,start=start,stop=stop,
+                           max_window=max(max_window,growth_window),max_variables=max_variables,max_terms=max_terms,progress=progress)
+        _write_json(root/'result.json',result)
+        return result
+    lift = lift_regions(circuit, max_window=max_window, max_variables=max_variables, max_terms=max_terms,clean_inputs=clean_inputs)
     tree = contract_tree(circuit, lift)
     profile=profile_regions(circuit,lift,root/'analysis',formula=cost)
     from .region_evidence import record_region_evidence
@@ -93,7 +103,11 @@ def inspect_file(path, out, *, cost='Q*(toffoli+t/4)', max_window=256, max_varia
     return result
 
 
-def optimize_file(path, out, *, cost='Q*(toffoli+t/4)', max_window=256, max_variables=64, max_terms=4096,max_candidates=64):
+def optimize_file(path, out, *, cost='Q*(toffoli+t/4)', max_window=256, max_variables=64, max_terms=4096,max_candidates=64,clean_inputs=()):
+    if clean_inputs:
+        from .restructure import restructure_file
+        return restructure_file(path,out,cost=cost,clean_inputs=clean_inputs,max_operations=max_window,
+                                max_variables=max_variables,max_terms=max_terms,max_candidates=max_candidates)
     from .semantic import lift_regions
     from .file_profile import profile_regions
     from .file_optimizer import optimize_circuit, verify_optimization

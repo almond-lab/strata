@@ -70,10 +70,8 @@ def test_phase_polynomial_tracks_gate_time_values_and_global_sign():
     assert equivalent_windows('CCZ q0 q1 q2', '')['phase_equal'] is False
 
 
-@pytest.mark.parametrize('gate', ['HMR q0 b0', 'R q0', 'Z_POW q0 0.25',
-                                  'X q0 if b0', 'PUSH_CONDITION if b0',
-                                  'CX q0 q0', 'X q0 q1', 'CX q0 b0',
-                                  'CSWAP q0 q1 q2'])
+@pytest.mark.parametrize('gate', ['R q0', 'Z_POW q0 0.25', 'PUSH_CONDITION if b0',
+                                  'CX q0 q0', 'X q0 q1', 'CX q0 b0'])
 def test_unsupported_never_silently_dropped(gate):
     result = analyze_window(f'X q0\n{gate}\nX q0')
     assert result['status'] == 'opaque'
@@ -81,23 +79,25 @@ def test_unsupported_never_silently_dropped(gate):
     assert equivalent_windows(f'X q0\n{gate}\nX q0', '')['equivalent'] is None
 
 
-def test_conditions_form_whole_scope_barriers_including_nested_conditions():
+def test_conditions_lift_as_whole_scopes_including_nested_conditions():
     circuit = km.Circuit('X q0\nX q0\nPUSH_CONDITION if b0\n'
                          'CCX q0 q1 q2\nPUSH_CONDITION if b1\nX q3\n'
                          'POP_CONDITION\nCX q2 q3\nPOP_CONDITION\nX q4\nX q4')
     report = lift_regions(circuit)
-    assert [(r['start'], r['stop']) for r in report['regions']] == [(0, 2), (9, 11)]
-    assert [r['start'] for r in report['unknown']] == list(range(2, 9))
-    assert report['coverage']['exact_operations'] == 4
-    assert report['coverage']['exact_paid_operations'] == 0
+    assert [(r['start'], r['stop']) for r in report['regions']] == [(0, 11)]
+    assert report['unknown'] == []
+    assert report['coverage']['exact_operations'] == 11
+    assert report['coverage']['exact_paid_operations'] == 1
+    assert report['regions'][0]['outputs']['2']['monomials'] == [[2], [0, 1, 'b0']]
 
 
-def test_hmr_splits_semantic_boundaries_without_clean_input_assumptions():
+def test_hmr_lifts_fresh_outcome_without_clean_input_assumptions():
     circuit = km.Circuit('CCX q0 q1 q2\nHMR q2 b0\nCX q2 q3\nCX q2 q4')
     report = lift_regions(circuit)
-    assert [(r['start'], r['stop']) for r in report['regions']] == [(0, 1), (2, 4)]
-    assert report['regions'][1]['outputs']['3']['monomials'] == [[2], [3]]
-    assert report['unknown'][0]['start'] == 1
+    assert [(r['start'], r['stop']) for r in report['regions']] == [(0, 4)]
+    assert report['regions'][0]['outputs']['3']['monomials'] == [[3]]
+    assert report['regions'][0]['phase']['monomials'] == [[2, 'm0'], [0, 1, 'm0']]
+    assert report['unknown'] == []
 
 
 @pytest.mark.parametrize('format', ['kmx', 'kmb'])

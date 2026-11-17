@@ -1,5 +1,45 @@
 # Change log
 
+## 0.3.0 — 2026-11-17
+
+This release adds generic candidate construction and a more informative
+Strata–agent research loop, while fixing the reports filed by v0.2 users.
+See [issue coverage](docs/V0.3-ISSUES.md), the [workflow guide](docs/V0.3-GUIDE.md),
+and [remaining research limits](docs/V0.3-RESEARCH-LIMITS.md).
+
+- Branch-parametric HMR and classical-control effects, explicitly clean resets,
+  CSWAP, phase-debt summaries, and a factored Boolean expression graph alongside
+  the bounded exact ANF oracle.
+- Finite-domain checks and interior queries with domain hashes, declared clean
+  inputs, operation/term budgets, and explicit whole-boundary output obligations.
+- Constructive joint-support encoders/decoders, clean phase-workspace elimination,
+  direct producer–consumer synthesis and multi-output bilinear decomposition.
+- Certified tensor flattening and bounded slice-substitution lower bounds, exact
+  small tensor search, and priced reversible lowering with dirty outputs restored.
+- Extensible construction rounds preserve verified nonwinning alternatives and
+  learn replay-checked native transformation templates; no remote AI is invoked.
+- Large-file discovery uses bounded Python windows and SQLite occurrence indexes,
+  groups wire-renamed kernels, reports progress and supports instruction ranges.
+- Native binary bundles, virtual-environment execution, configurable sandbox
+  resource limits, retained failed receipts, safe mathematical cost functions
+  and count-aware probability penalties.
+- Generic numeric research: content-addressed named arrays and trainable masks,
+  pinned calibrated scoring, cost-first pipelines, error budgets, shape prices,
+  measured experiment transfer, convergence models and exact small quadratic floors.
+- Restartable checkpoint jobs with frozen budgets/stop policies, safe portfolio
+  and bet accounting, and readiness-triggered local packaging/full verification.
+
+Historical automatic stage-recognition and no-hint winning-restructure benchmarks
+remain open. No official contest gain is claimed by this library release.
+
+Validation: **465 tests passed**, with separate real offline sandbox checks for
+binary bundles, virtual environments, checkpoint/resume and automatic local
+certification. A measured native benchmark built and simulated **1,000,000
+distinct small circuits in 595.85 seconds**, checking **256 million input
+trajectories**. Analysis-guided versus unguided decomposition experiments retain
+separate counts for algebraic specifications, native artifacts and proofs.
+See [the validation receipt](docs/V0.3-VALIDATION.json) for precise scope.
+
 ## 0.2.0 — 2026-11-17
 
 This release expands artifact/task integration, strengthens exact-lab and

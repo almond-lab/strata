@@ -14,6 +14,10 @@ from .component_lab import ComponentLab, BundleLab
 from .probability import ProbabilityPolicy
 from .frontends import OperationStream
 from .region_evidence import replay_region_evidence
+from .restructure import restructure_file, ConstructorRegistry
+from .numeric import NumericStudy, EvidenceValue, ResourceReceipt, error_budget, design_space, break_even_scale
+from .numeric_candidates import NumericCandidate, NumericScorer, NumericStage, NumericPipeline
+from .numeric_jobs import NumericJob, score_bets, certify_numeric_bet
 
 
 def open(path='strata.toml', adapters=None):

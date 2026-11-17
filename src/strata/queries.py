@@ -33,20 +33,23 @@ class Queries:
         task=self.project.task(design.record['task'])
         return task.parse_artifact(self.project.store.read_blob(design.record['artifact'])),design
 
-    def holders(self, design, peak):
+    def holders(self, design, peak, *, from_at=0, **limits):
         from .inference import functions_at
         circuit,design=self._circuit(design)
         if not hasattr(circuit,'num_qubits'):return dict(status='unknown',reason='select a circuit component for ownership queries')
         clean=[q for r in design.tree.contract.registers if r.role=='clean' for q in r.wires]
-        state=functions_at(circuit,peak,clean_inputs=clean)
+        state=functions_at(circuit,peak,from_at=from_at,clean_inputs=clean,**limits)
         if state['status']!='exact':return state
+        if 'functions' not in state:
+            return dict(status='unknown',reason='symbolic holder functions unavailable in finite-only analysis',
+                        scope=state['scope'],domain_hash=state.get('domain_hash'))
         names={q:f'{r.name}[{i}]' for r in design.tree.contract.registers for i,q in enumerate(r.wires)}
         holders=[]
         for q,poly in state['functions'].items():
-            variables=sorted({x for term in poly for x in term})
+            variables=sorted({x for term in poly for x in term},key=lambda x:(type(x).__name__,str(x)))
             original=next(iter(next(iter(poly)))) if len(poly)==1 and len(next(iter(poly)))==1 else None
             holders.append(dict(wire=q,input_object=names.get(original),depends_on=[names.get(x,f'q{x}') for x in variables],
-                                polynomial=[sorted(t) for t in sorted(poly,key=lambda t:(len(t),tuple(sorted(t))))],known_zero=not poly))
+                                polynomial=[sorted(t,key=str) for t in sorted(poly,key=lambda t:(len(t),tuple(sorted(map(str,t)))))],known_zero=not poly))
         return dict(status='exact_values',at=state['at'],holders=holders,scope=state['scope'],
                     allocation_ownership='unknown without allocation events; names describe inferred contents, not allocator objects')
 
@@ -63,7 +66,24 @@ class Queries:
         circuit,design=self._circuit(design)
         if not hasattr(circuit,'num_qubits'):return dict(status='unknown',reason='select a circuit component')
         clean=[q for r in design.tree.contract.registers if r.role=='clean' for q in r.wires]
-        return information_slack(circuit,at,wires=wires,clean_inputs=clean,**limits)
+        # Project contracts explicitly select their complete state boundary;
+        # file/window queries use the inference API's touched-wire default.
+        selected=range(circuit.num_qubits) if wires is None else wires
+        return information_slack(circuit,at,wires=selected,clean_inputs=clean,**limits)
+
+    def dependencies(self, design, at=None, **limits):
+        from .inference import discover_dependencies
+        circuit,design=self._circuit(design)
+        if not hasattr(circuit,'num_qubits'):return dict(status='unknown',reason='select a circuit component')
+        clean=[q for r in design.tree.contract.registers if r.role=='clean' for q in r.wires]
+        return discover_dependencies(circuit,at,clean_inputs=clean,**limits)
+
+    def compress(self, design, at=None, **limits):
+        from .inference import constructive_compression
+        circuit,design=self._circuit(design)
+        if not hasattr(circuit,'num_qubits'):return dict(status='unknown',reason='select a circuit component')
+        clean=[q for r in design.tree.contract.registers if r.role=='clean' for q in r.wires]
+        return constructive_compression(circuit,at,clean_inputs=clean,**limits)
 
     def research(self, design, hypotheses=None, policy=None, dependencies=()):
         from .research import ResearchRound

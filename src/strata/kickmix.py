@@ -13,10 +13,13 @@ META = {'REGISTER', 'APPEND_TO_REGISTER', 'INFO_TAG', 'DEBUG_PRINT'}
 
 
 def instructions(circuit):
-    for index, line in enumerate(str(circuit).splitlines()):
-        words = shlex.split(line)
-        if words:
-            yield index, line, words[0], tuple(int(x[1:]) for x in words[1:] if re.fullmatch(r'q\d+', x))
+    from .streaming import native_lines
+    with native_lines(circuit) as lines:
+        for index, raw in enumerate(lines):
+            line = raw.rstrip('\r\n')
+            words = shlex.split(line)
+            if words:
+                yield index, line, words[0], tuple(int(x[1:]) for x in words[1:] if re.fullmatch(r'q\d+', x))
 
 
 class Kickmix:
@@ -29,7 +32,7 @@ class Kickmix:
     def measured(self, circuit):
         s = circuit.operation_statistics()
         return dict(Q=circuit.num_qubits, toffoli=s.num_toffoli_like,
-                    t=s.num_t_like, rotations=sum(1 for _, _, op, _ in instructions(circuit) if op == 'Z_POW'),
+                    t=s.num_t_like, rotations=s['Z_POW'],
                     instructions=len(circuit), accounting='static_emitted',
                     reaction_depth=circuit.reaction_depth())
 

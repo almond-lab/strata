@@ -7,7 +7,10 @@ from dataclasses import dataclass, field, asdict
 from pathlib import Path
 import hashlib
 import inspect
-from .model import Region, StrataError, digest
+import json
+from functools import wraps
+from contextlib import contextmanager
+from .model import Region, StrataError, digest, canonical
 
 
 def artifact_bytes(frontend, artifact):
@@ -67,15 +70,108 @@ class FullArtifactLab:
     small_model: str = 'unavailable; full artifact checked at declared domain'
 
 
+class ExternalCheckError(StrataError):
+    """A rejected external outcome, explicitly separate from invalid evidence."""
+    def __init__(self, message, request, receipt=None, *, scope_valid=False, diagnostics=None):
+        super().__init__(message)
+        self.request = request
+        try:
+            self.receipt = json.loads(canonical(receipt)) if isinstance(receipt, CheckReceipt) else None
+        except (TypeError, ValueError):
+            self.receipt = None
+        self.scope_valid = scope_valid
+        self.diagnostics = diagnostics or {}
+
+
+@contextmanager
+def preserve_completed_check(project, frontend, artifact, parameters, domain, receipt):
+    """Keep a completed external receipt when later resource validation fails.
+
+Ingest has no Line yet, so also write a directly discoverable failure record.
+Legacy adapters without typed scoped receipts retain their existing behavior.
+"""
+    try:
+        yield
+    except StrataError as error:
+        required = {'stage','passed','artifact_hash','parameters_hash','domain_hash','scope'}
+        if not isinstance(receipt,dict) or not required<=receipt.keys():raise
+        request = CheckRequest(receipt['stage'],artifact,
+            hashlib.sha256(artifact_bytes(frontend,artifact)).hexdigest(),parameters,domain)
+        typed = CheckReceipt(**{name:receipt[name] for name in CheckReceipt.__dataclass_fields__ if name in receipt})
+        try:
+            validate_check(typed,request)
+        except ExternalCheckError as exc:
+            failure=exc
+        else:
+            failure=ExternalCheckError('completed external receipt rejected by resource validation: '+str(error),
+                                       request,typed,scope_valid=True)
+        failure.diagnostics.update(kind='postcheck_validation_failed', verifier_hash=receipt.get('verifier_hash'),
+            sandbox_limits=receipt.get('sandbox_limits'),runtime_environment=receipt.get('runtime_environment'))
+        content=artifact_bytes(frontend,artifact)
+        artifact_id=project.store.blob(content)
+        receipt_id=project.store.blob(canonical(receipt).encode())
+        record=project.store.put('external_check_failure',dict(stage=request.stage,passed=False,
+            artifact=artifact_id,receipt_artifact=receipt_id,receipt=receipt,error=str(error),
+            scope_valid=failure.scope_valid,kind='postcheck_validation_failed',
+            binding=dict(parameters=parameters,domain=domain,scope=request.scope)))
+        failure.diagnostics['failure_record']=record
+        raise failure from error
+
+
+def retain_external_failure(stage):
+    """Keep failed checks even when a Line gate raises to prevent promotion."""
+    def decorate(method):
+        @wraps(method)
+        def wrapped(line, *args, **kwargs):
+            try:
+                return method(line, *args, **kwargs)
+            except ExternalCheckError as exc:
+                request = exc.request
+                artifact = line.project.store.blob(artifact_bytes(line.task.frontend, request.artifact))
+                if artifact != request.artifact_hash:
+                    raise StrataError('failed check artifact changed after evaluation') from exc
+                outcome = dict(receipt=exc.receipt, diagnostics=exc.diagnostics,
+                               scope_valid=exc.scope_valid, error=str(exc))
+                receipt_blob = line.project.store.blob(json.dumps(outcome, sort_keys=True).encode())
+                rejection = exc.scope_valid and exc.receipt is not None and exc.receipt['passed'] is False
+                event = dict(stage=stage, passed=False, artifact=artifact,
+                             receipt_artifact=receipt_blob, receipt=exc.receipt,
+                             binding=dict(parameters=request.parameters, domain=request.domain,
+                                          scope=request.scope, contract=request.contract_hash),
+                             evidence_kind='measured_rejection' if rejection else 'postcheck_rejection' if exc.scope_valid else 'invalid_external_evidence',
+                             failure=dict(stage=request.stage, error=str(exc),
+                                          kind='verifier_rejection' if rejection else exc.diagnostics.get('kind','scope_or_receipt_invalid')),
+                             scope_valid=exc.scope_valid, diagnostics=exc.diagnostics)
+                line.project.store.event(line.id, event)
+                if rejection:
+                    for contract in line.patch.contracts:
+                        line.project.store.negative(contract, line.patch.move, 'build', event,
+                            'Reopen after changing the implementation or the failed verifier condition.',
+                            evidence=dict(artifact_hash=receipt_blob, checked_artifact=artifact))
+                raise
+        return wrapped
+    return decorate
+
+
 def validate_check(receipt, request):
     if not isinstance(receipt, CheckReceipt):
-        raise StrataError('external check must return a typed CheckReceipt')
+        raise ExternalCheckError('external check must return a typed CheckReceipt', request)
     expected = (request.stage, request.artifact_hash, digest(request.parameters), digest(request.domain), request.scope)
     actual = (receipt.stage, receipt.artifact_hash, receipt.parameters_hash, receipt.domain_hash, receipt.scope)
-    if actual != expected or receipt.passed is not True:
-        raise StrataError('external receipt failed or has a different artifact/domain/parameter scope')
+    if actual != expected:
+        raise ExternalCheckError('external receipt scope/hash mismatch; not a measured rejection', request, receipt)
+    if type(receipt.passed) is not bool:
+        raise ExternalCheckError('external receipt passed must be boolean', request, receipt)
     if not isinstance(receipt.resources, dict) or not isinstance(receipt.details, dict):
-        raise StrataError('external receipt needs structured resources and details')
+        raise ExternalCheckError('external receipt needs structured resources and details', request, receipt)
+    try:
+        digest(asdict(receipt))
+    except (TypeError, ValueError, StrataError) as exc:
+        raise ExternalCheckError('external receipt is not canonical structured data', request) from exc
+    if receipt.passed is False:
+        excerpt = canonical(receipt.details)[:1200]
+        raise ExternalCheckError('external receipt failed (passed=false, scope valid): ' + excerpt,
+                                 request, receipt, scope_valid=True)
     return receipt
 
 
@@ -166,7 +262,12 @@ class CallbackAdapter:
     def _check(self, name, artifact, parameters, domain, contract_hash=None):
         stage = {'oracle': 'oracle_full', 'verify': 'official_verifier', 'measure': 'build_price', 'lab': 'lab'}[name]
         request = CheckRequest(stage, artifact, hashlib.sha256(artifact_bytes(self.frontend, artifact)).hexdigest(), parameters, domain, contract_hash=contract_hash)
-        receipt = validate_check(self.callbacks[name](request), request)
+        receipt = self.callbacks[name](request)
+        try:
+            validate_check(receipt, request)
+        except ExternalCheckError as exc:
+            exc.diagnostics['verifier_hash'] = self.callbacks[name].identity_hash()
+            raise
         result = asdict(receipt)
         result['verifier_hash'] = self.callbacks[name].identity_hash()
         result['seeds'] = receipt.details.get('seeds', [])

@@ -2,7 +2,7 @@
 from dataclasses import dataclass
 from math import isfinite, fsum
 from .model import StrataError,digest
-from .cost import Formula
+from .cost import Formula, ContextFunction
 
 
 @dataclass(frozen=True)
@@ -35,7 +35,9 @@ class ProbabilityPolicy:
     def cost_functions(self):
         if self.penalty is None:return {}
         penalty=Formula(self.penalty)
-        return {'R':lambda p:penalty({self.failure_resource:p,'fail_rate':p})}
+        # Preserve the v0.2 R(rate) API while making counts, shots and any
+        # verifier-supplied confidence bound available to the penalty.
+        return {'R':ContextFunction(lambda values,p:penalty({**values,self.failure_resource:p,'fail_rate':p}))}
 
     def validate_selection(self,receipt):
         if not isinstance(receipt,dict):raise StrataError('probability policy requires a draw receipt')
@@ -51,14 +53,33 @@ class ProbabilityPolicy:
         if not isinstance(draws,list) or [d.get('seed') for d in draws]!=list(self.seeds):
             raise StrataError('one ordered receipt required for every precommitted draw')
         formula=Formula(formula,self.cost_functions()) if isinstance(formula,str) else formula
-        costs=[];failures=[]
+        costs=[];failures=[];failure_inputs=[]
         for draw in draws:
             resources=draw.get('resources',{})
             failure=resources.get(self.failure_resource)
             if type(failure) not in (int,float) or not isfinite(failure) or not 0<=failure<=1:
                 raise StrataError('draw lacks a valid measured failure rate')
+            count,shots=resources.get('fail_count'),resources.get('shots')
+            if count is not None or shots is not None:
+                if type(count) is not int or type(shots) is not int or shots<=0 or not 0<=count<=shots:
+                    raise StrataError('failure counts require integer fail_count and positive shots')
+                if abs(failure-count/shots)>1e-12:
+                    raise StrataError('empirical failure rate disagrees with fail_count/shots')
+            bounds=draw.get('confidence_bounds',{})
+            if not isinstance(bounds,dict):raise StrataError('confidence bounds must be structured metadata')
+            for name,bound in bounds.items():
+                value=resources.get(name)
+                if (type(value) not in (int,float) or not isfinite(value) or not 0<=value<=1
+                    or not isinstance(bound,dict) or bound.get('kind')!='upper'
+                    or not isinstance(bound.get('method'),str) or not bound['method']
+                    or type(bound.get('confidence')) not in (int,float) or not 0<bound['confidence']<1
+                    or count is None or bound.get('fail_count')!=count or bound.get('shots')!=shots
+                    or value+1e-12<failure):
+                    raise StrataError('invalid verifier-supplied confidence bound')
             failures.append(failure)
             costs.append(formula(resources))
+            failure_inputs.append(dict(empirical_rate=failure,fail_count=count,shots=shots,
+                confidence_bounds={name:dict(value=resources[name],**bound,authority='verifier supplied; not recomputed by Strata') for name,bound in bounds.items()}))
         weights=self.weights or (1.0,)*len(draws)
         # Normalize before summation: individually finite weights can have an
         # infinite sum, which would erase both cost and failure probability.
@@ -79,6 +100,8 @@ class ProbabilityPolicy:
                     per_draw_cost=costs,mean_failure=mean_failure,checked_failure=checked_failure,
                     seeds=list(self.seeds),weights=list(weights),evidence_kind='measured_precommitted_draws',
                     uncertainty='finite draw estimate; not an exact population expectation',
+                    failure_inputs=failure_inputs,penalty=self.penalty,
+                    penalty_inputs='per-draw resources; confidence bounds are verifier supplied',
                     formula=formula.expression)
 
 

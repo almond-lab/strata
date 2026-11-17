@@ -2,3 +2,5 @@ include README.md CHANGELOG.md
 recursive-include docs *.md *.json
 recursive-include skills *.md
 recursive-include examples *.toml *.kmx
+recursive-include scripts *.py
+recursive-include tests *.py

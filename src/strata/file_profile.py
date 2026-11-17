@@ -177,7 +177,7 @@ def profile_regions(circuit, lift_report, out, formula='Q*(toffoli+t/4)', max_gr
         phase = semantics['phase']
         phase_context = dict(within_region='exact_sign_polynomial',
                              term_count=phase['term_count'], degree=phase['degree'],
-                             input_dependencies=sorted({q for term in phase['monomials'] for q in term}),
+                             input_dependencies=sorted({q for term in phase['monomials'] for q in term}, key=lambda value:(isinstance(value,str),str(value))),
                              adjacent_opaque_barriers=adjacent,
                              cross_boundary='unresolved_opaque_context' if adjacent else 'not_inferred_from_local_semantics')
         region_trace = [trace[i] for i in range(start, stop) if i in trace]

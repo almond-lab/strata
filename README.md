@@ -1,18 +1,24 @@
 # Strata
 
-**Contract-driven circuit restructuring on kickmix.** Strata 0.2 retains circuit
-and numeric artifacts, tests changes against explicit contracts, and records why
-research attempts succeeded, failed or remain open. Automatic understanding of a
+**Contract-driven circuit restructuring on kickmix.** Strata 0.3 recovers bounded
+semantic functions and effects, constructs candidates through generic mechanisms,
+and retains checked alternatives and reusable transformations. The connected agent
+uses its evidence to propose further structural changes. Automatic understanding of a
 supplied circuit is a required core capability; broad arithmetic-stage recovery
 and the historical discovery benchmarks remain incomplete.
 
 The [product specification](docs/SPECIFICATION.md) is preserved verbatim.
 The [acceptance ledger](docs/ACCEPTANCE.md) separates implemented APIs from
-unmet research milestones. See [v0.2 issue coverage](docs/V0.2-ISSUES.md) and
+unmet research milestones. See [v0.3 issue coverage](docs/V0.3-ISSUES.md) and
 [release changes](CHANGELOG.md).
 
 ## Documentation
 
+- [v0.3 workflow and examples](docs/V0.3-GUIDE.md): the Strata–agent loop, construction search, finite domains and bounded scans.
+- [v0.3 research limits](docs/V0.3-RESEARCH-LIMITS.md): verified capabilities versus remaining research.
+- [Candidate benchmarks](docs/V0.3-CANDIDATE-BENCHMARK.md): million-scale native execution and analysis-guided versus unguided proposals, with separate counts and scope.
+- [Numeric candidates and pipelines](docs/V0.3-NUMERIC-CANDIDATES.md): common array format, calibrated scoring, gradients and reusable fitting/rounding stages.
+- [Numeric studies](docs/V0.3-NUMERIC-STUDIES.md), [models](docs/V0.3-NUMERIC-MODELS.md), and [checkpointed jobs](docs/V0.3-NUMERIC-JOBS.md): error budgets, shape prices, uncertainty, bounds, experiment sharing and safe-candidate/bet accounting.
 - [Getting started](docs/GETTING-STARTED.md): installation, file discovery, a verified change and saved reports.
 - [Circuit-file workflow](docs/FILE-FIRST.md): inferred functions, native profiles and checked replacements.
 - [Agent discovery loop](docs/AGENT-DISCOVERY.md): evidence-driven hypotheses, candidate evaluation and prebuild notes.
@@ -33,6 +39,7 @@ python3.14 -m venv .venv
 .venv/bin/strata inspect-file circuit.kmb --out work/inspection
 .venv/bin/strata discover circuit.kmb --out work/research
 .venv/bin/strata optimize circuit.kmb --out work/automatic --cost 'Q*(toffoli+t/4)'
+.venv/bin/strata restructure episode.kmb --out work/construct --rounds 2
 ```
 
 No adapter, project file or suggested replacement is needed for the file
@@ -42,7 +49,42 @@ removal. Unsupported semantics stay opaque. `discover` supplies evidence to the
 connected agent, which follows the skill to originate hypotheses and construct
 candidates. A standalone CLI call does not invoke an AI provider.
 
-## What 0.2 adds
+## What 0.3 adds
+
+- Numeric artifacts as research objects: hashed named arrays, explicit units and
+  trainable masks, lineage, pinned/calibrated scorers and priced stage pipelines.
+- Error-budget attribution, discrete shape pricing, compatible experiment transfer,
+  convergence bands, scoped quadratic rounding floors and sensitivity maps.
+- Checkpoint/resume jobs with predeclared observed stop rules, bounded offline
+  workers, safe-portfolio/bet comparisons and independent verification on readiness.
+- Exact bounded Boolean effects for CSWAP, classical controls, HMR outcome
+  variables, conditional phase repairs and resets with proved or declared clean inputs.
+- Interior-window and finite-promised-domain queries with explicit scope and
+  hashes; constructive reversible compression witnesses and phase-only synthesis.
+- Generic constructor registry, complete-boundary candidate checks, retained
+  nonwinning intermediate representations, Pareto records, and learned native
+  transformations whose preconditions and equivalence are checked on reuse.
+- Bilinear tensor extraction, flattening and certified slice-substitution bounds,
+  bounded decomposition search and reversible lowering. These rank bounds have
+  an explicit bilinear model; they are not unrestricted quantum resource floors.
+- Disk-backed repeated-kernel indexing, bounded Python windows, progress output
+  and range scans. The SDK still loads one native circuit and spools canonical text.
+- Binary bundle circuits, preserved virtual environments, configurable sandbox
+  budgets, retained rejected receipts and count-aware probability objectives.
+
+The [500,000-line synthetic benchmark](docs/V0.3-STREAMING-BENCHMARK.json)
+took 20.8 seconds with approximately 63 MB process peak RSS in the release
+environment. Different semantics, unique kernels, term budgets and native input
+sizes change runtime and memory; a full 50-million-instruction host circuit was
+not benchmarked for this release.
+
+The separate [native candidate benchmark](docs/V0.3-NATIVE-CANDIDATE-BENCHMARK.json)
+actually built and simulated **1,000,000 distinct small circuits in 595.85 seconds**,
+checking all 256 input assignments per candidate. The [guided search comparison](docs/V0.3-CANDIDATE-BENCHMARK.md)
+shows how recovered tensor constraints avoid most invalid proposals. This is
+bounded component search, not million-candidate throughput for full host circuits.
+
+## Included from 0.2
 
 - Task-specific frontends, multi-file bundles, numeric data and frozen opaque
   components through the ordinary Line/build/verify/replay pipeline.

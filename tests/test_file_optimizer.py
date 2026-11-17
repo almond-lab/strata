@@ -82,7 +82,7 @@ def test_static_objective_is_required_to_decrease():
 
 def test_disjoint_substitutions_keep_opaque_and_metadata_boundaries():
     first = 'CCX q0 q1 q2\nCX q2 q3\nCCX q0 q1 q2'
-    barrier = 'INFO_TAG "barrier"\nHMR q4 b0\nCZ q1 q3 if b0'
+    barrier = 'INFO_TAG "barrier"\nZ_POW q4 0.25'
     original = km.Circuit(first + '\n' + barrier + '\n' + first)
     candidate, report = optimize_circuit(original)
     accepted = [row for row in report['regions'] if row['status'] == 'accepted']
@@ -90,7 +90,7 @@ def test_disjoint_substitutions_keep_opaque_and_metadata_boundaries():
     assert barrier in str(candidate)
     assert verify_optimization(original, candidate, report)['equivalent'] is True
     assert report['checks']['checked_regions'] == 2
-    corrupted = km.Circuit(str(candidate).replace('CZ q1 q3 if b0', 'CZ q0 q3 if b0'))
+    corrupted = km.Circuit(str(candidate).replace('Z_POW q4 0.25', 'Z_POW q4 0.5'))
     forged = deepcopy(report)
     forged['candidate']['sha256'] = hashlib.sha256(str(corrupted).encode()).hexdigest()
     assert verify_optimization(original, corrupted, forged)['reason'] == 'outside_region_changed'

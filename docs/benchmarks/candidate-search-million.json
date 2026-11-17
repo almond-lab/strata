@@ -1,0 +1,3521 @@
+{
+  "experiment": "bounded four-product bilinear candidate search",
+  "runs": [
+    {
+      "case": "development",
+      "instance": {
+        "seed": 8021,
+        "shape": [
+          3,
+          3,
+          2
+        ],
+        "source_native": "CCX q0 q3 q7\nCCX q0 q4 q7\nCCX q0 q5 q7\nCCX q1 q3 q7\nCCX q1 q4 q6\nCCX q1 q5 q6\nCCX q2 q5 q6",
+        "source_sha256": "ed8aec0920c5644985a5331290c61f87823e80d54a781bf30641fff29219d8ac",
+        "generating_witness_exposed_to_search": false,
+        "semantic_contract_hash": "e2a1847600ea7becc2bd2394c359f73460a90626c7a8e138c25a19f0d668e321"
+      },
+      "schema_version": "1",
+      "kind": "bounded_bilinear_candidate_search",
+      "strategy": "random",
+      "seed": 8112,
+      "tensor_hash": "ce8935f998dab4b36aae9cff343f08f3a826c85a566ec8ab2849940ff77f8110",
+      "tensor_shape": [
+        3,
+        3,
+        2
+      ],
+      "tensor": {
+        "format": "strata.gf2_bilinear_tensor.v1",
+        "left": [
+          0,
+          1,
+          2
+        ],
+        "right": [
+          3,
+          4,
+          5
+        ],
+        "outputs": [
+          "6",
+          "7"
+        ],
+        "output_wires": [
+          6,
+          7
+        ],
+        "shape": [
+          3,
+          3,
+          2
+        ],
+        "entries": [
+          [
+            0,
+            0,
+            1
+          ],
+          [
+            0,
+            1,
+            1
+          ],
+          [
+            0,
+            2,
+            1
+          ],
+          [
+            1,
+            0,
+            1
+          ],
+          [
+            1,
+            1,
+            0
+          ],
+          [
+            1,
+            2,
+            0
+          ],
+          [
+            2,
+            2,
+            0
+          ]
+        ],
+        "affine": [
+          [],
+          []
+        ],
+        "model": "GF(2) bilinear algorithms: left-linear times right-linear products; free XOR fanout",
+        "tensor_hash": "ce8935f998dab4b36aae9cff343f08f3a826c85a566ec8ab2849940ff77f8110"
+      },
+      "bounds": {
+        "kind": "proof",
+        "resource": "bilinear_products",
+        "shape": [
+          3,
+          3,
+          2
+        ],
+        "flattening_ranks": {
+          "left": 3,
+          "right": 3,
+          "output": 2
+        },
+        "value": 3,
+        "model": "GF(2) bilinear algorithms: left-linear times right-linear products; free XOR fanout",
+        "scope": "the supplied fixed-size tensor and declared input bipartition; not a general AND or quantum-cost floor",
+        "tensor_hash": "ce8935f998dab4b36aae9cff343f08f3a826c85a566ec8ab2849940ff77f8110",
+        "reasoning": "Each rank-one tensor contributes matrix rank at most one in every flattening.",
+        "quadratic": {
+          "kind": "proof",
+          "resource": "quadratic_products",
+          "value": 2,
+          "per_output": [
+            {
+              "alternating_rank": 4,
+              "value": 2,
+              "inputs": [
+                1,
+                2,
+                4,
+                5
+              ]
+            },
+            {
+              "alternating_rank": 4,
+              "value": 2,
+              "inputs": [
+                0,
+                1,
+                3,
+                4,
+                5
+              ]
+            }
+          ],
+          "aggregation": "maximum, not sum; products may be shared",
+          "model": "quadratic forms over GF(2), expressed as sums of products of affine linear forms",
+          "scope": "supplied fixed-size scalar output forms; no reversible-cleanup or measurement cost claim",
+          "contract_hash": "d103daf8ffff71990ee0b143069876baec3de5da1e1109f3354fea5a1dab6f3b"
+        },
+        "substitution_bound": {
+          "kind": "proof",
+          "value": 3,
+          "per_mode": {
+            "left": {
+              "status": "proved",
+              "slice_space_dimension": 3,
+              "minimum_nonzero_rank": 1,
+              "observed_minimum_rank": 1,
+              "combinations_checked": 1,
+              "total_nonzero_combinations": 7,
+              "value": 3,
+              "reason": "nonzero slice of rank one matches the universal minrank lower bound"
+            },
+            "right": {
+              "status": "proved",
+              "slice_space_dimension": 3,
+              "minimum_nonzero_rank": 1,
+              "observed_minimum_rank": 1,
+              "combinations_checked": 1,
+              "total_nonzero_combinations": 7,
+              "value": 3,
+              "reason": "nonzero slice of rank one matches the universal minrank lower bound"
+            },
+            "output": {
+              "status": "proved",
+              "slice_space_dimension": 2,
+              "minimum_nonzero_rank": 2,
+              "observed_minimum_rank": 2,
+              "combinations_checked": 3,
+              "total_nonzero_combinations": 3,
+              "value": 3,
+              "reason": "complete nonzero slice-space enumeration"
+            }
+          },
+          "model": "GF(2) bilinear algorithms: left-linear times right-linear products; free XOR fanout",
+          "scope": "the supplied fixed-size tensor and declared input bipartition; not a general AND or quantum-cost floor",
+          "formula": "slice_space_dimension - 1 + minimum_nonzero_slice_rank",
+          "reasoning": "Annihilate d-1 independent factors in a rank-r decomposition; a nonzero residual slice has matrix rank at most r-d+1.",
+          "limits": {
+            "max_combinations": 4095,
+            "timeout": 1.0
+          },
+          "combinations_checked": 5
+        }
+      },
+      "family": {
+        "products": 4,
+        "atoms": 147,
+        "distinct_specifications": 18671940,
+        "identity": "unordered set of four distinct rank-one products; no repeated factors or ordering duplicates"
+      },
+      "selection": "uniform_without_replacement",
+      "counts": {
+        "candidate_budget": 1000000,
+        "unique_complete_specifications_screened": 1000000,
+        "exact_coefficient_survivors": 4,
+        "partial_search": {},
+        "specifications_materialized": 4,
+        "unique_native_artifacts": 4,
+        "materialized_program_duplicates": 0,
+        "native_candidates_checked": 4,
+        "native_input_shots": 1024,
+        "final_exact_proofs": 4
+      },
+      "timings_seconds": {
+        "analysis": 0.0015207089018076658,
+        "proposal": 0.21397985494695604,
+        "combination_unranking": 0.1706954080145806,
+        "coefficient_screen": 0.049484745133668184,
+        "materialization": 0.0063225028570741415,
+        "native_replay": 0.001522348029538989,
+        "final_exact_proof": 0.007933515822514892,
+        "total": 0.45348975085653365
+      },
+      "baseline": {
+        "resources": {
+          "Q": 8,
+          "toffoli": 7,
+          "t": 0,
+          "rotations": 0,
+          "instructions": 7,
+          "accounting": "static_emitted",
+          "reaction_depth": 1
+        },
+        "cost": 56,
+        "native": "CCX q0 q3 q7\nCCX q0 q4 q7\nCCX q0 q5 q7\nCCX q1 q3 q7\nCCX q1 q4 q6\nCCX q1 q5 q6\nCCX q2 q5 q6"
+      },
+      "native_validation": {
+        "status": "verified",
+        "distinct_candidates": 4,
+        "shots": 1024,
+        "input_assignments_per_candidate": 256,
+        "quantum_width": 10,
+        "public_input_wires": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "clean_helper_inputs": [
+          8,
+          9
+        ],
+        "method": "one native kickmix selector batch; all public and dirty-output assignments; exact sign and helper restoration",
+        "baseline_native_shots": 256,
+        "checks": [
+          {
+            "candidate_index": 6675150,
+            "passed": true
+          },
+          {
+            "candidate_index": 1065302,
+            "passed": true
+          },
+          {
+            "candidate_index": 1214690,
+            "passed": true
+          },
+          {
+            "candidate_index": 13252357,
+            "passed": true
+          }
+        ]
+      },
+      "best": {
+        "candidate_index": 6675150,
+        "specification": [
+          19,
+          22,
+          24,
+          114
+        ],
+        "decomposition": [
+          {
+            "left_mask": 1,
+            "right_mask": 7,
+            "output_mask": 2
+          },
+          {
+            "left_mask": 2,
+            "right_mask": 1,
+            "output_mask": 2
+          },
+          {
+            "left_mask": 2,
+            "right_mask": 2,
+            "output_mask": 1
+          },
+          {
+            "left_mask": 6,
+            "right_mask": 4,
+            "output_mask": 1
+          }
+        ],
+        "artifact_sha256": "19cdd4af624cb7ee10d0cf20dc3815a139eefd7980c58095efdf105f6807e3fc",
+        "native_text": "CX q3 q9\nCX q4 q9\nCX q5 q9\nCCX q0 q9 q7\nCX q5 q9\nCX q4 q9\nCX q3 q9\nCCX q1 q3 q7\nCCX q1 q4 q6\nCX q1 q8\nCX q2 q8\nCCX q8 q5 q6\nCX q2 q8\nCX q1 q8",
+        "resources": {
+          "Q": 10,
+          "toffoli": 4,
+          "t": 0,
+          "rotations": 0,
+          "instructions": 14,
+          "accounting": "static_emitted",
+          "reaction_depth": 1
+        },
+        "cost": 40,
+        "exact_verification": {
+          "status": "equivalent",
+          "equivalent": true,
+          "differing_wires": [],
+          "differing_classical_bits": [],
+          "phase_equal": true,
+          "inputs": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9
+          ],
+          "classical_inputs": [],
+          "measurement_variables": [],
+          "clean_input_assumptions": [
+            8,
+            9
+          ],
+          "evidence": "canonical_boolean_anf_equality_with_exact_sign_phase",
+          "semantic_scope": "native_outcome_parametric_basis_trajectories",
+          "assumptions": "explicit zero boundary wires: [8, 9]; all other boundary values arbitrary"
+        }
+      },
+      "verified_candidates": [
+        {
+          "candidate_index": 6675150,
+          "specification": [
+            19,
+            22,
+            24,
+            114
+          ],
+          "decomposition": [
+            {
+              "left_mask": 1,
+              "right_mask": 7,
+              "output_mask": 2
+            },
+            {
+              "left_mask": 2,
+              "right_mask": 1,
+              "output_mask": 2
+            },
+            {
+              "left_mask": 2,
+              "right_mask": 2,
+              "output_mask": 1
+            },
+            {
+              "left_mask": 6,
+              "right_mask": 4,
+              "output_mask": 1
+            }
+          ],
+          "artifact_sha256": "19cdd4af624cb7ee10d0cf20dc3815a139eefd7980c58095efdf105f6807e3fc",
+          "native_text": "CX q3 q9\nCX q4 q9\nCX q5 q9\nCCX q0 q9 q7\nCX q5 q9\nCX q4 q9\nCX q3 q9\nCCX q1 q3 q7\nCCX q1 q4 q6\nCX q1 q8\nCX q2 q8\nCCX q8 q5 q6\nCX q2 q8\nCX q1 q8",
+          "resources": {
+            "Q": 10,
+            "toffoli": 4,
+            "t": 0,
+            "rotations": 0,
+            "instructions": 14,
+            "accounting": "static_emitted",
+            "reaction_depth": 1
+          },
+          "cost": 40,
+          "exact_verification": {
+            "status": "equivalent",
+            "equivalent": true,
+            "differing_wires": [],
+            "differing_classical_bits": [],
+            "phase_equal": true,
+            "inputs": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9
+            ],
+            "classical_inputs": [],
+            "measurement_variables": [],
+            "clean_input_assumptions": [
+              8,
+              9
+            ],
+            "evidence": "canonical_boolean_anf_equality_with_exact_sign_phase",
+            "semantic_scope": "native_outcome_parametric_basis_trajectories",
+            "assumptions": "explicit zero boundary wires: [8, 9]; all other boundary values arbitrary"
+          }
+        },
+        {
+          "candidate_index": 1065302,
+          "specification": [
+            26,
+            32,
+            61,
+            72
+          ],
+          "decomposition": [
+            {
+              "left_mask": 2,
+              "right_mask": 2,
+              "output_mask": 3
+            },
+            {
+              "left_mask": 2,
+              "right_mask": 4,
+              "output_mask": 3
+            },
+            {
+              "left_mask": 3,
+              "right_mask": 7,
+              "output_mask": 2
+            },
+            {
+              "left_mask": 4,
+              "right_mask": 4,
+              "output_mask": 1
+            }
+          ],
+          "artifact_sha256": "f58b1405d3746828edc5523ce14b0ab5bba0dbc2f80cb136e5fa59ff2ee7fc75",
+          "native_text": "CX q6 q7\nCCX q1 q4 q6\nCX q6 q7\nCX q6 q7\nCCX q1 q5 q6\nCX q6 q7\nCX q0 q8\nCX q1 q8\nCX q3 q9\nCX q4 q9\nCX q5 q9\nCCX q8 q9 q7\nCX q5 q9\nCX q4 q9\nCX q3 q9\nCX q1 q8\nCX q0 q8\nCCX q2 q5 q6",
+          "resources": {
+            "Q": 10,
+            "toffoli": 4,
+            "t": 0,
+            "rotations": 0,
+            "instructions": 18,
+            "accounting": "static_emitted",
+            "reaction_depth": 1
+          },
+          "cost": 40,
+          "exact_verification": {
+            "status": "equivalent",
+            "equivalent": true,
+            "differing_wires": [],
+            "differing_classical_bits": [],
+            "phase_equal": true,
+            "inputs": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9
+            ],
+            "classical_inputs": [],
+            "measurement_variables": [],
+            "clean_input_assumptions": [
+              8,
+              9
+            ],
+            "evidence": "canonical_boolean_anf_equality_with_exact_sign_phase",
+            "semantic_scope": "native_outcome_parametric_basis_trajectories",
+            "assumptions": "explicit zero boundary wires: [8, 9]; all other boundary values arbitrary"
+          }
+        },
+        {
+          "candidate_index": 1214690,
+          "specification": [
+            38,
+            61,
+            73,
+            74
+          ],
+          "decomposition": [
+            {
+              "left_mask": 2,
+              "right_mask": 6,
+              "output_mask": 3
+            },
+            {
+              "left_mask": 3,
+              "right_mask": 7,
+              "output_mask": 2
+            },
+            {
+              "left_mask": 4,
+              "right_mask": 4,
+              "output_mask": 2
+            },
+            {
+              "left_mask": 4,
+              "right_mask": 4,
+              "output_mask": 3
+            }
+          ],
+          "artifact_sha256": "a233d77e969ae4d748e00eecbad9c38523a8342dcc0d0816d2a862115b824f06",
+          "native_text": "CX q4 q9\nCX q5 q9\nCX q6 q7\nCCX q1 q9 q6\nCX q6 q7\nCX q5 q9\nCX q4 q9\nCX q0 q8\nCX q1 q8\nCX q3 q9\nCX q4 q9\nCX q5 q9\nCCX q8 q9 q7\nCX q5 q9\nCX q4 q9\nCX q3 q9\nCX q1 q8\nCX q0 q8\nCCX q2 q5 q7\nCX q6 q7\nCCX q2 q5 q6\nCX q6 q7",
+          "resources": {
+            "Q": 10,
+            "toffoli": 4,
+            "t": 0,
+            "rotations": 0,
+            "instructions": 22,
+            "accounting": "static_emitted",
+            "reaction_depth": 1
+          },
+          "cost": 40,
+          "exact_verification": {
+            "status": "equivalent",
+            "equivalent": true,
+            "differing_wires": [],
+            "differing_classical_bits": [],
+            "phase_equal": true,
+            "inputs": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9
+            ],
+            "classical_inputs": [],
+            "measurement_variables": [],
+            "clean_input_assumptions": [
+              8,
+              9
+            ],
+            "evidence": "canonical_boolean_anf_equality_with_exact_sign_phase",
+            "semantic_scope": "native_outcome_parametric_basis_trajectories",
+            "assumptions": "explicit zero boundary wires: [8, 9]; all other boundary values arbitrary"
+          }
+        },
+        {
+          "candidate_index": 13252357,
+          "specification": [
+            17,
+            47,
+            49,
+            135
+          ],
+          "decomposition": [
+            {
+              "left_mask": 1,
+              "right_mask": 6,
+              "output_mask": 3
+            },
+            {
+              "left_mask": 3,
+              "right_mask": 2,
+              "output_mask": 3
+            },
+            {
+              "left_mask": 3,
+              "right_mask": 3,
+              "output_mask": 2
+            },
+            {
+              "left_mask": 7,
+              "right_mask": 4,
+              "output_mask": 1
+            }
+          ],
+          "artifact_sha256": "55225fb1e0cb1829110fd35540bd05cf7a364eea210be103cb886c4fe5702f02",
+          "native_text": "CX q4 q9\nCX q5 q9\nCX q6 q7\nCCX q0 q9 q6\nCX q6 q7\nCX q5 q9\nCX q4 q9\nCX q0 q8\nCX q1 q8\nCX q6 q7\nCCX q8 q4 q6\nCX q6 q7\nCX q1 q8\nCX q0 q8\nCX q0 q8\nCX q1 q8\nCX q3 q9\nCX q4 q9\nCCX q8 q9 q7\nCX q4 q9\nCX q3 q9\nCX q1 q8\nCX q0 q8\nCX q0 q8\nCX q1 q8\nCX q2 q8\nCCX q8 q5 q6\nCX q2 q8\nCX q1 q8\nCX q0 q8",
+          "resources": {
+            "Q": 10,
+            "toffoli": 4,
+            "t": 0,
+            "rotations": 0,
+            "instructions": 30,
+            "accounting": "static_emitted",
+            "reaction_depth": 1
+          },
+          "cost": 40,
+          "exact_verification": {
+            "status": "equivalent",
+            "equivalent": true,
+            "differing_wires": [],
+            "differing_classical_bits": [],
+            "phase_equal": true,
+            "inputs": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9
+            ],
+            "classical_inputs": [],
+            "measurement_variables": [],
+            "clean_input_assumptions": [
+              8,
+              9
+            ],
+            "evidence": "canonical_boolean_anf_equality_with_exact_sign_phase",
+            "semantic_scope": "native_outcome_parametric_basis_trajectories",
+            "assumptions": "explicit zero boundary wires: [8, 9]; all other boundary values arbitrary"
+          }
+        }
+      ],
+      "accepted_gain": 16,
+      "objective": {
+        "expression": "Q*toffoli",
+        "accounting": "emitted native circuit; two clean helper wires priced when used"
+      },
+      "limits": {
+        "batch_size": 65536,
+        "materialization_limit": 128,
+        "native_limit": 8
+      },
+      "interpretation": "restricted algebraic solver experiment; guided precision is not an unbiased success probability; equal candidate caps do not imply equal computation",
+      "forced_measurement_events": 0,
+      "native_scope": "every public/dirty output assignment and zero declared helpers; complete outputs and exact sign; not a host-task certificate"
+    },
+    {
+      "case": "development",
+      "instance": {
+        "seed": 8021,
+        "shape": [
+          3,
+          3,
+          2
+        ],
+        "source_native": "CCX q0 q3 q7\nCCX q0 q4 q7\nCCX q0 q5 q7\nCCX q1 q3 q7\nCCX q1 q4 q6\nCCX q1 q5 q6\nCCX q2 q5 q6",
+        "source_sha256": "ed8aec0920c5644985a5331290c61f87823e80d54a781bf30641fff29219d8ac",
+        "generating_witness_exposed_to_search": false,
+        "semantic_contract_hash": "e2a1847600ea7becc2bd2394c359f73460a90626c7a8e138c25a19f0d668e321"
+      },
+      "schema_version": "1",
+      "kind": "bounded_bilinear_candidate_search",
+      "strategy": "guided",
+      "seed": 8112,
+      "tensor_hash": "ce8935f998dab4b36aae9cff343f08f3a826c85a566ec8ab2849940ff77f8110",
+      "tensor_shape": [
+        3,
+        3,
+        2
+      ],
+      "tensor": {
+        "format": "strata.gf2_bilinear_tensor.v1",
+        "left": [
+          0,
+          1,
+          2
+        ],
+        "right": [
+          3,
+          4,
+          5
+        ],
+        "outputs": [
+          "6",
+          "7"
+        ],
+        "output_wires": [
+          6,
+          7
+        ],
+        "shape": [
+          3,
+          3,
+          2
+        ],
+        "entries": [
+          [
+            0,
+            0,
+            1
+          ],
+          [
+            0,
+            1,
+            1
+          ],
+          [
+            0,
+            2,
+            1
+          ],
+          [
+            1,
+            0,
+            1
+          ],
+          [
+            1,
+            1,
+            0
+          ],
+          [
+            1,
+            2,
+            0
+          ],
+          [
+            2,
+            2,
+            0
+          ]
+        ],
+        "affine": [
+          [],
+          []
+        ],
+        "model": "GF(2) bilinear algorithms: left-linear times right-linear products; free XOR fanout",
+        "tensor_hash": "ce8935f998dab4b36aae9cff343f08f3a826c85a566ec8ab2849940ff77f8110"
+      },
+      "bounds": {
+        "kind": "proof",
+        "resource": "bilinear_products",
+        "shape": [
+          3,
+          3,
+          2
+        ],
+        "flattening_ranks": {
+          "left": 3,
+          "right": 3,
+          "output": 2
+        },
+        "value": 3,
+        "model": "GF(2) bilinear algorithms: left-linear times right-linear products; free XOR fanout",
+        "scope": "the supplied fixed-size tensor and declared input bipartition; not a general AND or quantum-cost floor",
+        "tensor_hash": "ce8935f998dab4b36aae9cff343f08f3a826c85a566ec8ab2849940ff77f8110",
+        "reasoning": "Each rank-one tensor contributes matrix rank at most one in every flattening.",
+        "quadratic": {
+          "kind": "proof",
+          "resource": "quadratic_products",
+          "value": 2,
+          "per_output": [
+            {
+              "alternating_rank": 4,
+              "value": 2,
+              "inputs": [
+                1,
+                2,
+                4,
+                5
+              ]
+            },
+            {
+              "alternating_rank": 4,
+              "value": 2,
+              "inputs": [
+                0,
+                1,
+                3,
+                4,
+                5
+              ]
+            }
+          ],
+          "aggregation": "maximum, not sum; products may be shared",
+          "model": "quadratic forms over GF(2), expressed as sums of products of affine linear forms",
+          "scope": "supplied fixed-size scalar output forms; no reversible-cleanup or measurement cost claim",
+          "contract_hash": "d103daf8ffff71990ee0b143069876baec3de5da1e1109f3354fea5a1dab6f3b"
+        },
+        "substitution_bound": {
+          "kind": "proof",
+          "value": 3,
+          "per_mode": {
+            "left": {
+              "status": "proved",
+              "slice_space_dimension": 3,
+              "minimum_nonzero_rank": 1,
+              "observed_minimum_rank": 1,
+              "combinations_checked": 1,
+              "total_nonzero_combinations": 7,
+              "value": 3,
+              "reason": "nonzero slice of rank one matches the universal minrank lower bound"
+            },
+            "right": {
+              "status": "proved",
+              "slice_space_dimension": 3,
+              "minimum_nonzero_rank": 1,
+              "observed_minimum_rank": 1,
+              "combinations_checked": 1,
+              "total_nonzero_combinations": 7,
+              "value": 3,
+              "reason": "nonzero slice of rank one matches the universal minrank lower bound"
+            },
+            "output": {
+              "status": "proved",
+              "slice_space_dimension": 2,
+              "minimum_nonzero_rank": 2,
+              "observed_minimum_rank": 2,
+              "combinations_checked": 3,
+              "total_nonzero_combinations": 3,
+              "value": 3,
+              "reason": "complete nonzero slice-space enumeration"
+            }
+          },
+          "model": "GF(2) bilinear algorithms: left-linear times right-linear products; free XOR fanout",
+          "scope": "the supplied fixed-size tensor and declared input bipartition; not a general AND or quantum-cost floor",
+          "formula": "slice_space_dimension - 1 + minimum_nonzero_slice_rank",
+          "reasoning": "Annihilate d-1 independent factors in a rank-r decomposition; a nonzero residual slice has matrix rank at most r-d+1.",
+          "limits": {
+            "max_combinations": 4095,
+            "timeout": 1.0
+          },
+          "combinations_checked": 5
+        }
+      },
+      "family": {
+        "products": 4,
+        "atoms": 147,
+        "distinct_specifications": 18671940,
+        "identity": "unordered set of four distinct rank-one products; no repeated factors or ordering duplicates"
+      },
+      "selection": "exact_residual_meet_in_middle",
+      "counts": {
+        "candidate_budget": 1000000,
+        "unique_complete_specifications_screened": 63,
+        "exact_coefficient_survivors": 63,
+        "partial_search": {
+          "pair_records": 10731,
+          "matching_pair_visits": 189,
+          "complete_family_exhausted": true
+        },
+        "specifications_materialized": 63,
+        "unique_native_artifacts": 63,
+        "materialized_program_duplicates": 0,
+        "native_candidates_checked": 8,
+        "native_input_shots": 2048,
+        "final_exact_proofs": 8
+      },
+      "timings_seconds": {
+        "analysis": 0.0015824991278350353,
+        "proposal": 0.020103838061913848,
+        "combination_unranking": 0.0003021589946001768,
+        "coefficient_screen": 3.177998587489128e-05,
+        "materialization": 0.04883390082977712,
+        "native_replay": 0.0019050948321819305,
+        "final_exact_proof": 0.01768531696870923,
+        "total": 0.09063033014535904
+      },
+      "baseline": {
+        "resources": {
+          "Q": 8,
+          "toffoli": 7,
+          "t": 0,
+          "rotations": 0,
+          "instructions": 7,
+          "accounting": "static_emitted",
+          "reaction_depth": 1
+        },
+        "cost": 56,
+        "native": "CCX q0 q3 q7\nCCX q0 q4 q7\nCCX q0 q5 q7\nCCX q1 q3 q7\nCCX q1 q4 q6\nCCX q1 q5 q6\nCCX q2 q5 q6"
+      },
+      "native_validation": {
+        "status": "verified",
+        "distinct_candidates": 8,
+        "shots": 2048,
+        "input_assignments_per_candidate": 256,
+        "quantum_width": 10,
+        "public_input_wires": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "clean_helper_inputs": [
+          8,
+          9
+        ],
+        "method": "one native kickmix selector batch; all public and dirty-output assignments; exact sign and helper restoration",
+        "baseline_native_shots": 256,
+        "checks": [
+          {
+            "candidate_index": 1036180,
+            "passed": true
+          },
+          {
+            "candidate_index": 1038201,
+            "passed": true
+          },
+          {
+            "candidate_index": 1039392,
+            "passed": true
+          },
+          {
+            "candidate_index": 6675150,
+            "passed": true
+          },
+          {
+            "candidate_index": 1041777,
+            "passed": true
+          },
+          {
+            "candidate_index": 6685509,
+            "passed": true
+          },
+          {
+            "candidate_index": 1065302,
+            "passed": true
+          },
+          {
+            "candidate_index": 6691635,
+            "passed": true
+          }
+        ]
+      },
+      "best": {
+        "candidate_index": 1036180,
+        "specification": [
+          19,
+          22,
+          36,
+          72
+        ],
+        "decomposition": [
+          {
+            "left_mask": 1,
+            "right_mask": 7,
+            "output_mask": 2
+          },
+          {
+            "left_mask": 2,
+            "right_mask": 1,
+            "output_mask": 2
+          },
+          {
+            "left_mask": 2,
+            "right_mask": 6,
+            "output_mask": 1
+          },
+          {
+            "left_mask": 4,
+            "right_mask": 4,
+            "output_mask": 1
+          }
+        ],
+        "artifact_sha256": "dfe56f27d171b089c6241f8c733fdfcba10bb5e508ec14cb600355fe1dd4ee17",
+        "native_text": "CX q3 q8\nCX q4 q8\nCX q5 q8\nCCX q0 q8 q7\nCX q5 q8\nCX q4 q8\nCX q3 q8\nCCX q1 q3 q7\nCX q4 q8\nCX q5 q8\nCCX q1 q8 q6\nCX q5 q8\nCX q4 q8\nCCX q2 q5 q6",
+        "resources": {
+          "Q": 9,
+          "toffoli": 4,
+          "t": 0,
+          "rotations": 0,
+          "instructions": 14,
+          "accounting": "static_emitted",
+          "reaction_depth": 1
+        },
+        "cost": 36,
+        "exact_verification": {
+          "status": "equivalent",
+          "equivalent": true,
+          "differing_wires": [],
+          "differing_classical_bits": [],
+          "phase_equal": true,
+          "inputs": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8
+          ],
+          "classical_inputs": [],
+          "measurement_variables": [],
+          "clean_input_assumptions": [
+            8,
+            9
+          ],
+          "evidence": "canonical_boolean_anf_equality_with_exact_sign_phase",
+          "semantic_scope": "native_outcome_parametric_basis_trajectories",
+          "assumptions": "explicit zero boundary wires: [8, 9]; all other boundary values arbitrary"
+        }
+      },
+      "verified_candidates": [
+        {
+          "candidate_index": 1036180,
+          "specification": [
+            19,
+            22,
+            36,
+            72
+          ],
+          "decomposition": [
+            {
+              "left_mask": 1,
+              "right_mask": 7,
+              "output_mask": 2
+            },
+            {
+              "left_mask": 2,
+              "right_mask": 1,
+              "output_mask": 2
+            },
+            {
+              "left_mask": 2,
+              "right_mask": 6,
+              "output_mask": 1
+            },
+            {
+              "left_mask": 4,
+              "right_mask": 4,
+              "output_mask": 1
+            }
+          ],
+          "artifact_sha256": "dfe56f27d171b089c6241f8c733fdfcba10bb5e508ec14cb600355fe1dd4ee17",
+          "native_text": "CX q3 q8\nCX q4 q8\nCX q5 q8\nCCX q0 q8 q7\nCX q5 q8\nCX q4 q8\nCX q3 q8\nCCX q1 q3 q7\nCX q4 q8\nCX q5 q8\nCCX q1 q8 q6\nCX q5 q8\nCX q4 q8\nCCX q2 q5 q6",
+          "resources": {
+            "Q": 9,
+            "toffoli": 4,
+            "t": 0,
+            "rotations": 0,
+            "instructions": 14,
+            "accounting": "static_emitted",
+            "reaction_depth": 1
+          },
+          "cost": 36,
+          "exact_verification": {
+            "status": "equivalent",
+            "equivalent": true,
+            "differing_wires": [],
+            "differing_classical_bits": [],
+            "phase_equal": true,
+            "inputs": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8
+            ],
+            "classical_inputs": [],
+            "measurement_variables": [],
+            "clean_input_assumptions": [
+              8,
+              9
+            ],
+            "evidence": "canonical_boolean_anf_equality_with_exact_sign_phase",
+            "semantic_scope": "native_outcome_parametric_basis_trajectories",
+            "assumptions": "explicit zero boundary wires: [8, 9]; all other boundary values arbitrary"
+          }
+        },
+        {
+          "candidate_index": 1038201,
+          "specification": [
+            19,
+            23,
+            39,
+            72
+          ],
+          "decomposition": [
+            {
+              "left_mask": 1,
+              "right_mask": 7,
+              "output_mask": 2
+            },
+            {
+              "left_mask": 2,
+              "right_mask": 1,
+              "output_mask": 3
+            },
+            {
+              "left_mask": 2,
+              "right_mask": 7,
+              "output_mask": 1
+            },
+            {
+              "left_mask": 4,
+              "right_mask": 4,
+              "output_mask": 1
+            }
+          ],
+          "artifact_sha256": "0473e526bf468ed6248e82d0a3486cdf7904c4c8e025e18044c495a361082548",
+          "native_text": "CX q3 q8\nCX q4 q8\nCX q5 q8\nCCX q0 q8 q7\nCX q5 q8\nCX q4 q8\nCX q3 q8\nCX q6 q7\nCCX q1 q3 q6\nCX q6 q7\nCX q3 q8\nCX q4 q8\nCX q5 q8\nCCX q1 q8 q6\nCX q5 q8\nCX q4 q8\nCX q3 q8\nCCX q2 q5 q6",
+          "resources": {
+            "Q": 9,
+            "toffoli": 4,
+            "t": 0,
+            "rotations": 0,
+            "instructions": 18,
+            "accounting": "static_emitted",
+            "reaction_depth": 1
+          },
+          "cost": 36,
+          "exact_verification": {
+            "status": "equivalent",
+            "equivalent": true,
+            "differing_wires": [],
+            "differing_classical_bits": [],
+            "phase_equal": true,
+            "inputs": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8
+            ],
+            "classical_inputs": [],
+            "measurement_variables": [],
+            "clean_input_assumptions": [
+              8,
+              9
+            ],
+            "evidence": "canonical_boolean_anf_equality_with_exact_sign_phase",
+            "semantic_scope": "native_outcome_parametric_basis_trajectories",
+            "assumptions": "explicit zero boundary wires: [8, 9]; all other boundary values arbitrary"
+          }
+        },
+        {
+          "candidate_index": 1039392,
+          "specification": [
+            19,
+            38,
+            40,
+            72
+          ],
+          "decomposition": [
+            {
+              "left_mask": 1,
+              "right_mask": 7,
+              "output_mask": 2
+            },
+            {
+              "left_mask": 2,
+              "right_mask": 6,
+              "output_mask": 3
+            },
+            {
+              "left_mask": 2,
+              "right_mask": 7,
+              "output_mask": 2
+            },
+            {
+              "left_mask": 4,
+              "right_mask": 4,
+              "output_mask": 1
+            }
+          ],
+          "artifact_sha256": "cd13221e8197eca80c25e8c92c25d70a6c797cfb4db3904912235d302ccda71c",
+          "native_text": "CX q3 q8\nCX q4 q8\nCX q5 q8\nCCX q0 q8 q7\nCX q5 q8\nCX q4 q8\nCX q3 q8\nCX q4 q8\nCX q5 q8\nCX q6 q7\nCCX q1 q8 q6\nCX q6 q7\nCX q5 q8\nCX q4 q8\nCX q3 q8\nCX q4 q8\nCX q5 q8\nCCX q1 q8 q7\nCX q5 q8\nCX q4 q8\nCX q3 q8\nCCX q2 q5 q6",
+          "resources": {
+            "Q": 9,
+            "toffoli": 4,
+            "t": 0,
+            "rotations": 0,
+            "instructions": 22,
+            "accounting": "static_emitted",
+            "reaction_depth": 1
+          },
+          "cost": 36,
+          "exact_verification": {
+            "status": "equivalent",
+            "equivalent": true,
+            "differing_wires": [],
+            "differing_classical_bits": [],
+            "phase_equal": true,
+            "inputs": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8
+            ],
+            "classical_inputs": [],
+            "measurement_variables": [],
+            "clean_input_assumptions": [
+              8,
+              9
+            ],
+            "evidence": "canonical_boolean_anf_equality_with_exact_sign_phase",
+            "semantic_scope": "native_outcome_parametric_basis_trajectories",
+            "assumptions": "explicit zero boundary wires: [8, 9]; all other boundary values arbitrary"
+          }
+        },
+        {
+          "candidate_index": 6675150,
+          "specification": [
+            19,
+            22,
+            24,
+            114
+          ],
+          "decomposition": [
+            {
+              "left_mask": 1,
+              "right_mask": 7,
+              "output_mask": 2
+            },
+            {
+              "left_mask": 2,
+              "right_mask": 1,
+              "output_mask": 2
+            },
+            {
+              "left_mask": 2,
+              "right_mask": 2,
+              "output_mask": 1
+            },
+            {
+              "left_mask": 6,
+              "right_mask": 4,
+              "output_mask": 1
+            }
+          ],
+          "artifact_sha256": "19cdd4af624cb7ee10d0cf20dc3815a139eefd7980c58095efdf105f6807e3fc",
+          "native_text": "CX q3 q9\nCX q4 q9\nCX q5 q9\nCCX q0 q9 q7\nCX q5 q9\nCX q4 q9\nCX q3 q9\nCCX q1 q3 q7\nCCX q1 q4 q6\nCX q1 q8\nCX q2 q8\nCCX q8 q5 q6\nCX q2 q8\nCX q1 q8",
+          "resources": {
+            "Q": 10,
+            "toffoli": 4,
+            "t": 0,
+            "rotations": 0,
+            "instructions": 14,
+            "accounting": "static_emitted",
+            "reaction_depth": 1
+          },
+          "cost": 40,
+          "exact_verification": {
+            "status": "equivalent",
+            "equivalent": true,
+            "differing_wires": [],
+            "differing_classical_bits": [],
+            "phase_equal": true,
+            "inputs": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9
+            ],
+            "classical_inputs": [],
+            "measurement_variables": [],
+            "clean_input_assumptions": [
+              8,
+              9
+            ],
+            "evidence": "canonical_boolean_anf_equality_with_exact_sign_phase",
+            "semantic_scope": "native_outcome_parametric_basis_trajectories",
+            "assumptions": "explicit zero boundary wires: [8, 9]; all other boundary values arbitrary"
+          }
+        },
+        {
+          "candidate_index": 1041777,
+          "specification": [
+            16,
+            36,
+            43,
+            72
+          ],
+          "decomposition": [
+            {
+              "left_mask": 1,
+              "right_mask": 6,
+              "output_mask": 2
+            },
+            {
+              "left_mask": 2,
+              "right_mask": 6,
+              "output_mask": 1
+            },
+            {
+              "left_mask": 3,
+              "right_mask": 1,
+              "output_mask": 2
+            },
+            {
+              "left_mask": 4,
+              "right_mask": 4,
+              "output_mask": 1
+            }
+          ],
+          "artifact_sha256": "5c26f075c3130d6f1b5a135a9b23bdffdbc5679e13acb7d478444615068c947e",
+          "native_text": "CX q4 q9\nCX q5 q9\nCCX q0 q9 q7\nCX q5 q9\nCX q4 q9\nCX q4 q9\nCX q5 q9\nCCX q1 q9 q6\nCX q5 q9\nCX q4 q9\nCX q0 q8\nCX q1 q8\nCCX q8 q3 q7\nCX q1 q8\nCX q0 q8\nCCX q2 q5 q6",
+          "resources": {
+            "Q": 10,
+            "toffoli": 4,
+            "t": 0,
+            "rotations": 0,
+            "instructions": 16,
+            "accounting": "static_emitted",
+            "reaction_depth": 1
+          },
+          "cost": 40,
+          "exact_verification": {
+            "status": "equivalent",
+            "equivalent": true,
+            "differing_wires": [],
+            "differing_classical_bits": [],
+            "phase_equal": true,
+            "inputs": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9
+            ],
+            "classical_inputs": [],
+            "measurement_variables": [],
+            "clean_input_assumptions": [
+              8,
+              9
+            ],
+            "evidence": "canonical_boolean_anf_equality_with_exact_sign_phase",
+            "semantic_scope": "native_outcome_parametric_basis_trajectories",
+            "assumptions": "explicit zero boundary wires: [8, 9]; all other boundary values arbitrary"
+          }
+        },
+        {
+          "candidate_index": 6685509,
+          "specification": [
+            16,
+            24,
+            43,
+            114
+          ],
+          "decomposition": [
+            {
+              "left_mask": 1,
+              "right_mask": 6,
+              "output_mask": 2
+            },
+            {
+              "left_mask": 2,
+              "right_mask": 2,
+              "output_mask": 1
+            },
+            {
+              "left_mask": 3,
+              "right_mask": 1,
+              "output_mask": 2
+            },
+            {
+              "left_mask": 6,
+              "right_mask": 4,
+              "output_mask": 1
+            }
+          ],
+          "artifact_sha256": "7b1d3cb1d13f9770b1e9d97ca36267d4f15f1da2eb57612f0d5bbd419bfc0543",
+          "native_text": "CX q4 q9\nCX q5 q9\nCCX q0 q9 q7\nCX q5 q9\nCX q4 q9\nCCX q1 q4 q6\nCX q0 q8\nCX q1 q8\nCCX q8 q3 q7\nCX q1 q8\nCX q0 q8\nCX q1 q8\nCX q2 q8\nCCX q8 q5 q6\nCX q2 q8\nCX q1 q8",
+          "resources": {
+            "Q": 10,
+            "toffoli": 4,
+            "t": 0,
+            "rotations": 0,
+            "instructions": 16,
+            "accounting": "static_emitted",
+            "reaction_depth": 1
+          },
+          "cost": 40,
+          "exact_verification": {
+            "status": "equivalent",
+            "equivalent": true,
+            "differing_wires": [],
+            "differing_classical_bits": [],
+            "phase_equal": true,
+            "inputs": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9
+            ],
+            "classical_inputs": [],
+            "measurement_variables": [],
+            "clean_input_assumptions": [
+              8,
+              9
+            ],
+            "evidence": "canonical_boolean_anf_equality_with_exact_sign_phase",
+            "semantic_scope": "native_outcome_parametric_basis_trajectories",
+            "assumptions": "explicit zero boundary wires: [8, 9]; all other boundary values arbitrary"
+          }
+        },
+        {
+          "candidate_index": 1065302,
+          "specification": [
+            26,
+            32,
+            61,
+            72
+          ],
+          "decomposition": [
+            {
+              "left_mask": 2,
+              "right_mask": 2,
+              "output_mask": 3
+            },
+            {
+              "left_mask": 2,
+              "right_mask": 4,
+              "output_mask": 3
+            },
+            {
+              "left_mask": 3,
+              "right_mask": 7,
+              "output_mask": 2
+            },
+            {
+              "left_mask": 4,
+              "right_mask": 4,
+              "output_mask": 1
+            }
+          ],
+          "artifact_sha256": "f58b1405d3746828edc5523ce14b0ab5bba0dbc2f80cb136e5fa59ff2ee7fc75",
+          "native_text": "CX q6 q7\nCCX q1 q4 q6\nCX q6 q7\nCX q6 q7\nCCX q1 q5 q6\nCX q6 q7\nCX q0 q8\nCX q1 q8\nCX q3 q9\nCX q4 q9\nCX q5 q9\nCCX q8 q9 q7\nCX q5 q9\nCX q4 q9\nCX q3 q9\nCX q1 q8\nCX q0 q8\nCCX q2 q5 q6",
+          "resources": {
+            "Q": 10,
+            "toffoli": 4,
+            "t": 0,
+            "rotations": 0,
+            "instructions": 18,
+            "accounting": "static_emitted",
+            "reaction_depth": 1
+          },
+          "cost": 40,
+          "exact_verification": {
+            "status": "equivalent",
+            "equivalent": true,
+            "differing_wires": [],
+            "differing_classical_bits": [],
+            "phase_equal": true,
+            "inputs": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9
+            ],
+            "classical_inputs": [],
+            "measurement_variables": [],
+            "clean_input_assumptions": [
+              8,
+              9
+            ],
+            "evidence": "canonical_boolean_anf_equality_with_exact_sign_phase",
+            "semantic_scope": "native_outcome_parametric_basis_trajectories",
+            "assumptions": "explicit zero boundary wires: [8, 9]; all other boundary values arbitrary"
+          }
+        },
+        {
+          "candidate_index": 6691635,
+          "specification": [
+            10,
+            26,
+            49,
+            114
+          ],
+          "decomposition": [
+            {
+              "left_mask": 1,
+              "right_mask": 4,
+              "output_mask": 2
+            },
+            {
+              "left_mask": 2,
+              "right_mask": 2,
+              "output_mask": 3
+            },
+            {
+              "left_mask": 3,
+              "right_mask": 3,
+              "output_mask": 2
+            },
+            {
+              "left_mask": 6,
+              "right_mask": 4,
+              "output_mask": 1
+            }
+          ],
+          "artifact_sha256": "121c744be4d32e4dd5939e20b257e6556c46b9b6950895c8c618a1d0477c2602",
+          "native_text": "CCX q0 q5 q7\nCX q6 q7\nCCX q1 q4 q6\nCX q6 q7\nCX q0 q8\nCX q1 q8\nCX q3 q9\nCX q4 q9\nCCX q8 q9 q7\nCX q4 q9\nCX q3 q9\nCX q1 q8\nCX q0 q8\nCX q1 q8\nCX q2 q8\nCCX q8 q5 q6\nCX q2 q8\nCX q1 q8",
+          "resources": {
+            "Q": 10,
+            "toffoli": 4,
+            "t": 0,
+            "rotations": 0,
+            "instructions": 18,
+            "accounting": "static_emitted",
+            "reaction_depth": 1
+          },
+          "cost": 40,
+          "exact_verification": {
+            "status": "equivalent",
+            "equivalent": true,
+            "differing_wires": [],
+            "differing_classical_bits": [],
+            "phase_equal": true,
+            "inputs": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9
+            ],
+            "classical_inputs": [],
+            "measurement_variables": [],
+            "clean_input_assumptions": [
+              8,
+              9
+            ],
+            "evidence": "canonical_boolean_anf_equality_with_exact_sign_phase",
+            "semantic_scope": "native_outcome_parametric_basis_trajectories",
+            "assumptions": "explicit zero boundary wires: [8, 9]; all other boundary values arbitrary"
+          }
+        }
+      ],
+      "accepted_gain": 20,
+      "objective": {
+        "expression": "Q*toffoli",
+        "accounting": "emitted native circuit; two clean helper wires priced when used"
+      },
+      "limits": {
+        "batch_size": 65536,
+        "materialization_limit": 128,
+        "native_limit": 8
+      },
+      "interpretation": "restricted algebraic solver experiment; guided precision is not an unbiased success probability; equal candidate caps do not imply equal computation",
+      "forced_measurement_events": 0,
+      "native_scope": "every public/dirty output assignment and zero declared helpers; complete outputs and exact sign; not a host-task certificate"
+    },
+    {
+      "case": "held_out_partition",
+      "instance": {
+        "seed": 19331,
+        "shape": [
+          2,
+          4,
+          2
+        ],
+        "source_native": "CX q6 q7\nCCX q0 q2 q6\nCX q6 q7\nCX q6 q7\nCCX q0 q4 q6\nCX q6 q7\nCCX q1 q2 q7\nCX q6 q7\nCCX q1 q3 q6\nCX q6 q7\nCCX q1 q4 q7\nCX q6 q7\nCCX q1 q5 q6\nCX q6 q7",
+        "source_sha256": "074facd5268893d59507777d5c2cc47dd5ba04dd4ea1cc7b11e496b766ab1080",
+        "generating_witness_exposed_to_search": false,
+        "semantic_contract_hash": "ffb853f859968da3a041276b0677645085afcb5d38da303dc9070b785bff56f6"
+      },
+      "schema_version": "1",
+      "kind": "bounded_bilinear_candidate_search",
+      "strategy": "random",
+      "seed": 19422,
+      "tensor_hash": "85b3a952fc147a295e5c6c230bdfba88f72ebeb89c05180fa7dd46c96d7faefa",
+      "tensor_shape": [
+        2,
+        4,
+        2
+      ],
+      "tensor": {
+        "format": "strata.gf2_bilinear_tensor.v1",
+        "left": [
+          0,
+          1
+        ],
+        "right": [
+          2,
+          3,
+          4,
+          5
+        ],
+        "outputs": [
+          "6",
+          "7"
+        ],
+        "output_wires": [
+          6,
+          7
+        ],
+        "shape": [
+          2,
+          4,
+          2
+        ],
+        "entries": [
+          [
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            1
+          ],
+          [
+            0,
+            2,
+            0
+          ],
+          [
+            0,
+            2,
+            1
+          ],
+          [
+            1,
+            0,
+            1
+          ],
+          [
+            1,
+            1,
+            0
+          ],
+          [
+            1,
+            1,
+            1
+          ],
+          [
+            1,
+            2,
+            1
+          ],
+          [
+            1,
+            3,
+            0
+          ],
+          [
+            1,
+            3,
+            1
+          ]
+        ],
+        "affine": [
+          [],
+          []
+        ],
+        "model": "GF(2) bilinear algorithms: left-linear times right-linear products; free XOR fanout",
+        "tensor_hash": "85b3a952fc147a295e5c6c230bdfba88f72ebeb89c05180fa7dd46c96d7faefa"
+      },
+      "bounds": {
+        "kind": "proof",
+        "resource": "bilinear_products",
+        "shape": [
+          2,
+          4,
+          2
+        ],
+        "flattening_ranks": {
+          "left": 2,
+          "right": 2,
+          "output": 2
+        },
+        "value": 2,
+        "model": "GF(2) bilinear algorithms: left-linear times right-linear products; free XOR fanout",
+        "scope": "the supplied fixed-size tensor and declared input bipartition; not a general AND or quantum-cost floor",
+        "tensor_hash": "85b3a952fc147a295e5c6c230bdfba88f72ebeb89c05180fa7dd46c96d7faefa",
+        "reasoning": "Each rank-one tensor contributes matrix rank at most one in every flattening.",
+        "quadratic": {
+          "kind": "proof",
+          "resource": "quadratic_products",
+          "value": 2,
+          "per_output": [
+            {
+              "alternating_rank": 4,
+              "value": 2,
+              "inputs": [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5
+              ]
+            },
+            {
+              "alternating_rank": 4,
+              "value": 2,
+              "inputs": [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5
+              ]
+            }
+          ],
+          "aggregation": "maximum, not sum; products may be shared",
+          "model": "quadratic forms over GF(2), expressed as sums of products of affine linear forms",
+          "scope": "supplied fixed-size scalar output forms; no reversible-cleanup or measurement cost claim",
+          "contract_hash": "a7b75b8cacd398b5a64caada5b2f8acb7ca836a1853c7faa46a2ef638f4a594c"
+        },
+        "substitution_bound": {
+          "kind": "proof",
+          "value": 2,
+          "per_mode": {
+            "left": {
+              "status": "proved",
+              "slice_space_dimension": 2,
+              "minimum_nonzero_rank": 1,
+              "observed_minimum_rank": 1,
+              "combinations_checked": 1,
+              "total_nonzero_combinations": 3,
+              "value": 2,
+              "reason": "nonzero slice of rank one matches the universal minrank lower bound"
+            },
+            "right": {
+              "status": "proved",
+              "slice_space_dimension": 2,
+              "minimum_nonzero_rank": 1,
+              "observed_minimum_rank": 1,
+              "combinations_checked": 2,
+              "total_nonzero_combinations": 3,
+              "value": 2,
+              "reason": "nonzero slice of rank one matches the universal minrank lower bound"
+            },
+            "output": {
+              "status": "proved",
+              "slice_space_dimension": 2,
+              "minimum_nonzero_rank": 1,
+              "observed_minimum_rank": 1,
+              "combinations_checked": 3,
+              "total_nonzero_combinations": 3,
+              "value": 2,
+              "reason": "nonzero slice of rank one matches the universal minrank lower bound"
+            }
+          },
+          "model": "GF(2) bilinear algorithms: left-linear times right-linear products; free XOR fanout",
+          "scope": "the supplied fixed-size tensor and declared input bipartition; not a general AND or quantum-cost floor",
+          "formula": "slice_space_dimension - 1 + minimum_nonzero_slice_rank",
+          "reasoning": "Annihilate d-1 independent factors in a rank-r decomposition; a nonzero residual slice has matrix rank at most r-d+1.",
+          "limits": {
+            "max_combinations": 4095,
+            "timeout": 1.0
+          },
+          "combinations_checked": 6
+        }
+      },
+      "family": {
+        "products": 4,
+        "atoms": 135,
+        "distinct_specifications": 13232835,
+        "identity": "unordered set of four distinct rank-one products; no repeated factors or ordering duplicates"
+      },
+      "selection": "uniform_without_replacement",
+      "counts": {
+        "candidate_budget": 1000000,
+        "unique_complete_specifications_screened": 1000000,
+        "exact_coefficient_survivors": 22,
+        "partial_search": {},
+        "specifications_materialized": 22,
+        "unique_native_artifacts": 22,
+        "materialized_program_duplicates": 0,
+        "native_candidates_checked": 8,
+        "native_input_shots": 2048,
+        "final_exact_proofs": 8
+      },
+      "timings_seconds": {
+        "analysis": 0.0017396339680999517,
+        "proposal": 0.11385046294890344,
+        "combination_unranking": 0.14910162589512765,
+        "coefficient_screen": 0.04228745074942708,
+        "materialization": 0.029281088151037693,
+        "native_replay": 0.002850647084414959,
+        "final_exact_proof": 0.03791654692031443,
+        "total": 0.3787353008519858
+      },
+      "baseline": {
+        "resources": {
+          "Q": 8,
+          "toffoli": 6,
+          "t": 0,
+          "rotations": 0,
+          "instructions": 14,
+          "accounting": "static_emitted",
+          "reaction_depth": 1
+        },
+        "cost": 48,
+        "native": "CX q6 q7\nCCX q0 q2 q6\nCX q6 q7\nCX q6 q7\nCCX q0 q4 q6\nCX q6 q7\nCCX q1 q2 q7\nCX q6 q7\nCCX q1 q3 q6\nCX q6 q7\nCCX q1 q4 q7\nCX q6 q7\nCCX q1 q5 q6\nCX q6 q7"
+      },
+      "native_validation": {
+        "status": "verified",
+        "distinct_candidates": 8,
+        "shots": 2048,
+        "input_assignments_per_candidate": 256,
+        "quantum_width": 10,
+        "public_input_wires": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "clean_helper_inputs": [
+          8,
+          9
+        ],
+        "method": "one native kickmix selector batch; all public and dirty-output assignments; exact sign and helper restoration",
+        "baseline_native_shots": 256,
+        "checks": [
+          {
+            "candidate_index": 1078725,
+            "passed": true
+          },
+          {
+            "candidate_index": 2467434,
+            "passed": true
+          },
+          {
+            "candidate_index": 1193480,
+            "passed": true
+          },
+          {
+            "candidate_index": 2153910,
+            "passed": true
+          },
+          {
+            "candidate_index": 2539699,
+            "passed": true
+          },
+          {
+            "candidate_index": 2471861,
+            "passed": true
+          },
+          {
+            "candidate_index": 3235334,
+            "passed": true
+          },
+          {
+            "candidate_index": 4181061,
+            "passed": true
+          }
+        ]
+      },
+      "best": {
+        "candidate_index": 1078725,
+        "specification": [
+          14,
+          64,
+          67,
+          72
+        ],
+        "decomposition": [
+          {
+            "left_mask": 1,
+            "right_mask": 5,
+            "output_mask": 3
+          },
+          {
+            "left_mask": 2,
+            "right_mask": 7,
+            "output_mask": 2
+          },
+          {
+            "left_mask": 2,
+            "right_mask": 8,
+            "output_mask": 2
+          },
+          {
+            "left_mask": 2,
+            "right_mask": 10,
+            "output_mask": 1
+          }
+        ],
+        "artifact_sha256": "404e58d64938f1fa96a0a35020f583f079af1b1af60659f759a30ad3fc5e47ba",
+        "native_text": "CX q2 q8\nCX q4 q8\nCX q6 q7\nCCX q0 q8 q6\nCX q6 q7\nCX q4 q8\nCX q2 q8\nCX q2 q8\nCX q3 q8\nCX q4 q8\nCCX q1 q8 q7\nCX q4 q8\nCX q3 q8\nCX q2 q8\nCCX q1 q5 q7\nCX q3 q8\nCX q5 q8\nCCX q1 q8 q6\nCX q5 q8\nCX q3 q8",
+        "resources": {
+          "Q": 9,
+          "toffoli": 4,
+          "t": 0,
+          "rotations": 0,
+          "instructions": 20,
+          "accounting": "static_emitted",
+          "reaction_depth": 1
+        },
+        "cost": 36,
+        "exact_verification": {
+          "status": "equivalent",
+          "equivalent": true,
+          "differing_wires": [],
+          "differing_classical_bits": [],
+          "phase_equal": true,
+          "inputs": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8
+          ],
+          "classical_inputs": [],
+          "measurement_variables": [],
+          "clean_input_assumptions": [
+            8,
+            9
+          ],
+          "evidence": "canonical_boolean_anf_equality_with_exact_sign_phase",
+          "semantic_scope": "native_outcome_parametric_basis_trajectories",
+          "assumptions": "explicit zero boundary wires: [8, 9]; all other boundary values arbitrary"
+        }
+      },
+      "verified_candidates": [
+        {
+          "candidate_index": 1078725,
+          "specification": [
+            14,
+            64,
+            67,
+            72
+          ],
+          "decomposition": [
+            {
+              "left_mask": 1,
+              "right_mask": 5,
+              "output_mask": 3
+            },
+            {
+              "left_mask": 2,
+              "right_mask": 7,
+              "output_mask": 2
+            },
+            {
+              "left_mask": 2,
+              "right_mask": 8,
+              "output_mask": 2
+            },
+            {
+              "left_mask": 2,
+              "right_mask": 10,
+              "output_mask": 1
+            }
+          ],
+          "artifact_sha256": "404e58d64938f1fa96a0a35020f583f079af1b1af60659f759a30ad3fc5e47ba",
+          "native_text": "CX q2 q8\nCX q4 q8\nCX q6 q7\nCCX q0 q8 q6\nCX q6 q7\nCX q4 q8\nCX q2 q8\nCX q2 q8\nCX q3 q8\nCX q4 q8\nCCX q1 q8 q7\nCX q4 q8\nCX q3 q8\nCX q2 q8\nCCX q1 q5 q7\nCX q3 q8\nCX q5 q8\nCCX q1 q8 q6\nCX q5 q8\nCX q3 q8",
+          "resources": {
+            "Q": 9,
+            "toffoli": 4,
+            "t": 0,
+            "rotations": 0,
+            "instructions": 20,
+            "accounting": "static_emitted",
+            "reaction_depth": 1
+          },
+          "cost": 36,
+          "exact_verification": {
+            "status": "equivalent",
+            "equivalent": true,
+            "differing_wires": [],
+            "differing_classical_bits": [],
+            "phase_equal": true,
+            "inputs": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8
+            ],
+            "classical_inputs": [],
+            "measurement_variables": [],
+            "clean_input_assumptions": [
+              8,
+              9
+            ],
+            "evidence": "canonical_boolean_anf_equality_with_exact_sign_phase",
+            "semantic_scope": "native_outcome_parametric_basis_trajectories",
+            "assumptions": "explicit zero boundary wires: [8, 9]; all other boundary values arbitrary"
+          }
+        },
+        {
+          "candidate_index": 2467434,
+          "specification": [
+            14,
+            45,
+            54,
+            89
+          ],
+          "decomposition": [
+            {
+              "left_mask": 1,
+              "right_mask": 5,
+              "output_mask": 3
+            },
+            {
+              "left_mask": 2,
+              "right_mask": 1,
+              "output_mask": 1
+            },
+            {
+              "left_mask": 2,
+              "right_mask": 4,
+              "output_mask": 1
+            },
+            {
+              "left_mask": 2,
+              "right_mask": 15,
+              "output_mask": 3
+            }
+          ],
+          "artifact_sha256": "b42eac96f7ab9587422c91edcd69d5d63265fd39969df899f95a5951c7a81eb0",
+          "native_text": "CX q2 q8\nCX q4 q8\nCX q6 q7\nCCX q0 q8 q6\nCX q6 q7\nCX q4 q8\nCX q2 q8\nCCX q1 q2 q6\nCCX q1 q4 q6\nCX q2 q8\nCX q3 q8\nCX q4 q8\nCX q5 q8\nCX q6 q7\nCCX q1 q8 q6\nCX q6 q7\nCX q5 q8\nCX q4 q8\nCX q3 q8\nCX q2 q8",
+          "resources": {
+            "Q": 9,
+            "toffoli": 4,
+            "t": 0,
+            "rotations": 0,
+            "instructions": 20,
+            "accounting": "static_emitted",
+            "reaction_depth": 1
+          },
+          "cost": 36,
+          "exact_verification": {
+            "status": "equivalent",
+            "equivalent": true,
+            "differing_wires": [],
+            "differing_classical_bits": [],
+            "phase_equal": true,
+            "inputs": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8
+            ],
+            "classical_inputs": [],
+            "measurement_variables": [],
+            "clean_input_assumptions": [
+              8,
+              9
+            ],
+            "evidence": "canonical_boolean_anf_equality_with_exact_sign_phase",
+            "semantic_scope": "native_outcome_parametric_basis_trajectories",
+            "assumptions": "explicit zero boundary wires: [8, 9]; all other boundary values arbitrary"
+          }
+        },
+        {
+          "candidate_index": 1193480,
+          "specification": [
+            14,
+            49,
+            64,
+            74
+          ],
+          "decomposition": [
+            {
+              "left_mask": 1,
+              "right_mask": 5,
+              "output_mask": 3
+            },
+            {
+              "left_mask": 2,
+              "right_mask": 2,
+              "output_mask": 2
+            },
+            {
+              "left_mask": 2,
+              "right_mask": 7,
+              "output_mask": 2
+            },
+            {
+              "left_mask": 2,
+              "right_mask": 10,
+              "output_mask": 3
+            }
+          ],
+          "artifact_sha256": "400be9e9a72e9f7a1b933b20e8f89eb0a3f324c25c17ea0a2063a626c295c697",
+          "native_text": "CX q2 q8\nCX q4 q8\nCX q6 q7\nCCX q0 q8 q6\nCX q6 q7\nCX q4 q8\nCX q2 q8\nCCX q1 q3 q7\nCX q2 q8\nCX q3 q8\nCX q4 q8\nCCX q1 q8 q7\nCX q4 q8\nCX q3 q8\nCX q2 q8\nCX q3 q8\nCX q5 q8\nCX q6 q7\nCCX q1 q8 q6\nCX q6 q7\nCX q5 q8\nCX q3 q8",
+          "resources": {
+            "Q": 9,
+            "toffoli": 4,
+            "t": 0,
+            "rotations": 0,
+            "instructions": 22,
+            "accounting": "static_emitted",
+            "reaction_depth": 1
+          },
+          "cost": 36,
+          "exact_verification": {
+            "status": "equivalent",
+            "equivalent": true,
+            "differing_wires": [],
+            "differing_classical_bits": [],
+            "phase_equal": true,
+            "inputs": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8
+            ],
+            "classical_inputs": [],
+            "measurement_variables": [],
+            "clean_input_assumptions": [
+              8,
+              9
+            ],
+            "evidence": "canonical_boolean_anf_equality_with_exact_sign_phase",
+            "semantic_scope": "native_outcome_parametric_basis_trajectories",
+            "assumptions": "explicit zero boundary wires: [8, 9]; all other boundary values arbitrary"
+          }
+        },
+        {
+          "candidate_index": 2153910,
+          "specification": [
+            14,
+            47,
+            57,
+            86
+          ],
+          "decomposition": [
+            {
+              "left_mask": 1,
+              "right_mask": 5,
+              "output_mask": 3
+            },
+            {
+              "left_mask": 2,
+              "right_mask": 1,
+              "output_mask": 3
+            },
+            {
+              "left_mask": 2,
+              "right_mask": 5,
+              "output_mask": 1
+            },
+            {
+              "left_mask": 2,
+              "right_mask": 14,
+              "output_mask": 3
+            }
+          ],
+          "artifact_sha256": "b0926d2cff54d3684ca98a00e5d2fd5b575c0e0cc3dca7b8ddfa35964c15f9d1",
+          "native_text": "CX q2 q8\nCX q4 q8\nCX q6 q7\nCCX q0 q8 q6\nCX q6 q7\nCX q4 q8\nCX q2 q8\nCX q6 q7\nCCX q1 q2 q6\nCX q6 q7\nCX q2 q8\nCX q4 q8\nCCX q1 q8 q6\nCX q4 q8\nCX q2 q8\nCX q3 q8\nCX q4 q8\nCX q5 q8\nCX q6 q7\nCCX q1 q8 q6\nCX q6 q7\nCX q5 q8\nCX q4 q8\nCX q3 q8",
+          "resources": {
+            "Q": 9,
+            "toffoli": 4,
+            "t": 0,
+            "rotations": 0,
+            "instructions": 24,
+            "accounting": "static_emitted",
+            "reaction_depth": 1
+          },
+          "cost": 36,
+          "exact_verification": {
+            "status": "equivalent",
+            "equivalent": true,
+            "differing_wires": [],
+            "differing_classical_bits": [],
+            "phase_equal": true,
+            "inputs": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8
+            ],
+            "classical_inputs": [],
+            "measurement_variables": [],
+            "clean_input_assumptions": [
+              8,
+              9
+            ],
+            "evidence": "canonical_boolean_anf_equality_with_exact_sign_phase",
+            "semantic_scope": "native_outcome_parametric_basis_trajectories",
+            "assumptions": "explicit zero boundary wires: [8, 9]; all other boundary values arbitrary"
+          }
+        },
+        {
+          "candidate_index": 2539699,
+          "specification": [
+            14,
+            75,
+            84,
+            89
+          ],
+          "decomposition": [
+            {
+              "left_mask": 1,
+              "right_mask": 5,
+              "output_mask": 3
+            },
+            {
+              "left_mask": 2,
+              "right_mask": 11,
+              "output_mask": 1
+            },
+            {
+              "left_mask": 2,
+              "right_mask": 14,
+              "output_mask": 1
+            },
+            {
+              "left_mask": 2,
+              "right_mask": 15,
+              "output_mask": 3
+            }
+          ],
+          "artifact_sha256": "dcbd24ea1801ce613718265bdbba09ae9395a4057abf91a42ecdcaae6b559818",
+          "native_text": "CX q2 q8\nCX q4 q8\nCX q6 q7\nCCX q0 q8 q6\nCX q6 q7\nCX q4 q8\nCX q2 q8\nCX q2 q8\nCX q3 q8\nCX q5 q8\nCCX q1 q8 q6\nCX q5 q8\nCX q3 q8\nCX q2 q8\nCX q3 q8\nCX q4 q8\nCX q5 q8\nCCX q1 q8 q6\nCX q5 q8\nCX q4 q8\nCX q3 q8\nCX q2 q8\nCX q3 q8\nCX q4 q8\nCX q5 q8\nCX q6 q7\nCCX q1 q8 q6\nCX q6 q7\nCX q5 q8\nCX q4 q8\nCX q3 q8\nCX q2 q8",
+          "resources": {
+            "Q": 9,
+            "toffoli": 4,
+            "t": 0,
+            "rotations": 0,
+            "instructions": 32,
+            "accounting": "static_emitted",
+            "reaction_depth": 1
+          },
+          "cost": 36,
+          "exact_verification": {
+            "status": "equivalent",
+            "equivalent": true,
+            "differing_wires": [],
+            "differing_classical_bits": [],
+            "phase_equal": true,
+            "inputs": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8
+            ],
+            "classical_inputs": [],
+            "measurement_variables": [],
+            "clean_input_assumptions": [
+              8,
+              9
+            ],
+            "evidence": "canonical_boolean_anf_equality_with_exact_sign_phase",
+            "semantic_scope": "native_outcome_parametric_basis_trajectories",
+            "assumptions": "explicit zero boundary wires: [8, 9]; all other boundary values arbitrary"
+          }
+        },
+        {
+          "candidate_index": 2471861,
+          "specification": [
+            29,
+            44,
+            57,
+            89
+          ],
+          "decomposition": [
+            {
+              "left_mask": 1,
+              "right_mask": 10,
+              "output_mask": 3
+            },
+            {
+              "left_mask": 1,
+              "right_mask": 15,
+              "output_mask": 3
+            },
+            {
+              "left_mask": 2,
+              "right_mask": 5,
+              "output_mask": 1
+            },
+            {
+              "left_mask": 2,
+              "right_mask": 15,
+              "output_mask": 3
+            }
+          ],
+          "artifact_sha256": "6d42462c65cd504714ab701509469d4fe0664d4726596f4040f8fdbd1451fb22",
+          "native_text": "CX q3 q8\nCX q5 q8\nCX q6 q7\nCCX q0 q8 q6\nCX q6 q7\nCX q5 q8\nCX q3 q8\nCX q2 q8\nCX q3 q8\nCX q4 q8\nCX q5 q8\nCX q6 q7\nCCX q0 q8 q6\nCX q6 q7\nCX q5 q8\nCX q4 q8\nCX q3 q8\nCX q2 q8\nCX q2 q8\nCX q4 q8\nCCX q1 q8 q6\nCX q4 q8\nCX q2 q8\nCX q2 q8\nCX q3 q8\nCX q4 q8\nCX q5 q8\nCX q6 q7\nCCX q1 q8 q6\nCX q6 q7\nCX q5 q8\nCX q4 q8\nCX q3 q8\nCX q2 q8",
+          "resources": {
+            "Q": 9,
+            "toffoli": 4,
+            "t": 0,
+            "rotations": 0,
+            "instructions": 34,
+            "accounting": "static_emitted",
+            "reaction_depth": 1
+          },
+          "cost": 36,
+          "exact_verification": {
+            "status": "equivalent",
+            "equivalent": true,
+            "differing_wires": [],
+            "differing_classical_bits": [],
+            "phase_equal": true,
+            "inputs": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8
+            ],
+            "classical_inputs": [],
+            "measurement_variables": [],
+            "clean_input_assumptions": [
+              8,
+              9
+            ],
+            "evidence": "canonical_boolean_anf_equality_with_exact_sign_phase",
+            "semantic_scope": "native_outcome_parametric_basis_trajectories",
+            "assumptions": "explicit zero boundary wires: [8, 9]; all other boundary values arbitrary"
+          }
+        },
+        {
+          "candidate_index": 3235334,
+          "specification": [
+            20,
+            58,
+            68,
+            95
+          ],
+          "decomposition": [
+            {
+              "left_mask": 1,
+              "right_mask": 7,
+              "output_mask": 3
+            },
+            {
+              "left_mask": 2,
+              "right_mask": 5,
+              "output_mask": 2
+            },
+            {
+              "left_mask": 2,
+              "right_mask": 8,
+              "output_mask": 3
+            },
+            {
+              "left_mask": 3,
+              "right_mask": 2,
+              "output_mask": 3
+            }
+          ],
+          "artifact_sha256": "50ca89b3e362f1eec19609393c29f2f92daf4fa5fb7adf46b2924cdbdc8bd8bd",
+          "native_text": "CX q2 q9\nCX q3 q9\nCX q4 q9\nCX q6 q7\nCCX q0 q9 q6\nCX q6 q7\nCX q4 q9\nCX q3 q9\nCX q2 q9\nCX q2 q9\nCX q4 q9\nCCX q1 q9 q7\nCX q4 q9\nCX q2 q9\nCX q6 q7\nCCX q1 q5 q6\nCX q6 q7\nCX q0 q8\nCX q1 q8\nCX q6 q7\nCCX q8 q3 q6\nCX q6 q7\nCX q1 q8\nCX q0 q8",
+          "resources": {
+            "Q": 10,
+            "toffoli": 4,
+            "t": 0,
+            "rotations": 0,
+            "instructions": 24,
+            "accounting": "static_emitted",
+            "reaction_depth": 1
+          },
+          "cost": 40,
+          "exact_verification": {
+            "status": "equivalent",
+            "equivalent": true,
+            "differing_wires": [],
+            "differing_classical_bits": [],
+            "phase_equal": true,
+            "inputs": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9
+            ],
+            "classical_inputs": [],
+            "measurement_variables": [],
+            "clean_input_assumptions": [
+              8,
+              9
+            ],
+            "evidence": "canonical_boolean_anf_equality_with_exact_sign_phase",
+            "semantic_scope": "native_outcome_parametric_basis_trajectories",
+            "assumptions": "explicit zero boundary wires: [8, 9]; all other boundary values arbitrary"
+          }
+        },
+        {
+          "candidate_index": 4181061,
+          "specification": [
+            2,
+            76,
+            84,
+            101
+          ],
+          "decomposition": [
+            {
+              "left_mask": 1,
+              "right_mask": 1,
+              "output_mask": 3
+            },
+            {
+              "left_mask": 2,
+              "right_mask": 11,
+              "output_mask": 2
+            },
+            {
+              "left_mask": 2,
+              "right_mask": 14,
+              "output_mask": 1
+            },
+            {
+              "left_mask": 3,
+              "right_mask": 4,
+              "output_mask": 3
+            }
+          ],
+          "artifact_sha256": "740ea3728d4956a481e10bbc0c3871436088d500c7dc00b68aca4b8a01d69518",
+          "native_text": "CX q6 q7\nCCX q0 q2 q6\nCX q6 q7\nCX q2 q9\nCX q3 q9\nCX q5 q9\nCCX q1 q9 q7\nCX q5 q9\nCX q3 q9\nCX q2 q9\nCX q3 q9\nCX q4 q9\nCX q5 q9\nCCX q1 q9 q6\nCX q5 q9\nCX q4 q9\nCX q3 q9\nCX q0 q8\nCX q1 q8\nCX q6 q7\nCCX q8 q4 q6\nCX q6 q7\nCX q1 q8\nCX q0 q8",
+          "resources": {
+            "Q": 10,
+            "toffoli": 4,
+            "t": 0,
+            "rotations": 0,
+            "instructions": 24,
+            "accounting": "static_emitted",
+            "reaction_depth": 1
+          },
+          "cost": 40,
+          "exact_verification": {
+            "status": "equivalent",
+            "equivalent": true,
+            "differing_wires": [],
+            "differing_classical_bits": [],
+            "phase_equal": true,
+            "inputs": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9
+            ],
+            "classical_inputs": [],
+            "measurement_variables": [],
+            "clean_input_assumptions": [
+              8,
+              9
+            ],
+            "evidence": "canonical_boolean_anf_equality_with_exact_sign_phase",
+            "semantic_scope": "native_outcome_parametric_basis_trajectories",
+            "assumptions": "explicit zero boundary wires: [8, 9]; all other boundary values arbitrary"
+          }
+        }
+      ],
+      "accepted_gain": 12,
+      "objective": {
+        "expression": "Q*toffoli",
+        "accounting": "emitted native circuit; two clean helper wires priced when used"
+      },
+      "limits": {
+        "batch_size": 65536,
+        "materialization_limit": 128,
+        "native_limit": 8
+      },
+      "interpretation": "restricted algebraic solver experiment; guided precision is not an unbiased success probability; equal candidate caps do not imply equal computation",
+      "forced_measurement_events": 0,
+      "native_scope": "every public/dirty output assignment and zero declared helpers; complete outputs and exact sign; not a host-task certificate"
+    },
+    {
+      "case": "held_out_partition",
+      "instance": {
+        "seed": 19331,
+        "shape": [
+          2,
+          4,
+          2
+        ],
+        "source_native": "CX q6 q7\nCCX q0 q2 q6\nCX q6 q7\nCX q6 q7\nCCX q0 q4 q6\nCX q6 q7\nCCX q1 q2 q7\nCX q6 q7\nCCX q1 q3 q6\nCX q6 q7\nCCX q1 q4 q7\nCX q6 q7\nCCX q1 q5 q6\nCX q6 q7",
+        "source_sha256": "074facd5268893d59507777d5c2cc47dd5ba04dd4ea1cc7b11e496b766ab1080",
+        "generating_witness_exposed_to_search": false,
+        "semantic_contract_hash": "ffb853f859968da3a041276b0677645085afcb5d38da303dc9070b785bff56f6"
+      },
+      "schema_version": "1",
+      "kind": "bounded_bilinear_candidate_search",
+      "strategy": "guided",
+      "seed": 19422,
+      "tensor_hash": "85b3a952fc147a295e5c6c230bdfba88f72ebeb89c05180fa7dd46c96d7faefa",
+      "tensor_shape": [
+        2,
+        4,
+        2
+      ],
+      "tensor": {
+        "format": "strata.gf2_bilinear_tensor.v1",
+        "left": [
+          0,
+          1
+        ],
+        "right": [
+          2,
+          3,
+          4,
+          5
+        ],
+        "outputs": [
+          "6",
+          "7"
+        ],
+        "output_wires": [
+          6,
+          7
+        ],
+        "shape": [
+          2,
+          4,
+          2
+        ],
+        "entries": [
+          [
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            1
+          ],
+          [
+            0,
+            2,
+            0
+          ],
+          [
+            0,
+            2,
+            1
+          ],
+          [
+            1,
+            0,
+            1
+          ],
+          [
+            1,
+            1,
+            0
+          ],
+          [
+            1,
+            1,
+            1
+          ],
+          [
+            1,
+            2,
+            1
+          ],
+          [
+            1,
+            3,
+            0
+          ],
+          [
+            1,
+            3,
+            1
+          ]
+        ],
+        "affine": [
+          [],
+          []
+        ],
+        "model": "GF(2) bilinear algorithms: left-linear times right-linear products; free XOR fanout",
+        "tensor_hash": "85b3a952fc147a295e5c6c230bdfba88f72ebeb89c05180fa7dd46c96d7faefa"
+      },
+      "bounds": {
+        "kind": "proof",
+        "resource": "bilinear_products",
+        "shape": [
+          2,
+          4,
+          2
+        ],
+        "flattening_ranks": {
+          "left": 2,
+          "right": 2,
+          "output": 2
+        },
+        "value": 2,
+        "model": "GF(2) bilinear algorithms: left-linear times right-linear products; free XOR fanout",
+        "scope": "the supplied fixed-size tensor and declared input bipartition; not a general AND or quantum-cost floor",
+        "tensor_hash": "85b3a952fc147a295e5c6c230bdfba88f72ebeb89c05180fa7dd46c96d7faefa",
+        "reasoning": "Each rank-one tensor contributes matrix rank at most one in every flattening.",
+        "quadratic": {
+          "kind": "proof",
+          "resource": "quadratic_products",
+          "value": 2,
+          "per_output": [
+            {
+              "alternating_rank": 4,
+              "value": 2,
+              "inputs": [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5
+              ]
+            },
+            {
+              "alternating_rank": 4,
+              "value": 2,
+              "inputs": [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5
+              ]
+            }
+          ],
+          "aggregation": "maximum, not sum; products may be shared",
+          "model": "quadratic forms over GF(2), expressed as sums of products of affine linear forms",
+          "scope": "supplied fixed-size scalar output forms; no reversible-cleanup or measurement cost claim",
+          "contract_hash": "a7b75b8cacd398b5a64caada5b2f8acb7ca836a1853c7faa46a2ef638f4a594c"
+        },
+        "substitution_bound": {
+          "kind": "proof",
+          "value": 2,
+          "per_mode": {
+            "left": {
+              "status": "proved",
+              "slice_space_dimension": 2,
+              "minimum_nonzero_rank": 1,
+              "observed_minimum_rank": 1,
+              "combinations_checked": 1,
+              "total_nonzero_combinations": 3,
+              "value": 2,
+              "reason": "nonzero slice of rank one matches the universal minrank lower bound"
+            },
+            "right": {
+              "status": "proved",
+              "slice_space_dimension": 2,
+              "minimum_nonzero_rank": 1,
+              "observed_minimum_rank": 1,
+              "combinations_checked": 2,
+              "total_nonzero_combinations": 3,
+              "value": 2,
+              "reason": "nonzero slice of rank one matches the universal minrank lower bound"
+            },
+            "output": {
+              "status": "proved",
+              "slice_space_dimension": 2,
+              "minimum_nonzero_rank": 1,
+              "observed_minimum_rank": 1,
+              "combinations_checked": 3,
+              "total_nonzero_combinations": 3,
+              "value": 2,
+              "reason": "nonzero slice of rank one matches the universal minrank lower bound"
+            }
+          },
+          "model": "GF(2) bilinear algorithms: left-linear times right-linear products; free XOR fanout",
+          "scope": "the supplied fixed-size tensor and declared input bipartition; not a general AND or quantum-cost floor",
+          "formula": "slice_space_dimension - 1 + minimum_nonzero_slice_rank",
+          "reasoning": "Annihilate d-1 independent factors in a rank-r decomposition; a nonzero residual slice has matrix rank at most r-d+1.",
+          "limits": {
+            "max_combinations": 4095,
+            "timeout": 1.0
+          },
+          "combinations_checked": 6
+        }
+      },
+      "family": {
+        "products": 4,
+        "atoms": 135,
+        "distinct_specifications": 13232835,
+        "identity": "unordered set of four distinct rank-one products; no repeated factors or ordering duplicates"
+      },
+      "selection": "exact_residual_meet_in_middle",
+      "counts": {
+        "candidate_budget": 1000000,
+        "unique_complete_specifications_screened": 311,
+        "exact_coefficient_survivors": 311,
+        "partial_search": {
+          "pair_records": 9045,
+          "matching_pair_visits": 933,
+          "complete_family_exhausted": true
+        },
+        "specifications_materialized": 128,
+        "unique_native_artifacts": 128,
+        "materialized_program_duplicates": 0,
+        "native_candidates_checked": 8,
+        "native_input_shots": 2048,
+        "final_exact_proofs": 8
+      },
+      "timings_seconds": {
+        "analysis": 0.0016455359291285276,
+        "proposal": 0.016428086906671524,
+        "combination_unranking": 0.0003860748838633299,
+        "coefficient_screen": 4.28580678999424e-05,
+        "materialization": 0.13964632293209434,
+        "native_replay": 0.0016848589293658733,
+        "final_exact_proof": 0.030559075996279716,
+        "total": 0.1906637370120734
+      },
+      "baseline": {
+        "resources": {
+          "Q": 8,
+          "toffoli": 6,
+          "t": 0,
+          "rotations": 0,
+          "instructions": 14,
+          "accounting": "static_emitted",
+          "reaction_depth": 1
+        },
+        "cost": 48,
+        "native": "CX q6 q7\nCCX q0 q2 q6\nCX q6 q7\nCX q6 q7\nCCX q0 q4 q6\nCX q6 q7\nCCX q1 q2 q7\nCX q6 q7\nCCX q1 q3 q6\nCX q6 q7\nCCX q1 q4 q7\nCX q6 q7\nCCX q1 q5 q6\nCX q6 q7"
+      },
+      "native_validation": {
+        "status": "verified",
+        "distinct_candidates": 8,
+        "shots": 2048,
+        "input_assignments_per_candidate": 256,
+        "quantum_width": 10,
+        "public_input_wires": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "clean_helper_inputs": [
+          8,
+          9
+        ],
+        "method": "one native kickmix selector batch; all public and dirty-output assignments; exact sign and helper restoration",
+        "baseline_native_shots": 256,
+        "checks": [
+          {
+            "candidate_index": 1177910,
+            "passed": true
+          },
+          {
+            "candidate_index": 846480,
+            "passed": true
+          },
+          {
+            "candidate_index": 857191,
+            "passed": true
+          },
+          {
+            "candidate_index": 1181539,
+            "passed": true
+          },
+          {
+            "candidate_index": 1380514,
+            "passed": true
+          },
+          {
+            "candidate_index": 1796059,
+            "passed": true
+          },
+          {
+            "candidate_index": 2149408,
+            "passed": true
+          },
+          {
+            "candidate_index": 2378792,
+            "passed": true
+          }
+        ]
+      },
+      "best": {
+        "candidate_index": 1177910,
+        "specification": [
+          14,
+          46,
+          55,
+          74
+        ],
+        "decomposition": [
+          {
+            "left_mask": 1,
+            "right_mask": 5,
+            "output_mask": 3
+          },
+          {
+            "left_mask": 2,
+            "right_mask": 1,
+            "output_mask": 2
+          },
+          {
+            "left_mask": 2,
+            "right_mask": 4,
+            "output_mask": 2
+          },
+          {
+            "left_mask": 2,
+            "right_mask": 10,
+            "output_mask": 3
+          }
+        ],
+        "artifact_sha256": "1b7fe60747b95f926a8aaca6881e9979e4125765ecea85fc8a334eae59424fb2",
+        "native_text": "CX q2 q8\nCX q4 q8\nCX q6 q7\nCCX q0 q8 q6\nCX q6 q7\nCX q4 q8\nCX q2 q8\nCCX q1 q2 q7\nCCX q1 q4 q7\nCX q3 q8\nCX q5 q8\nCX q6 q7\nCCX q1 q8 q6\nCX q6 q7\nCX q5 q8\nCX q3 q8",
+        "resources": {
+          "Q": 9,
+          "toffoli": 4,
+          "t": 0,
+          "rotations": 0,
+          "instructions": 16,
+          "accounting": "static_emitted",
+          "reaction_depth": 1
+        },
+        "cost": 36,
+        "exact_verification": {
+          "status": "equivalent",
+          "equivalent": true,
+          "differing_wires": [],
+          "differing_classical_bits": [],
+          "phase_equal": true,
+          "inputs": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8
+          ],
+          "classical_inputs": [],
+          "measurement_variables": [],
+          "clean_input_assumptions": [
+            8,
+            9
+          ],
+          "evidence": "canonical_boolean_anf_equality_with_exact_sign_phase",
+          "semantic_scope": "native_outcome_parametric_basis_trajectories",
+          "assumptions": "explicit zero boundary wires: [8, 9]; all other boundary values arbitrary"
+        }
+      },
+      "verified_candidates": [
+        {
+          "candidate_index": 1177910,
+          "specification": [
+            14,
+            46,
+            55,
+            74
+          ],
+          "decomposition": [
+            {
+              "left_mask": 1,
+              "right_mask": 5,
+              "output_mask": 3
+            },
+            {
+              "left_mask": 2,
+              "right_mask": 1,
+              "output_mask": 2
+            },
+            {
+              "left_mask": 2,
+              "right_mask": 4,
+              "output_mask": 2
+            },
+            {
+              "left_mask": 2,
+              "right_mask": 10,
+              "output_mask": 3
+            }
+          ],
+          "artifact_sha256": "1b7fe60747b95f926a8aaca6881e9979e4125765ecea85fc8a334eae59424fb2",
+          "native_text": "CX q2 q8\nCX q4 q8\nCX q6 q7\nCCX q0 q8 q6\nCX q6 q7\nCX q4 q8\nCX q2 q8\nCCX q1 q2 q7\nCCX q1 q4 q7\nCX q3 q8\nCX q5 q8\nCX q6 q7\nCCX q1 q8 q6\nCX q6 q7\nCX q5 q8\nCX q3 q8",
+          "resources": {
+            "Q": 9,
+            "toffoli": 4,
+            "t": 0,
+            "rotations": 0,
+            "instructions": 16,
+            "accounting": "static_emitted",
+            "reaction_depth": 1
+          },
+          "cost": 36,
+          "exact_verification": {
+            "status": "equivalent",
+            "equivalent": true,
+            "differing_wires": [],
+            "differing_classical_bits": [],
+            "phase_equal": true,
+            "inputs": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8
+            ],
+            "classical_inputs": [],
+            "measurement_variables": [],
+            "clean_input_assumptions": [
+              8,
+              9
+            ],
+            "evidence": "canonical_boolean_anf_equality_with_exact_sign_phase",
+            "semantic_scope": "native_outcome_parametric_basis_trajectories",
+            "assumptions": "explicit zero boundary wires: [8, 9]; all other boundary values arbitrary"
+          }
+        },
+        {
+          "candidate_index": 846480,
+          "specification": [
+            14,
+            50,
+            58,
+            68
+          ],
+          "decomposition": [
+            {
+              "left_mask": 1,
+              "right_mask": 5,
+              "output_mask": 3
+            },
+            {
+              "left_mask": 2,
+              "right_mask": 2,
+              "output_mask": 3
+            },
+            {
+              "left_mask": 2,
+              "right_mask": 5,
+              "output_mask": 2
+            },
+            {
+              "left_mask": 2,
+              "right_mask": 8,
+              "output_mask": 3
+            }
+          ],
+          "artifact_sha256": "dab9225cf0ba8464adf80f0e72c22b8ce55fc06f3ec081b517b9194f421d8a86",
+          "native_text": "CX q2 q8\nCX q4 q8\nCX q6 q7\nCCX q0 q8 q6\nCX q6 q7\nCX q4 q8\nCX q2 q8\nCX q6 q7\nCCX q1 q3 q6\nCX q6 q7\nCX q2 q8\nCX q4 q8\nCCX q1 q8 q7\nCX q4 q8\nCX q2 q8\nCX q6 q7\nCCX q1 q5 q6\nCX q6 q7",
+          "resources": {
+            "Q": 9,
+            "toffoli": 4,
+            "t": 0,
+            "rotations": 0,
+            "instructions": 18,
+            "accounting": "static_emitted",
+            "reaction_depth": 1
+          },
+          "cost": 36,
+          "exact_verification": {
+            "status": "equivalent",
+            "equivalent": true,
+            "differing_wires": [],
+            "differing_classical_bits": [],
+            "phase_equal": true,
+            "inputs": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8
+            ],
+            "classical_inputs": [],
+            "measurement_variables": [],
+            "clean_input_assumptions": [
+              8,
+              9
+            ],
+            "evidence": "canonical_boolean_anf_equality_with_exact_sign_phase",
+            "semantic_scope": "native_outcome_parametric_basis_trajectories",
+            "assumptions": "explicit zero boundary wires: [8, 9]; all other boundary values arbitrary"
+          }
+        },
+        {
+          "candidate_index": 857191,
+          "specification": [
+            14,
+            48,
+            64,
+            68
+          ],
+          "decomposition": [
+            {
+              "left_mask": 1,
+              "right_mask": 5,
+              "output_mask": 3
+            },
+            {
+              "left_mask": 2,
+              "right_mask": 2,
+              "output_mask": 1
+            },
+            {
+              "left_mask": 2,
+              "right_mask": 7,
+              "output_mask": 2
+            },
+            {
+              "left_mask": 2,
+              "right_mask": 8,
+              "output_mask": 3
+            }
+          ],
+          "artifact_sha256": "4ae6df726b3e0763f436984a977edc672cc5c67facccd8520b517d9b6e916a48",
+          "native_text": "CX q2 q8\nCX q4 q8\nCX q6 q7\nCCX q0 q8 q6\nCX q6 q7\nCX q4 q8\nCX q2 q8\nCCX q1 q3 q6\nCX q2 q8\nCX q3 q8\nCX q4 q8\nCCX q1 q8 q7\nCX q4 q8\nCX q3 q8\nCX q2 q8\nCX q6 q7\nCCX q1 q5 q6\nCX q6 q7",
+          "resources": {
+            "Q": 9,
+            "toffoli": 4,
+            "t": 0,
+            "rotations": 0,
+            "instructions": 18,
+            "accounting": "static_emitted",
+            "reaction_depth": 1
+          },
+          "cost": 36,
+          "exact_verification": {
+            "status": "equivalent",
+            "equivalent": true,
+            "differing_wires": [],
+            "differing_classical_bits": [],
+            "phase_equal": true,
+            "inputs": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8
+            ],
+            "classical_inputs": [],
+            "measurement_variables": [],
+            "clean_input_assumptions": [
+              8,
+              9
+            ],
+            "evidence": "canonical_boolean_anf_equality_with_exact_sign_phase",
+            "semantic_scope": "native_outcome_parametric_basis_trajectories",
+            "assumptions": "explicit zero boundary wires: [8, 9]; all other boundary values arbitrary"
+          }
+        },
+        {
+          "candidate_index": 1181539,
+          "specification": [
+            2,
+            11,
+            58,
+            74
+          ],
+          "decomposition": [
+            {
+              "left_mask": 1,
+              "right_mask": 1,
+              "output_mask": 3
+            },
+            {
+              "left_mask": 1,
+              "right_mask": 4,
+              "output_mask": 3
+            },
+            {
+              "left_mask": 2,
+              "right_mask": 5,
+              "output_mask": 2
+            },
+            {
+              "left_mask": 2,
+              "right_mask": 10,
+              "output_mask": 3
+            }
+          ],
+          "artifact_sha256": "ee5758a597797b578be3a6464c2b4d844e90b4e79067ccf1aac3edfe17520807",
+          "native_text": "CX q6 q7\nCCX q0 q2 q6\nCX q6 q7\nCX q6 q7\nCCX q0 q4 q6\nCX q6 q7\nCX q2 q8\nCX q4 q8\nCCX q1 q8 q7\nCX q4 q8\nCX q2 q8\nCX q3 q8\nCX q5 q8\nCX q6 q7\nCCX q1 q8 q6\nCX q6 q7\nCX q5 q8\nCX q3 q8",
+          "resources": {
+            "Q": 9,
+            "toffoli": 4,
+            "t": 0,
+            "rotations": 0,
+            "instructions": 18,
+            "accounting": "static_emitted",
+            "reaction_depth": 1
+          },
+          "cost": 36,
+          "exact_verification": {
+            "status": "equivalent",
+            "equivalent": true,
+            "differing_wires": [],
+            "differing_classical_bits": [],
+            "phase_equal": true,
+            "inputs": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8
+            ],
+            "classical_inputs": [],
+            "measurement_variables": [],
+            "clean_input_assumptions": [
+              8,
+              9
+            ],
+            "evidence": "canonical_boolean_anf_equality_with_exact_sign_phase",
+            "semantic_scope": "native_outcome_parametric_basis_trajectories",
+            "assumptions": "explicit zero boundary wires: [8, 9]; all other boundary values arbitrary"
+          }
+        },
+        {
+          "candidate_index": 1380514,
+          "specification": [
+            14,
+            45,
+            55,
+            77
+          ],
+          "decomposition": [
+            {
+              "left_mask": 1,
+              "right_mask": 5,
+              "output_mask": 3
+            },
+            {
+              "left_mask": 2,
+              "right_mask": 1,
+              "output_mask": 1
+            },
+            {
+              "left_mask": 2,
+              "right_mask": 4,
+              "output_mask": 2
+            },
+            {
+              "left_mask": 2,
+              "right_mask": 11,
+              "output_mask": 3
+            }
+          ],
+          "artifact_sha256": "34b4cfcfc0c4635d711d39c89ee76d231f60081bb99c90faef84900f55eee0af",
+          "native_text": "CX q2 q8\nCX q4 q8\nCX q6 q7\nCCX q0 q8 q6\nCX q6 q7\nCX q4 q8\nCX q2 q8\nCCX q1 q2 q6\nCCX q1 q4 q7\nCX q2 q8\nCX q3 q8\nCX q5 q8\nCX q6 q7\nCCX q1 q8 q6\nCX q6 q7\nCX q5 q8\nCX q3 q8\nCX q2 q8",
+          "resources": {
+            "Q": 9,
+            "toffoli": 4,
+            "t": 0,
+            "rotations": 0,
+            "instructions": 18,
+            "accounting": "static_emitted",
+            "reaction_depth": 1
+          },
+          "cost": 36,
+          "exact_verification": {
+            "status": "equivalent",
+            "equivalent": true,
+            "differing_wires": [],
+            "differing_classical_bits": [],
+            "phase_equal": true,
+            "inputs": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8
+            ],
+            "classical_inputs": [],
+            "measurement_variables": [],
+            "clean_input_assumptions": [
+              8,
+              9
+            ],
+            "evidence": "canonical_boolean_anf_equality_with_exact_sign_phase",
+            "semantic_scope": "native_outcome_parametric_basis_trajectories",
+            "assumptions": "explicit zero boundary wires: [8, 9]; all other boundary values arbitrary"
+          }
+        },
+        {
+          "candidate_index": 1796059,
+          "specification": [
+            14,
+            50,
+            66,
+            82
+          ],
+          "decomposition": [
+            {
+              "left_mask": 1,
+              "right_mask": 5,
+              "output_mask": 3
+            },
+            {
+              "left_mask": 2,
+              "right_mask": 2,
+              "output_mask": 3
+            },
+            {
+              "left_mask": 2,
+              "right_mask": 8,
+              "output_mask": 1
+            },
+            {
+              "left_mask": 2,
+              "right_mask": 13,
+              "output_mask": 2
+            }
+          ],
+          "artifact_sha256": "7a6ee198f456ffb933e53c9343ab8fc3494dbf823c5e54e8ddad9be8e9e61223",
+          "native_text": "CX q2 q8\nCX q4 q8\nCX q6 q7\nCCX q0 q8 q6\nCX q6 q7\nCX q4 q8\nCX q2 q8\nCX q6 q7\nCCX q1 q3 q6\nCX q6 q7\nCCX q1 q5 q6\nCX q2 q8\nCX q4 q8\nCX q5 q8\nCCX q1 q8 q7\nCX q5 q8\nCX q4 q8\nCX q2 q8",
+          "resources": {
+            "Q": 9,
+            "toffoli": 4,
+            "t": 0,
+            "rotations": 0,
+            "instructions": 18,
+            "accounting": "static_emitted",
+            "reaction_depth": 1
+          },
+          "cost": 36,
+          "exact_verification": {
+            "status": "equivalent",
+            "equivalent": true,
+            "differing_wires": [],
+            "differing_classical_bits": [],
+            "phase_equal": true,
+            "inputs": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8
+            ],
+            "classical_inputs": [],
+            "measurement_variables": [],
+            "clean_input_assumptions": [
+              8,
+              9
+            ],
+            "evidence": "canonical_boolean_anf_equality_with_exact_sign_phase",
+            "semantic_scope": "native_outcome_parametric_basis_trajectories",
+            "assumptions": "explicit zero boundary wires: [8, 9]; all other boundary values arbitrary"
+          }
+        },
+        {
+          "candidate_index": 2149408,
+          "specification": [
+            14,
+            46,
+            54,
+            86
+          ],
+          "decomposition": [
+            {
+              "left_mask": 1,
+              "right_mask": 5,
+              "output_mask": 3
+            },
+            {
+              "left_mask": 2,
+              "right_mask": 1,
+              "output_mask": 2
+            },
+            {
+              "left_mask": 2,
+              "right_mask": 4,
+              "output_mask": 1
+            },
+            {
+              "left_mask": 2,
+              "right_mask": 14,
+              "output_mask": 3
+            }
+          ],
+          "artifact_sha256": "2e727c7131a9d579dc8da8904c84eeaa3d5c9d5bd915a9883eb7c06375c0b13a",
+          "native_text": "CX q2 q8\nCX q4 q8\nCX q6 q7\nCCX q0 q8 q6\nCX q6 q7\nCX q4 q8\nCX q2 q8\nCCX q1 q2 q7\nCCX q1 q4 q6\nCX q3 q8\nCX q4 q8\nCX q5 q8\nCX q6 q7\nCCX q1 q8 q6\nCX q6 q7\nCX q5 q8\nCX q4 q8\nCX q3 q8",
+          "resources": {
+            "Q": 9,
+            "toffoli": 4,
+            "t": 0,
+            "rotations": 0,
+            "instructions": 18,
+            "accounting": "static_emitted",
+            "reaction_depth": 1
+          },
+          "cost": 36,
+          "exact_verification": {
+            "status": "equivalent",
+            "equivalent": true,
+            "differing_wires": [],
+            "differing_classical_bits": [],
+            "phase_equal": true,
+            "inputs": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8
+            ],
+            "classical_inputs": [],
+            "measurement_variables": [],
+            "clean_input_assumptions": [
+              8,
+              9
+            ],
+            "evidence": "canonical_boolean_anf_equality_with_exact_sign_phase",
+            "semantic_scope": "native_outcome_parametric_basis_trajectories",
+            "assumptions": "explicit zero boundary wires: [8, 9]; all other boundary values arbitrary"
+          }
+        },
+        {
+          "candidate_index": 2378792,
+          "specification": [
+            14,
+            48,
+            66,
+            88
+          ],
+          "decomposition": [
+            {
+              "left_mask": 1,
+              "right_mask": 5,
+              "output_mask": 3
+            },
+            {
+              "left_mask": 2,
+              "right_mask": 2,
+              "output_mask": 1
+            },
+            {
+              "left_mask": 2,
+              "right_mask": 8,
+              "output_mask": 1
+            },
+            {
+              "left_mask": 2,
+              "right_mask": 15,
+              "output_mask": 2
+            }
+          ],
+          "artifact_sha256": "25be92a9c8c51c902fb6b479a8912b49a1417301ce9b295851be49de9b264e73",
+          "native_text": "CX q2 q8\nCX q4 q8\nCX q6 q7\nCCX q0 q8 q6\nCX q6 q7\nCX q4 q8\nCX q2 q8\nCCX q1 q3 q6\nCCX q1 q5 q6\nCX q2 q8\nCX q3 q8\nCX q4 q8\nCX q5 q8\nCCX q1 q8 q7\nCX q5 q8\nCX q4 q8\nCX q3 q8\nCX q2 q8",
+          "resources": {
+            "Q": 9,
+            "toffoli": 4,
+            "t": 0,
+            "rotations": 0,
+            "instructions": 18,
+            "accounting": "static_emitted",
+            "reaction_depth": 1
+          },
+          "cost": 36,
+          "exact_verification": {
+            "status": "equivalent",
+            "equivalent": true,
+            "differing_wires": [],
+            "differing_classical_bits": [],
+            "phase_equal": true,
+            "inputs": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8
+            ],
+            "classical_inputs": [],
+            "measurement_variables": [],
+            "clean_input_assumptions": [
+              8,
+              9
+            ],
+            "evidence": "canonical_boolean_anf_equality_with_exact_sign_phase",
+            "semantic_scope": "native_outcome_parametric_basis_trajectories",
+            "assumptions": "explicit zero boundary wires: [8, 9]; all other boundary values arbitrary"
+          }
+        }
+      ],
+      "accepted_gain": 12,
+      "objective": {
+        "expression": "Q*toffoli",
+        "accounting": "emitted native circuit; two clean helper wires priced when used"
+      },
+      "limits": {
+        "batch_size": 65536,
+        "materialization_limit": 128,
+        "native_limit": 8
+      },
+      "interpretation": "restricted algebraic solver experiment; guided precision is not an unbiased success probability; equal candidate caps do not imply equal computation",
+      "forced_measurement_events": 0,
+      "native_scope": "every public/dirty output assignment and zero declared helpers; complete outputs and exact sign; not a host-task certificate"
+    }
+  ],
+  "totals": {
+    "algebraic_specification_evaluations": 2000374,
+    "random_unique_specifications_screened": 2000000,
+    "native_candidate_replays": 28,
+    "distinct_final_native_artifacts": 26,
+    "native_input_shots": 7168,
+    "final_exact_proof_runs": 28
+  },
+  "environment": {
+    "python": "3.14.8 (main, Oct  1 2026, 20:09:47) [GCC 15.3.0]",
+    "numpy": "2.5.5",
+    "kickmix": "1.0.0",
+    "platform": "Linux-7.3.0-1003-gcp-x86_64-with-glibc2.44",
+    "peak_rss_bytes": 203436032
+  },
+  "implementation_sha256": "5cfcd03a7f81e7f81425e4fefc8d5b1239521e105009a991dc298080ad97212f",
+  "script_sha256": "1615698ce856e3bad5996259dd8b91ea9a81e1dc44bc00479c331038c9c2db52",
+  "comparison_scope": "same candidate family, candidate cap, materialization cap, native cap and objective; actual partial work/time differ",
+  "held_out_scope": "different input partition and independently fixed instance seed; no training or general discovery claim",
+  "warning": "Millions count distinct algebraic decomposition specifications. Native circuits, shots and final exact proofs have separate counters."
+}

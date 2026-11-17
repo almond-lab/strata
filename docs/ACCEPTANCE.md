@@ -1,8 +1,8 @@
-# Acceptance ledger — v0.2
+# Acceptance ledger — v0.3
 
 Implemented APIs and passing fixtures do not establish historical competition
 acceptance. This ledger records the distinction; detailed issue-by-issue scope
-is in [V0.2-ISSUES.md](V0.2-ISSUES.md). The product specification is unchanged.
+is in [V0.3-ISSUES.md](V0.3-ISSUES.md). The product specification is unchanged.
 
 | Area | State | Evidence and limits |
 |---|---|---|
@@ -12,14 +12,18 @@ is in [V0.2-ISSUES.md](V0.2-ISSUES.md). The product specification is unchanged.
 | Config-only tasks | Implemented | Pinned executable/dependency request/receipt protocol; config-only full pipeline passed real offline Bubblewrap acceptance |
 | Frozen source-less components | Implemented scoped evidence | Hash-pinned opaque files excluded only from small component labs, retained in full-artifact gates; no fictional generator |
 | Numeric/data co-design | Implemented | Data-only and joint artifact edits carry numeric acceptance/resources through all gates; schema mathematics supplied by checker |
+| Numeric-first candidate workflow | Implemented generic plugins | Hashed named arrays/units/trainable masks, lineage, calibrated fast/reference scoring and cost-first stage pipelines; project supplies scientific arithmetic |
+| Numeric diagnostics and proposals | Implemented scoped tools | Error ledgers, exact caller shape prices, measured sibling-setting transfer and untested combinations; model estimates remain labelled |
+| Numeric convergence and floors | Implemented bounded models | Independent-run trend bootstrap with uncertainty, exact finite rational quadratic minima with continuous compensation; no global scientific floor or calibrated future-pass guarantee |
+| Long numeric jobs and bets | Implemented local orchestration | Pinned offline workers, checkpoints, reserved budgets, observed stop/readiness rules, safe-portfolio accounting and full-verification promotion; no cluster broker or autonomous external submission |
 | External callbacks | Implemented trusted extension | Pinned sources/dependencies and typed scoped receipts; raw success dictionaries refused |
 | Width accounting | Implemented | `Q` is emitted width, `Q_total` host width, bundle component widths/caps checked |
 | Promised-input lab | Implemented finite domains | Explicit canonical domain hash bound to promise, artifact and scale; all-input contracts cannot be weakened |
 | Reset legality and batched lab | Implemented supported subset | `R` active-target zero checks, cached segments, bit-sliced input batches; dirty/clean/phase checks preserved |
 | HMR branch reduction | Implemented affine subset | Executed versus represented branches separated; nonlinear classical dependencies fall back to exhaustive enumeration; independent whole-native audit covers 768 trajectories across 24 conditional-HMR programs |
 | Lab sharding | Implemented partial-run facility | Deterministic shards labeled `sample`; partial receipts cannot certify designs |
-| Full-size lab performance | Bounded engineering improvement | Segment/batching/reduction regressions pass; no general full-contest runtime guarantee |
-| Source-less exact checks | Implemented bounded symbolic receipts | Fixed-region Boolean/sign-phase maps bound to source/contract/code, replayed with the same backend; unsupported conditions/HMR stay unknown; no inferred scale or whole-task proof |
+| Full-size lab performance | Bounded engineering improvement | One million actual small native programs,256m input trajectories,595.85s; this is not full-contest-circuit throughput |
+| Source-less exact checks | Implemented bounded symbolic receipts | Fixed-region Boolean/sign-phase and classical/HMR maps bound to source/contract/code; forced-outcome native regressions; unproved branch alignment, fractional phases and oversized spans stay unknown |
 | Untagged semantic lift | Partial, required core | Exact algebraic functions and bounded episodes; full arithmetic-stage architecture recovery incomplete |
 | Functional dependency / slack | Implemented bounded APIs | Exact polynomial family, affine rank or bounded distinct-state checks; unsupported/budget cases return unknown; no free-scratch inference |
 | Logical holders | Implemented exact-value query | Public Queries return inferred contents/dependencies under declared clean inputs; dynamic allocation ownership remains unknown |
@@ -28,13 +32,19 @@ is in [V0.2-ISSUES.md](V0.2-ISSUES.md). The product specification is unchanged.
 | Probability policies | Implemented through project gates | Nonlinear per-draw pricing survives Line/replay; favorable-draw and policy/certificate mutations refused; no exact population-expectation claim |
 | Structural research rounds | Implemented orchestration | Dependency/debt closure, mechanism diversity, configured scales, structural witness and replay quarantine |
 | File discovery and synthesis | Implemented bounded subset | Native-profile ranked algebraic synthesis; connected-agent hypothesis/candidate/note feedback; no standalone AI-provider invocation |
+| Generic constructor search | Implemented bounded subset | Observable phase, composed output updates and bilinear products; verified nonwinning states, resource frontier and replay-checked learned native templates; no universal novelty guarantee |
+| Constructive support compression | Implemented exact small witnesses | Joint reachable support, executable encoder/decoder and priced native circuits for small widths; a consumer adapter is still required before a whole-task width gain |
+| Tensor bounds and synthesis | Implemented explicitly restricted model | Three flattenings, certified bounded slice-substitution, exact small search and reversible dirty-output lowering; no general quantum floor claim |
+| Large-file discovery | Implemented bounded Python analysis | Native load plus text spool and SQLite grouped kernels; 500k-line synthetic timing published; full 50M host circuit not benchmarked |
+| File finite promises and interior boundaries | Implemented | Complete assignments and canonical domain hashes; equal physical layouts; symbolic and concrete evidence remain separately scoped |
+| Verifier failure retention | Implemented | Valid rejection, invalid scope and postcheck failure retained separately; native binary width preflight and configurable runtime limits |
 | Fresh no-hypothesis file trial | Passed original fixture | Untagged eight-bit file, no adapter or hypotheses: two automatic rewrites, static cost 32→16, exact independent lab over 256 arbitrary dirty inputs and replay; not historical/competition acceptance |
 | Negative-result memory | Implemented conservative import/apply | Direct and imported strong evidence requires valid blobs; contract/scale changes reopen scoped claims |
 | Store-only reports | Implemented | Mixed success/failure/nonbuilt rounds and file notes/candidates; source/config removal tests prohibit rebuilding |
 | Offline execution | Runner implemented and release smoke passed | Real offline Bubblewrap run with staged/hash-checked dependencies; no fallback; not a security audit |
 | R1–R4 historical restructures | NOT RUN | Need historical source/patch adapters and independent recovered contracts |
 | R5 complete host contract trees | NOT MET | Bounded algebraic lifting does not establish full trees |
-| R6 actual 322 historical attempts | NOT RUN | Target ledger not found; synthetic regression and separate real-log smoke do not replace it |
+| R6 real multi-hundred historical attempts | PARTIAL | Actual 329-row attempt ledger imported; all rows explicitly unbound. Semantic binding and actual base-change apply/reopen acceptance remain open; see V0.3-HISTORY-IMPORT.json |
 | ≥90% structural typing | NOT MEASURED / NOT CLAIMED | Requires tagged circuits with tags stripped; primitive or algebraic coverage is insufficient |
 | ≥95% boundary/tag agreement | NOT MEASURED | Golden boundaries and a benchmark receipt required |
 | <30-minute full contest gap table | NOT MEASURED | No full contest timing receipt |
@@ -54,13 +64,37 @@ source bytes or committing their private contents:
 | Negative-results CSV | 87 | 5 | 82 | 0 |
 | Wrapped research-notes JSON array | 1 | 0 | 1 | 0 |
 | Separate historical event JSONL | 262 | 0 | 262 | 0 |
+| Actual attempt ledger JSONL, v0.3 | 329 | 0 | 329 | 0 |
+| Separate archive inventory JSONL, v0.3 | 36 | 0 | 36 | 0 |
 
-The 262 events are not a multi-hundred attempt ledger. Known declared contract
-bindings are retained; missing bindings stay explicit. The 322-row regression
-remains synthetic. A real target ledger plus verified binding map is needed for
-R6 acceptance.
+The v0.3 import establishes ingestion of a real multi-hundred attempt ledger,
+distinct from the older 262-event smoke and synthetic 322-row regression.
+[V0.3-HISTORY-IMPORT.json](V0.3-HISTORY-IMPORT.json) records source hashes,
+aggregate counts and limitations without private row contents. Imports ran in
+isolated temporary stores that were removed afterwards; original bytes were
+verified unchanged. The separate 36-row archive is an inventory, not additional
+attempt-ledger acceptance evidence.
+
+The 329 attempt rows request three `build`, three `estimate` and one `proof`
+labels; 38 have other unverified labels and 284 have no evidence-kind label.
+All remain unbound: historical base strings do not establish semantic contract
+fingerprints, and the supplied evidence fields are prose. No bound proof or
+build was promoted, priced or closed. The importer count named `imported`
+counts bound negative records only; `unbound: 329` accounts for all rows retained
+from this ledger.
+
+Actual base-change application/reopening is not established because there are
+no bound negative records to apply and no verified binding map was supplied.
+The remaining R6/#19 milestone requires those real bindings and a subsequent
+base-change receipt; fixture tests of apply/reopen do not replace it.
 
 ## Existing receipts
+
+v0.3 release checks and measured benchmarks are recorded in
+`V0.3-VALIDATION.json`, `V0.3-STREAMING-BENCHMARK.json`, and the v0.3 issue map.
+These are engineering and bounded research-path checks, not historical contest
+discovery acceptance. Candidate generation, algebraic screening, native simulation
+and final certification counts must be reported separately.
 
 Final v0.2 validation: `python -m pytest -q` passed all 321 tests in 55.80 seconds.
 The actual offline Sandbox regression passed separately in 6.96 seconds.

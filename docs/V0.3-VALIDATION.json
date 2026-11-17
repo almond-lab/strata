@@ -1,0 +1,66 @@
+{
+  "version": "0.3.0",
+  "validated_at_utc": "2026-11-17 08:51:16 UTC",
+  "full_suite": {
+    "command": ".venv/bin/python -m pytest -q",
+    "passed": 465,
+    "failed": 0,
+    "seconds": 69.45
+  },
+  "offline_sandbox": {
+    "runtime_and_bundle_suite": {
+      "passed": 20,
+      "seconds": 9.99
+    },
+    "checkpoint_resume_and_certification": {
+      "passed": 2,
+      "seconds": 1.99
+    },
+    "scope": "Actual offline Bubblewrap execution selected by STRATA_REAL_SANDBOX=1; no unsafe fallback"
+  },
+  "agent_skill": "quick_validate.py passed",
+  "benchmarks": {
+    "streaming": {
+      "receipt": "V0.3-STREAMING-BENCHMARK.json",
+      "canonical_lines": 500000,
+      "seconds": 20.799345510080457,
+      "peak_rss_bytes": 63041536
+    },
+    "native_candidates": {
+      "receipt": "V0.3-NATIVE-CANDIDATE-BENCHMARK.json",
+      "unique_native_programs": 1000000,
+      "native_input_trajectories": 256000000,
+      "seconds": 595.851,
+      "scope": "Small four-product bilinear episodes; not complete contest circuits; no persistence per candidate"
+    },
+    "guided_search": {
+      "receipt": "benchmarks/candidate-search-million.json",
+      "random_unique_specs": 2000000,
+      "native_finalist_replays": 28,
+      "globally_unique_native_finalists": 26,
+      "scope": "Exact bounded tensor residual search; partial algebraic work reported separately"
+    }
+  },
+  "issue_fixes": [
+    23,
+    24,
+    25,
+    26,
+    27,
+    28,
+    29,
+    30,
+    31,
+    32,
+    33,
+    34,
+    35
+  ],
+  "still_open": {
+    "9": "Historical automatic arithmetic-stage typing and boundary benchmarks unmet",
+    "10": "Historical top-k winning-restructure replay unmet",
+    "19": "329 real attempts imported; semantic bindings and meaningful base-change application remain unavailable"
+  },
+  "numeric_scope": "Generic candidates/scorer plugins, error ledgers, models and job orchestration; no domain-specific scientific scorer or production convergence claim",
+  "external_submission": false
+}

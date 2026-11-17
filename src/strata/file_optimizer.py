@@ -47,6 +47,10 @@ def _resynthesize(semantics, *, max_operations):
     F.  A cycle, a self-dependent update, or a degree beyond available native
     gates is rejected.  Thus later updates never read an overwritten original.
     """
+    if semantics.get('measurement_variables') or semantics.get('classical_inputs') or semantics.get('classical_outputs'):
+        return None, 'constructor_requires_quantum_only_permutation'
+    if semantics.get('is_permutation') is False:
+        return None, 'constructor_requires_permutation'
     changes = {int(q): p['monomials'] for q, p in semantics['changes'].items()}
     phase = semantics['phase']['monomials']
     if any(len(t) > 3 for t in phase):

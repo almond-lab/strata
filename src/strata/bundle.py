@@ -9,6 +9,8 @@ from types import MappingProxyType
 import base64
 import hashlib
 import json
+import io
+import kickmix as km
 from .model import Contract, Region, StrataError, canonical, digest
 from .kickmix import Kickmix, instructions
 
@@ -57,6 +59,14 @@ class BundleFrontend:
     def identity_hash(self):
         return digest([asdict(c) for c in self.components])
 
+    @staticmethod
+    def circuit(content):
+        """Let the SDK detect kmx/kmb without changing the artifact bytes."""
+        try:
+            return km.Circuit.from_file(io.BytesIO(content), format='auto')
+        except (ValueError, RuntimeError) as exc:
+            raise StrataError('invalid kickmix bundle component') from exc
+
     def validate(self, bundle):
         if not isinstance(bundle, Bundle) or set(bundle.files) != {c.path for c in self.components}:
             raise StrataError('bundle component set changed')
@@ -64,8 +74,10 @@ class BundleFrontend:
             content = bundle.files[c.path]
             if c.frozen and hashlib.sha256(content).hexdigest() != c.sha256:
                 raise StrataError('frozen component changed: ' + c.id)
+            if c.kind == 'data' and PurePosixPath(c.path).suffix.lower() == '.kmb':
+                raise StrataError('binary kickmix component ' + c.id + ' is declared data; declare kind="kickmix" (or frontend="kickmix" for a single file) so Q and width caps are checked before the verifier')
             if c.kind == 'kickmix':
-                circuit = Kickmix().parse(content.decode())
+                circuit = self.circuit(content)
                 if c.max_qubits is not None and circuit.num_qubits > c.max_qubits:
                     raise StrataError('component width cap exceeded: ' + c.id)
         return bundle
@@ -93,7 +105,7 @@ class BundleFrontend:
 
     def measured(self, bundle):
         self.validate(bundle)
-        metrics = {c.id: Kickmix().measured(Kickmix().parse(bundle.files[c.path].decode())) for c in self.components if c.kind == 'kickmix'}
+        metrics = {c.id: Kickmix().measured(self.circuit(bundle.files[c.path])) for c in self.components if c.kind == 'kickmix'}
         return dict(Q=max((m['Q'] for m in metrics.values()), default=0), component_widths={name: m['Q'] for name, m in metrics.items()},
                     components=metrics, artifact_bytes=sum(map(len, bundle.files.values())), width_semantics='maximum_sequential_component_emitted_width')
 
@@ -107,7 +119,7 @@ class BundleFrontend:
             item = dict(path=component.path, kind='opaque' if component.frozen else component.kind,
                         frozen=component.frozen, sha256=hashlib.sha256(data).hexdigest(), bytes=len(data))
             if component.kind == 'kickmix' and not component.frozen:
-                item['analysis'] = Kickmix().analyze(Kickmix().parse(data.decode()), out / ('component-' + str(index)), max_ops=max_ops)
+                item['analysis'] = Kickmix().analyze(self.circuit(data), out / ('component-' + str(index)), max_ops=max_ops)
             report['components'][component.id] = item
         (out / 'analysis.json').write_text(json.dumps(report, indent=2))
         return report
@@ -121,7 +133,7 @@ class BundleFrontend:
     def operations(self, bundle):
         for c in self.components:
             if c.kind == 'kickmix':
-                yield from (op for _, _, op, _ in instructions(Kickmix().parse(bundle.files[c.path].decode())))
+                yield from (op for _, _, op, _ in instructions(self.circuit(bundle.files[c.path])))
 
     def tree(self, bundle, reference, promise='declared domain'):
         self.validate(bundle)

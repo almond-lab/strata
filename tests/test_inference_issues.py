@@ -20,7 +20,8 @@ def test_no_is_scoped_and_budget_is_unknown():
     r=is_function_of(c,3,2,[0,1,2])
     assert r['status']=='no' and r['searched_family']['max_degree']==2
     assert is_function_of(c,3,2,[0,1,2],max_forms=1)['status']=='unknown'
-    assert is_function_of(km.Circuit('HMR q0 b0'),0,1,[])['status']=='unknown'
+    reset = is_function_of(km.Circuit('HMR q0 b0'),0,1,[])
+    assert reset['status']=='yes' and reset['form']['monomials']==[]
 
 
 def test_slack_rank_and_nonlinear_distinct_states_are_not_clean_leases():

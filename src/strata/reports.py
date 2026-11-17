@@ -12,9 +12,13 @@ from .model import StrataError
 KINDS = ('design', 'line', 'research_plan', 'research_result', 'gap_snapshot',
          'negative', 'unbound_attempt', 'file_candidate_attempt', 'agent_research_note',
          'file_optimization', 'discovery_target', 'semantic_recovery_target', 'discovery_brief',
-         'quarantine')
+         'quarantine','external_check_failure','restructure_run',
+         'numeric_candidate','numeric_handoff','numeric_score','numeric_scorer_calibration',
+         'numeric_experiment','numeric_pipeline','numeric_pipeline_checkpoint','numeric_pipeline_failure',
+         'numeric_job','numeric_job_start','numeric_job_finish','numeric_checkpoint',
+         'numeric_budget','numeric_forecast','numeric_floor','numeric_bets')
 FILE_KINDS = {'file_candidate_attempt', 'agent_research_note', 'file_optimization',
-              'discovery_target', 'semantic_recovery_target', 'discovery_brief'}
+              'discovery_target', 'semantic_recovery_target', 'discovery_brief','restructure_run'}
 
 
 def _file_parent_hashes(record):
@@ -109,6 +113,9 @@ def report(store, handle=None, design=None, round=None):
         if kind == 'research_result': return h in result_ids
         if kind in FILE_KINDS:
             return h == selected or bool(file_hashes & _file_parent_hashes(value))
+        if kind=='external_check_failure':return h==selected or value.get('line') in line_ids
+        if kind.startswith('numeric_'):
+            return h==selected or value.get('candidate')==selected or value.get('job')==selected or value.get('pipeline')==selected
         return False
     scoped = {kind: [(h, v) for h, v in rows if included(kind, h, v)] for kind, rows in records.items()}
     plans = [dict(handle=h, **v) for h, v in scoped['research_plan']]
@@ -219,6 +226,9 @@ def report(store, handle=None, design=None, round=None):
                             outcome_statuses=dict(Counter(item.get('status', 'unknown') for result in results for item in result.get('outcomes', [])))),
                 plans=plans, results=results, lines=lines, designs=designs, file_attempts=attempts, notes=notes,
                 gaps=gaps, negative_memory=negatives,
+                external_check_failures=[dict(handle=h,**v) for h,v in scoped['external_check_failure']],
+                restructuring_runs=[dict(handle=h,**v) for h,v in scoped['restructure_run']],
+                numeric={kind:[dict(handle=h,**v) for h,v in values] for kind,values in scoped.items() if kind.startswith('numeric_')},
                 unbound_attempts=[dict(handle=h, identifier=value.get('identifier'), line=value.get('line'), binding_status='unbound')
                                   for h, value in records['unbound_attempt']] if selected is None else [],
                 shared_failures=shared,
@@ -256,6 +266,25 @@ def markdown_report(data):
     out += ['## File discovery attempts', '']
     out += table(['Attempt', 'Mechanism', 'Status', 'Measured delta', 'Scope', 'Checks', 'Reopen'],
                  [(v['handle'], v['mechanism'], v['status'], v['cost_delta'], v['scope'], v['checks'], v['reopen']) for v in data['file_attempts']])
+    out += ['## Structural construction runs','']
+    out += table(['Run','Status','Measured delta','Alternatives','Scope'],
+                 [(v['handle'],v.get('status'),v.get('cost_delta'),len(v.get('states',[])),v.get('contract'))
+                  for v in data.get('restructuring_runs',[])])
+    out += ['## External verifier postcheck failures','']
+    out += table(['Record','Stage','Reason','Retained receipt'],
+                 [(v['handle'],v.get('stage'),v.get('reason',v.get('error')),v.get('receipt_blob',v.get('receipt')))
+                  for v in data.get('external_check_failures',[])])
+    out += ['## Numeric candidates and experiments','']
+    numeric=data.get('numeric',{})
+    out += table(['Candidate','Cost','Unit','Evidence','Eligible','Frozen parameters'],
+                 [(v.get('candidate'),v.get('cost'),v.get('cost_unit'),v.get('evidence_kind'),v.get('eligible'),v.get('frozen_parameters'))
+                  for v in numeric.get('numeric_score',[])])
+    out += table(['Experiment','Line','Settings','Factors','Observations'],
+                 [(v['handle'],v.get('line'),v.get('settings'),v.get('factors'),v.get('observations'))
+                  for v in numeric.get('numeric_experiment',[])])
+    out += table(['Job','Stage','Outcome','Elapsed seconds','Evidence'],
+                 [(v.get('job'),v.get('stage'),v.get('status'),v.get('seconds'),v.get('receipt',v.get('error')))
+                  for v in numeric.get('numeric_job_finish',[])])
     out += ['## Automatic file optimization runs', '']
     out += table(['Run', 'Status', 'Baseline cost', 'Candidate cost', 'Objective / scope', 'Checks / replay'],
                  [(v['handle'], v.get('status'), v.get('baseline', {}).get('cost'), v.get('candidate', {}).get('cost'),

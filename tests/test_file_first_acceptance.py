@@ -151,15 +151,15 @@ def test_mutated_output_helper_or_phase_is_not_equivalent(mutation):
 
 @pytest.mark.parametrize('barrier', ['HMR q2 b0', 'CX q2 q3 if b0',
                                    'Z_POW q2 0.25', 'CSWAP q2 q3 q4'])
-def test_measurement_condition_and_fractional_phase_are_opaque_barriers(barrier):
+def test_native_effects_are_preserved_and_fractional_phase_remains_unknown(barrier):
     from strata.file_optimizer import optimize_circuit
     from strata.semantic import analyze_window, equivalent_windows
 
     original = km.Circuit(f'CCX q0 q1 q2\n{barrier}\nCCX q0 q1 q2')
     result = analyze_window(str(original).splitlines())
-    assert result['status'] != 'exact'
+    assert result['status'] == ('opaque' if barrier.startswith('Z_POW') else 'exact')
     candidate, report = optimize_circuit(original)
-    # Neither the unsupported operation nor its surrounding dependencies vanish.
+    # Exact lifting alone does not authorize dropping effects or dependencies.
     assert str(candidate) == str(original)
     stripped = km.Circuit('CCX q0 q1 q2\nCCX q0 q1 q2')
     check = equivalent_windows(str(original).splitlines(), str(stripped).splitlines())
@@ -187,7 +187,9 @@ def test_scoped_condition_body_is_not_treated_as_unconditional():
     candidate, _ = optimize_circuit(original)
     assert str(candidate) == str(original)
     result = lift_regions(original)
-    assert all(not region['structural'] for region in result['regions'])
+    assert result['unknown'] == []
+    assert len(result['regions']) == 1
+    assert result['regions'][0]['outputs']['3']['monomials'] == [[3], [2, 'b0'], [0, 1, 'b0']]
 
 
 def test_unknown_file_does_not_imply_zero_initialized_intermediate():

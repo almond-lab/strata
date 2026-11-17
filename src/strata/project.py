@@ -15,6 +15,7 @@ import uuid
 from .model import StrataError, digest, region_from_dict
 from .store import Store
 from .cost import Formula, portfolio, rank_gaps
+from .callbacks import retain_external_failure, preserve_completed_check
 from .engine import Patch, MOVES, applicable_moves, compose
 from .kickmix import Kickmix
 from .lab import exhaustive
@@ -352,19 +353,20 @@ class Task:
         if oracle.get('passed') is not True:
             raise StrataError('full oracle failed')
         receipt = adapter.verify(circuit, parameters, self.config.get('domain', {}))
-        if receipt.get('passed') is not True or not receipt.get('verifier_hash'):
-            raise StrataError('official verifier failed or unpinned')
-        required = self.config.get('domain', {}).get('seeds', [])
-        if required and (receipt.get('seeds') != required or oracle.get('seeds') != required):
-            raise StrataError('draws differ from precommitted seeds')
-        resources = receipt['resources']
-        self.check_resources(circuit, resources)
-        priced=self.price_resources(resources,receipt)
-        policy=self.probability_policy()
-        if policy:
-            policy.validate_selection(self.probability_data(oracle))
-            for draw in receipt.get('draws',receipt.get('details',{}).get('draws',[])):
-                self.check_resources(circuit,draw['resources'])
+        with preserve_completed_check(self.project,self.frontend,circuit,parameters,self.config.get('domain',{}),receipt):
+            if receipt.get('passed') is not True or not receipt.get('verifier_hash'):
+                raise StrataError('official verifier failed or unpinned')
+            required = self.config.get('domain', {}).get('seeds', [])
+            if required and (receipt.get('seeds') != required or oracle.get('seeds') != required):
+                raise StrataError('draws differ from precommitted seeds')
+            resources = receipt['resources']
+            self.check_resources(circuit, resources)
+            priced=self.price_resources(resources,receipt)
+            policy=self.probability_policy()
+            if policy:
+                policy.validate_selection(self.probability_data(oracle))
+                for draw in receipt.get('draws',receipt.get('details',{}).get('draws',[])):
+                    self.check_resources(circuit,draw['resources'])
         return dict(oracle=oracle, official=receipt, **priced,
                     binding=dict(artifact=hashlib.sha256(self.serialize(circuit)).hexdigest(), parameters=parameters,
                                  domain=self.config.get('domain', {}), task_hash=self.task_hash(), adapter_hash=adapter_hash(adapter)))
@@ -385,9 +387,10 @@ class Task:
         lab_record = self.lab_record(lab, small_c, small_tree, self.params(True))
         self.validate_lab(lab_record)
         measured_resources = adapter.measure(circuit, parameters, self.config.get('domain', {}))
-        self.check_resources(circuit, measured_resources)
         measurement_receipt = getattr(adapter, 'measurement_receipt', None)
-        measured_cost = self.price_resources(measured_resources,measurement_receipt)['cost']
+        with preserve_completed_check(self.project,self.frontend,circuit,parameters,self.config.get('domain',{}),measurement_receipt):
+            self.check_resources(circuit, measured_resources)
+            measured_cost = self.price_resources(measured_resources,measurement_receipt)['cost']
         full = self.verify_built(circuit, parameters, adapter)
         if measured_cost != full['cost']:
             raise StrataError('build price disagrees with full verifier')
@@ -578,6 +581,7 @@ class Line:
             if r.contract.fingerprint!=other.contract.fingerprint or old_lines[r.start:r.stop]!=new_lines[other.start:other.stop]:
                 raise StrataError('patch changed an undeclared region: '+r.id)
 
+    @retain_external_failure('lab')
     def lab(self, *, limits=None, **scale):
         adapter, parent, impl = self.context()
         params = self.task.params(True)
@@ -596,6 +600,7 @@ class Line:
         self.project.store.event(self.id, event)
         return result
 
+    @retain_external_failure('build_price')
     def build(self):
         lab = self.result('lab')
         self.task.validate_lab(lab)
@@ -609,8 +614,10 @@ class Line:
         if not hasattr(adapter, 'measure'):
             raise StrataError('build-price gate needs an executed-cost measurement adapter')
         charged = adapter.measure(circuit, parent.record['parameters'], self.task.config.get('domain', {}))
-        self.task.check_resources(circuit, charged)
-        measured_cost = self.task.price_resources(charged,getattr(adapter,'measurement_receipt',None))['cost']
+        measurement_receipt=getattr(adapter,'measurement_receipt',None)
+        with preserve_completed_check(self.project,self.task.frontend,circuit,parent.record['parameters'],self.task.config.get('domain',{}),measurement_receipt):
+            self.task.check_resources(circuit, charged)
+            measured_cost = self.task.price_resources(charged,measurement_receipt)['cost']
         cap = self.task.config.get('max_qubits')
         if cap is not None and metrics['Q'] > cap:
             raise StrataError('build exceeds hard width')
@@ -623,6 +630,7 @@ class Line:
         self.project.store.event(self.id, result)
         return result
 
+    @retain_external_failure('verified')
     def verify(self):
         lab, build = self.result('lab'), self.result('build_price')
         adapter, parent, impl = self.context()

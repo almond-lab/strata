@@ -117,8 +117,7 @@ def test_phase_only_failure_has_native_counterexample(tmp_path, materialization)
     assert witness['kind'] == 'phase'
 
 
-@pytest.mark.parametrize('barrier', ['HMR q2 b0', 'Z_POW q2 0.25',
-                                   'PUSH_CONDITION if b0\nX q2\nPOP_CONDITION'])
+@pytest.mark.parametrize('barrier', ['HMR q2 b0', 'Z_POW q2 0.25'])
 def test_changed_opaque_or_conditional_spans_stay_unknown(tmp_path, barrier):
     original = write_circuit(tmp_path, 'source.kmx', f'CCX q0 q1 q2\n{barrier}\nCX q2 q3')
     candidate = write_circuit(tmp_path, 'candidate.kmx', 'CCX q0 q1 q2\nCX q2 q3')
@@ -223,23 +222,18 @@ def test_unparseable_candidate_remains_actionable_retained_evidence(tmp_path, ma
     assert brief['history'][0]['feedback']['check_reason'] == 'candidate_parse_failed'
 
 
-def test_fragmented_analysis_exposes_costly_untyped_recovery_spans(tmp_path):
+def test_fragmented_analysis_does_not_invent_recovery_targets_across_opaque_cuts(tmp_path):
     source = write_circuit(tmp_path, 'fragmented.kmx',
-                           '\n'.join(['CCX q0 q1 q2', 'HMR q2 b0'] * 24))
+                           '\n'.join(['CCX q0 q1 q2', 'Z_POW q2 0.5'] * 24))
     brief = discovery_brief(source, tmp_path / 'out')
     granularity = brief['analysis_granularity']
     assert granularity['total_static_paid_units'] == 24
     assert granularity['largest_inferred_region_paid_units'] == 1
     assert granularity['largest_inferred_region_share'] == pytest.approx(1/24)
     assert granularity['recovery_needed'] is True
-    assert brief['recovery_targets']
-    for target in brief['recovery_targets']:
-        assert target['whole_file_paid_share'] >= 0.05
-        assert target['contract'] is None
-        assert target['role'] == 'semantic_recovery_only'
-        expanded = json.loads(open(target['expand']['path']).read())
-        assert expanded['equivalence_proof'] is None
-        assert expanded['parent_sha256'] == brief['parent_sha256']
+    # Every actual run is below the 5% target threshold. Fixed arithmetic
+    # chunks would cross unsupported phase boundaries and invent a larger unit.
+    assert brief['recovery_targets'] == []
 
 
 def test_prebuild_notes_feed_next_brief_without_becoming_proofs_or_gains(tmp_path, materialization):
@@ -304,3 +298,22 @@ def test_cli_note_retains_a_prebuild_blocker_for_next_discovery(tmp_path, materi
     brief = json.loads(capsys.readouterr().out)
     assert brief['research_note_total'] == 1
     assert brief['research_notes'][0]['record'] == result['record']
+
+
+def test_changed_scoped_condition_is_rejected_with_classical_counterexample(tmp_path):
+    original = write_circuit(tmp_path, 'source.kmx',
+                             'CCX q0 q1 q2\nPUSH_CONDITION if b0\nX q2\nPOP_CONDITION\nCX q2 q3')
+    candidate = write_circuit(tmp_path, 'candidate.kmx', 'CCX q0 q1 q2\nCX q2 q3')
+    report = evaluate_candidate(original, candidate, tmp_path / 'out')
+    assert report['status'] == 'rejected'
+    assert report['checks']['equivalent'] is False
+    assert report['feedback']['counterexample']['classical_inputs'] == {'b0': 1}
+
+
+def test_repeated_hmr_span_is_lifted_with_fresh_outcomes(tmp_path):
+    source = write_circuit(tmp_path, 'measurements.kmx',
+                           '\n'.join(['CCX q0 q1 q2', 'HMR q2 b0'] * 24))
+    brief = discovery_brief(source, tmp_path / 'out')
+    granularity = brief['analysis_granularity']
+    assert granularity['largest_inferred_region_paid_units'] == 24
+    assert granularity['largest_inferred_region_share'] == 1

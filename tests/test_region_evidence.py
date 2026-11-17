@@ -11,25 +11,26 @@ from strata.model import StrataError, digest
 from strata.store import Store
 
 
-def test_source_less_regions_have_exact_symbolic_evidence_and_unknown_measurement(tmp_path):
+def test_source_less_regions_have_outcome_parametric_symbolic_measurement_evidence(tmp_path):
     source=tmp_path/'supplied.kmx'
     source.write_text('CCX q0 q1 q2\nZ q2\nHMR q2 b0\nX q3')
     result=inspect_file(source,tmp_path/'inspect')
     report=json.loads(Path(result['region_evidence']).read_text())
-    assert report['summary']=={'symbolic':2,'unknown':1}
+    assert report['summary']=={'symbolic':1,'unknown':0}
     exact=[r for r in report['regions'] if r['evidence_kind']=='symbolic'][0]
     assert exact['status']=='exact' and exact['scope']['clean_input_assumptions']==[]
     assert exact['scope']['whole_circuit_certificate'] is False
-    assert exact['symbolic_function']['inputs']==[0,1,2]
-    assert exact['symbolic_function']['outputs']['2']['monomials']==[[2],[0,1]]
-    assert exact['symbolic_function']['phase']['monomials']==[[2],[0,1]]
+    assert exact['symbolic_function']['inputs']==[0,1,2,3]
+    assert exact['symbolic_function']['outputs']['2']['monomials']==[]
+    assert exact['symbolic_function']['phase']['monomials']==[[2],[0,1],[2,'m0'],[0,1,'m0']]
+    assert exact['symbolic_function']['classical_outputs']['b0']['monomials']==[['m0']]
+    assert exact['scope']['quantum_channel_equivalence'] is False
     assert exact['binding']['source_sha256']==hashlib.sha256(source.read_bytes()).hexdigest()
     assert exact['binding']['contract_hash']==digest(exact['contract'])
-    unknown=[r for r in report['regions'] if r['evidence_kind']=='unknown'][0]
-    assert unknown['reason']=='unsupported_operation' and 'symbolic_function' not in unknown
+    assert exact['effects']['phase_debts'][0]['status']=='outstanding'
     source.unlink()  # Replay uses retained bytes, not an available generator/source path.
     replay=replay_region_evidence(tmp_path/'inspect'/'.strata',result['region_evidence_record'])
-    assert replay['replayed'] and replay['summary']['unknown']==1
+    assert replay['replayed'] and replay['summary']['unknown']==0
     assert not replay['official_verifier_run'] and not replay['whole_circuit_certificate']
 
 
@@ -81,14 +82,15 @@ def test_optimizer_links_source_region_evidence_without_inventing_scale(tmp_path
     assert replay_region_evidence(store,result['region_evidence_record'])['replayed']
 
 
-def test_conditional_context_stays_unknown_and_raw_frontend_replays(tmp_path):
+def test_conditional_context_keeps_classical_state_and_raw_frontend_replays(tmp_path):
     from strata.frontends import OperationStream
     circuit=km.Circuit('BIT_STORE1 b0\nX q0 if b0\nZ q1')
     source=tmp_path/'source.ops';source.write_text(OperationStream().serialize(circuit))
     result=inspect_file(source,tmp_path/'inspect')
     report=json.loads(Path(result['region_evidence']).read_text())
-    controlled=[r for r in report['regions'] if r['binding']['start']==1][0]
-    assert controlled['evidence_kind']=='unknown'
+    controlled=report['regions'][0]
+    assert controlled['evidence_kind']=='symbolic'
+    assert controlled['symbolic_function']['outputs']['0']['monomials']==[[],[0]]
     replay=replay_region_evidence(tmp_path/'inspect'/'.strata',result['region_evidence_record'])
     assert replay['replayed'] and replay['summary']['symbolic']==1
 
@@ -98,6 +100,25 @@ def test_inherited_conditional_scope_cannot_be_recast_as_unconditional_evidence(
     source.write_text('PUSH_CONDITION if b0\nX q0\nPOP_CONDITION\nZ q1')
     result=inspect_file(source,tmp_path/'inspect')
     report=json.loads(Path(result['region_evidence']).read_text())
-    body=[r for r in report['regions'] if r['binding']['start']==1][0]
-    assert body['evidence_kind']=='unknown' and body['reason']=='classical_condition_scope'
-    assert replay_region_evidence(tmp_path/'inspect'/'.strata',report)['summary']['unknown']==3
+    body=report['regions'][0]
+    assert body['evidence_kind']=='symbolic'
+    assert body['symbolic_function']['outputs']['0']['monomials']==[[0],['b0']]
+    assert replay_region_evidence(tmp_path/'inspect'/'.strata',report)['summary']['unknown']==0
+
+
+def test_explicit_clean_artifact_scope_is_hash_bound_and_replayed(tmp_path):
+    circuit=km.Circuit('R q2\nCCX q0 q1 q2\nHMR q2 b0\nCZ q0 q1 if b0')
+    source=tmp_path/'clean.kmx';source.write_text(str(circuit))
+    lifted=lift_regions(circuit,clean_inputs=[2])
+    store=Store(tmp_path/'store')
+    report=record_region_evidence(source,circuit,contract_tree(circuit,lifted),lifted,store)
+    assert report['limits']['clean_inputs']==[2]
+    receipt=report['regions'][0]
+    assert receipt['scope']['clean_input_assumptions']==[2]
+    assert receipt['symbolic_function']['clean_input_assumptions']==[2]
+    assert receipt['effects']['phase_debts'][0]['status']=='discharged'
+    assert replay_region_evidence(store,report)['replayed']
+    forged=copy.deepcopy(report)
+    forged['limits']['clean_inputs']=[]
+    with pytest.raises(StrataError,match='contract tree mismatch'):
+        replay_region_evidence(store,forged)

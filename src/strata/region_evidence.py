@@ -12,8 +12,8 @@ from .model import StrataError, digest
 from .store import Store
 
 
-CODE_FILES = ('semantic.py', 'frontends.py', 'kickmix.py', 'model.py', 'file_workflow.py', 'region_evidence.py')
-LIMIT_KEYS = {'max_window', 'max_variables', 'max_terms', 'max_product_terms', 'max_ops'}
+CODE_FILES = ('semantic.py', 'factored.py', 'streaming.py', 'frontends.py', 'kickmix.py', 'model.py', 'file_workflow.py', 'region_evidence.py')
+LIMIT_KEYS = {'max_window', 'max_variables', 'max_terms', 'max_product_terms', 'max_ops', 'clean_inputs'}
 SCOPE = dict(inputs='all arbitrary boundary bit assignments', clean_input_assumptions=[],
              phase='exact sign phase (-1)^Boolean_polynomial',
              instance='supplied fixed circuit region; no inferred scale model',
@@ -41,12 +41,24 @@ def _receipts(circuit, tree, lifted, source_hash, artifact_hash):
             semantics = exact[region.id]['semantics']
             if semantics.get('status') != 'exact':
                 raise StrataError('symbolic region lacks complete exact semantics')
-            function = dict(inputs=semantics['inputs'], outputs=semantics['outputs'], phase=semantics['phase'])
-            reference = digest(dict(outputs=semantics['outputs'], phase=semantics['phase']))
+            from .semantic import semantic_function
+            payload = semantic_function(semantics)
+            function = dict(inputs=semantics['inputs'], **payload)
+            reference = digest(payload)
             if region.contract.reference != 'anf:' + reference:
                 raise StrataError('recovered contract does not bind the symbolic function')
-            receipt.update(status='exact', evidence_kind='symbolic', scope=dict(SCOPE, clean_input_assumptions=[]),
+            scope = dict(SCOPE, clean_input_assumptions=semantics.get('clean_input_assumptions', []),
+                         semantics=semantics.get('semantic_scope', 'native_basis_trajectories'))
+            if semantics.get('clean_input_assumptions'):
+                scope['inputs'] = 'listed boundary wires zero; all other boundary inputs arbitrary'
+            if semantics.get('measurement_variables'):
+                scope.update(measurement_outcomes='all independent forced outcomes with ordered event provenance',
+                             quantum_channel_equivalence=False)
+            if semantics.get('classical_inputs'):
+                scope['classical_inputs'] = 'all arbitrary boundary classical bit assignments'
+            receipt.update(status='exact', evidence_kind='symbolic', scope=scope,
                            symbolic_function=function, function_hash=digest(function),
+                           effects=semantics.get('effects', {}),
                            method='bounded exact Boolean ANF symbolic execution',
                            claim='supplied region implements the recovered output and sign-phase polynomials')
         elif region.id in unknown:

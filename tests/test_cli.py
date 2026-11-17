@@ -5,7 +5,7 @@ from strata.cli import main
 from strata.kickmix import Kickmix
 
 
-def test_actual_sdk_analysis_and_honest_opaque_lift(tmp_path):
+def test_actual_sdk_analysis_and_outcome_lift_keep_task_intent_unconfirmed(tmp_path):
     c=km.Circuit('CCX q0 q1 q2\nHMR q2 b0\nCZ q0 q1 if b0')
     pack=Kickmix().analyze(c,tmp_path)
     assert pack['metrics']['toffoli']==1
@@ -14,7 +14,8 @@ def test_actual_sdk_analysis_and_honest_opaque_lift(tmp_path):
     tree,coverage=Kickmix().lift(c)
     assert coverage['structural_typed_coverage']==0
     assert not coverage['confirmed']
-    assert any(r.kind=='opaque' for r in tree.children)
+    assert any(r.kind=='measurement_cleanup' for r in tree.children)
+    assert coverage['primitive_paid_coverage']==1
 
 
 def test_cli_end_to_end(tmp_path,capsys):

@@ -64,6 +64,50 @@ def counting_bound(outputs):
                 reasoning='Each AND adds at most one independent function modulo the affine span; degree after k ANDs is at most 2^k.')
 
 
+def circuit_floors(circuit, *, from_at=0, at=None, clean_inputs=(), domain=None,
+                   max_operations=10000, max_variables=128, max_terms=65536,
+                   max_product_terms=1048576, max_assignments=65536):
+    """Scoped Boolean floors plus bilinear tensor evidence when recoverable."""
+    from .inference import functions_at
+    budgets=dict(max_operations=max_operations,max_variables=max_variables,max_terms=max_terms,
+                 max_product_terms=max_product_terms,max_assignments=max_assignments)
+    inferred=functions_at(circuit,at,from_at=from_at,clean_inputs=clean_inputs,domain=domain,**budgets)
+    if inferred['status']!='exact':return inferred
+    if inferred.get('measurement_variables') or inferred.get('classical_inputs') or inferred.get('is_permutation')is False:
+        return dict(status='unknown',reason='Boolean gate floor does not price measurement or classical channels',from_at=from_at,at=inferred['at'])
+    wires=inferred['touched_wires']
+    if domain is not None:
+        from .domains import load_domain
+        bound=load_domain(domain,circuit,from_at=from_at,at=inferred['at'],max_assignments=max_assignments,max_operations=max_operations)
+        rows=bound['assignments'];n=len(rows)
+        affine=[(1<<n)-1]+[sum(row[f'q{q}']<<i for i,row in enumerate(rows)) for q in range(circuit.num_qubits)]
+        outputs=[sum(row[q]<<i for i,row in enumerate(inferred['finite_values'])) for q in wires]
+        value=len(_basis(affine+outputs))-len(_basis(affine))
+        return dict(status='exact',kind='proof',value=value,resource='and_count',domain_hash=bound['domain_hash'],
+                    from_at=from_at,at=inferred['at'],wires=wires,clean_inputs=sorted(clean_inputs),
+                    scope='explicit finite domain only; no all-input or phase/measurement floor',
+                    model='free XOR/NOT/constants; two-input AND straight-line circuits restricted to promised rows',
+                    reasoning='Each AND adds at most one dimension to functions restricted to the declared input rows.',
+                    assignment_count=n)
+    outputs=[[sorted(term) for term in inferred['functions'][q]] for q in wires]
+    report=dict(status='exact',at=inferred['at'],from_at=from_at,wires=wires,
+                clean_inputs=sorted(clean_inputs),**counting_bound(outputs))
+    from .domains import window_lines
+    from .semantic import analyze_window
+    lines,_=window_lines(circuit,from_at,inferred['at'],max_lines=max_operations)
+    sem=analyze_window(lines,clean_inputs=clean_inputs,max_operations=max_operations,
+                       max_variables=max_variables,max_terms=max_terms,max_product_terms=max_product_terms)
+    from .tensor import tensor_from_anf,tensor_bounds,quadratic_bounds
+    if sem['status']=='exact':
+        for feature in sem['features']:
+            if feature['kind']=='bilinear_accumulator':
+                partition=feature['factor_partition']
+                tensor=tensor_from_anf(sem['changes'],partition[0],partition[1],output_wires=[int(q) for q in sem['changes']])
+                report['tensor']=tensor;report['bilinear_bounds']=tensor_bounds(tensor)
+        if all(len(term)<=2 for poly in outputs for term in poly):report['quadratic_bounds']=quadratic_bounds(outputs)
+    return report
+
+
 def exact_minimum(outputs,n_inputs,*,max_and=3,timeout=1.0,max_states=10000,max_expansions=100000):
     """Exhaust all affine choices around each AND, stopping honestly on budget."""
     if type(n_inputs)is not int or not 0<=n_inputs<=8 or max_and<0 or timeout<=0 or max_states<1 or max_expansions<1:

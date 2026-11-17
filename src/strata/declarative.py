@@ -13,7 +13,7 @@ import shutil
 from .model import Contract, Region, StrataError, digest
 from .artifacts import manifest, verify_manifest
 from .bundle import Bundle, BundleFrontend, DataFrontend
-from .callbacks import CheckRequest, CheckReceipt, FullArtifactLab, artifact_bytes, validate_check
+from .callbacks import CheckRequest, CheckReceipt, FullArtifactLab, ExternalCheckError, artifact_bytes, validate_check
 from .kickmix import Kickmix
 from . import sandbox
 
@@ -54,7 +54,14 @@ class CommandAdapter:
             if not expected or len(expected) != 64 or not path.is_file():
                 raise StrataError('verifier executable and dependencies need explicit sha256 pins')
             self.pins[str(path.resolve())] = expected
-        self.command[0] = str(executable.resolve())
+        # CPython discovers pyvenv.cfg from the invoked path. Resolving this
+        # symlink or staging a bare binary silently loses the virtualenv.
+        self.command[0] = str(executable.absolute())
+        self.executable = executable.absolute()
+        self.environment_root = self.executable.parent.parent if (self.executable.parent.parent / 'pyvenv.cfg').is_file() else None
+        self.environment = self._environment_identity()
+        keys = {'timeout','max_output','memory_bytes','max_file_bytes','cpu_seconds'}
+        self.limits = sandbox.effective_limits(**{key:spec[key] for key in keys if key in spec})
         for index, argument in enumerate(self.command[1:], 1):
             if '{' not in argument and (self.root / argument).is_file():
                 resolved = str((self.root / argument).resolve())
@@ -65,12 +72,29 @@ class CommandAdapter:
             raise StrataError('verifier command needs a {request} JSON input argument')
         self.identity_hash()
 
+    def _environment_identity(self):
+        if self.environment_root is None:
+            return dict(kind='executable', invocation=str(self.executable), target=str(self.executable.resolve()))
+        root = self.environment_root
+        files = {root / 'pyvenv.cfg'}
+        for site in root.glob('lib*/python*/site-packages'):
+            files.update(site.glob('*.pth'))
+            files.update(site.glob('*.egg-link'))
+            for metadata in site.glob('*.dist-info'):
+                files.update(p for p in metadata.rglob('*') if p.is_file())
+        return dict(kind='python_virtualenv', invocation=str(self.executable), target=str(self.executable.resolve()),
+            files={str(path.relative_to(root)):hashlib.sha256(path.read_bytes()).hexdigest() for path in sorted(files)},
+            coverage='interpreter, pyvenv.cfg, package metadata and path configuration; package source bytes require explicit dependency pins')
+
     def identity_hash(self):
         verify_manifest(self.base, self.base_manifest)
         for path, expected in self.pins.items():
             if hashlib.sha256(Path(path).read_bytes()).hexdigest() != expected:
                 raise StrataError('pinned verifier executable or dependency changed')
-        return digest(dict(adapter_source=hashlib.sha256(Path(__file__).read_bytes()).hexdigest(), config=self.config, pins=self.pins, input=self.base_manifest))
+        if self._environment_identity() != self.environment:
+            raise StrataError('pinned verifier runtime environment changed')
+        return digest(dict(adapter_source=hashlib.sha256(Path(__file__).read_bytes()).hexdigest(), config=self.config,
+                           pins=self.pins, runtime_environment=self.environment, limits=self.limits, input=self.base_manifest))
 
     def freeze_implementation(self, implementation):
         if set(implementation) - {'files'}:
@@ -138,6 +162,8 @@ class CommandAdapter:
             # its writable bind, preserving relative dependency directories.
             staged = {}
             for source, expected in self.pins.items():
+                if source == str(self.executable.resolve()):
+                    continue
                 destination = work / 'dependencies' / source.lstrip('/')
                 destination.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copy2(source, destination)
@@ -145,7 +171,14 @@ class CommandAdapter:
                     raise StrataError('staged verifier dependency hash mismatch')
                 staged[source] = str(destination)
             args = [staged.get(argument, argument).replace('{artifact}', str(target)).replace('{request}', str(request_path)) for argument in self.command]
-            run = sandbox.run(args, work, timeout=self.config['verifier'].get('timeout', 60))
+            readonly_paths = [str(self.environment_root)] if self.environment_root is not None else [str(self.executable)]
+            if not self.executable.resolve().is_relative_to(self.environment_root or self.executable):
+                readonly_paths.append(str(self.executable.resolve()))
+            try:
+                run = sandbox.run(args, work, **self.limits, readonly_paths=readonly_paths)
+            except StrataError as exc:
+                raise ExternalCheckError(str(exc), request, diagnostics=dict(verifier_hash=verifier_hash,
+                    limits=self.limits, runtime_environment=self.environment, kind='sandbox_execution_failed')) from exc
             verify_manifest(target, body['artifact_files'])
             for source, destination in staged.items():
                 if hashlib.sha256(Path(destination).read_bytes()).hexdigest() != self.pins[source]:
@@ -153,11 +186,19 @@ class CommandAdapter:
             try:
                 receipt = CheckReceipt(**json.loads(run['output']))
             except (TypeError, ValueError) as exc:
-                raise StrataError('verifier must emit a typed, scoped CheckReceipt JSON') from exc
-            validate_check(receipt, request)
+                raise ExternalCheckError('verifier must emit a typed, scoped CheckReceipt JSON',request,
+                    diagnostics=dict(output=run['output'][:1200],verifier_hash=verifier_hash,limits=self.limits)) from exc
+            self.identity_hash()
+            try:
+                validate_check(receipt, request)
+            except ExternalCheckError as exc:
+                exc.diagnostics.update(verifier_hash=verifier_hash, sandbox=run['sandbox'], limits=self.limits,
+                                       runtime_environment=self.environment)
+                raise
         self.identity_hash()
         result = asdict(receipt)
         result.update(verifier_hash=verifier_hash, sandbox=run['sandbox'], seeds=receipt.details.get('seeds', []),
+                      sandbox_limits=self.limits, runtime_environment=self.environment,
                       failure_model=receipt.details.get('failure_model', {'status': 'unspecified'}))
         for key in ('draws', 'selection', 'selected_seed'):
             if key in receipt.details:
