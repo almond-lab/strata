@@ -1,10 +1,10 @@
 # Strata
 
-**Contract-driven circuit restructuring on kickmix.** Version 0.5.0
+**Contract-driven circuit restructuring on kickmix.** Version 0.5
 adds automatic joint-function factorization, consumer-derived intermediate
 values, input and output encodings, direct phase synthesis and reversible
 storage/cleanup search. Read the [v0.5 design and acceptance gates](docs/V0.5-DISCOVERY.md)
-and the [release](https://github.com/almond-lab/strata/releases/tag/v0.5.0).
+and the [latest v0.5.1 release](https://github.com/almond-lab/strata/releases/tag/v0.5.1).
 Search also supports [declared input domains](docs/PROMISED-DOMAINS.md) and
 [exact fractional phase endpoints](docs/FRACTIONAL-OBSERVABLES.md). Strata 0.4 added an experiment
 workflow for existing scripts, sweeps, shared job ownership and structured agent

@@ -1,6 +1,6 @@
 # Change log
 
-## Unreleased
+## 0.5.1 — 2026-11-18
 
 - Bind a complete domain directly to an explicit episode with
   `--domain-at-cut`. Preserve the caller's reachability obligation in the receipt.
