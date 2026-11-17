@@ -93,30 +93,14 @@ class Kickmix:
         return pack
 
     def lift(self, circuit):
-        """Honest initial recognizer: tags are hints, primitive semantics only are typed.
-
-        Higher-level matches require a supplied semantic equivalence certificate.
-        """
-        ops = list(instructions(circuit))
-        if not ops:
-            raise StrataError('cannot lift empty circuit')
-        regions = []
-        typed_t, total_t = 0, 0
-        for i, line, op, qs in ops:
-            if op in META:
-                continue
-            total_t += int(op in PAID)
-            # Single native operations have known semantics; never call them adders/GF products.
-            kind = {'CX': 'xor', 'X': 'not', 'SWAP': 'swap', 'CCX': 'controlled_xor',
-                    'CZ': 'quadratic_phase', 'CCZ': 'cubic_phase'}.get(op, 'opaque')
-            contract = Contract('primitive', tuple(Register(f'q{k}', (q,), meaning='bit') for k, q in enumerate(qs)),
-                                reference=f'kickmix:{line}', phase='exact')
-            regions.append(Region(f'op-{i}', i, i + 1, contract, kind=kind,
-                                  evidence='native_primitive_semantics' if kind != 'opaque' else 'untyped'))
-            typed_t += int(op in PAID and kind != 'opaque')
-        root = Contract('circuit', (Register('state', tuple(range(circuit.num_qubits))),),
-                        reference='artifact:' + hashlib.sha256(str(circuit).encode()).hexdigest())
-        tree = Region('root', 0, len(ops), root, tuple(regions))
-        return tree, dict(primitive_paid_coverage=typed_t / max(1, total_t),
-                          structural_typed_coverage=0.0, confirmed=False,
-                          note='Primitive coverage does not satisfy the 90% structural lifting target.')
+        """Infer exact algebraic regions, leaving task-level recognition explicit."""
+        from .semantic import lift_regions
+        from .file_workflow import contract_tree
+        report=lift_regions(circuit,max_window=256,max_variables=64)
+        tree=contract_tree(circuit,report)
+        coverage=report['coverage']
+        return tree,dict(primitive_paid_coverage=coverage['exact_paid_fraction'],
+                         compound_algebra_paid_coverage=coverage['compound_algebra_paid_fraction'],
+                         structural_typed_coverage=0.0, high_level_stage_coverage=None,
+                         algebraic_coverage=coverage, confirmed=False,
+                         note='Exact algebraic functions are inferred; arithmetic-stage coverage remains unestablished.')

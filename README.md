@@ -1,8 +1,9 @@
 # Strata
 
 **Contract-driven circuit restructuring on kickmix.** Private research library;
-current release is an executable foundation, not completion of the product
-acceptance targets. The focus is changes to stage boundaries and architecture
+automatic understanding of a supplied circuit is a **required core capability**,
+not an optional adapter integration. The implementation is still below the full
+product acceptance targets. The focus is changes to stage boundaries and architecture
 (L3/L4), with reproducible evidence for every retained implementation.
 
 The [product specification](docs/SPECIFICATION.md) is preserved verbatim.
@@ -11,6 +12,9 @@ partial features and unimplemented research milestones.
 
 ## Documentation
 
+- [Circuit-file workflow](docs/FILE-FIRST.md): automatic inferred functions, native profiles, and checked replacements without a handwritten adapter.
+- [Agent discovery loop](docs/AGENT-DISCOVERY.md): the connected agent derives hypotheses from Strata's evidence and feeds candidates back into the lab.
+- [Connected-agent trial](docs/CONNECTED-AGENT-TRIAL.md): what an actual supplied loader revealed about target granularity and missing semantics.
 - [Getting started](docs/GETTING-STARTED.md): installation, first structural change, and interpreting results.
 - [Adapter guide](docs/ADAPTER-GUIDE.md): connect a real generator, reference, cost model and verifier.
 - [Troubleshooting](docs/TROUBLESHOOTING.md): failed gates, scope errors and missing evidence.
@@ -22,7 +26,31 @@ The agent skill is versioned with this repository. It is not automatically
 installed into your global Codex configuration. It can be invoked by pointing an
 agent to its `SKILL.md`, or installed through your usual skill installation flow.
 
-## Run the tested structural example
+## Start with a circuit file
+
+After installation, use the file directly. No `TaskAdapter`, generator source,
+region names, desired replacement, or project file is required for these commands:
+
+```bash
+strata inspect-file circuit.kmb --out work/inspection
+strata optimize circuit.kmb --out work/automatic --cost 'Q*(toffoli+t/4)'
+strata discover circuit.kmb --out work/discovery
+```
+
+The file path now infers exact Boolean functions and sign phase on supported
+regions, including restored-intermediate episodes, affine maps and bilinear
+accumulators. It can resynthesize output functions to remove materialization
+and cleanup, with every boundary bit arbitrary. Native profiles rank the search;
+unsupported operations remain opaque. `discover` supplies the connected AI
+agent with evidence and targets; the [skill](skills/strata-research/SKILL.md)
+requires that agent to originate hypotheses and construct candidates without
+waiting for the user to suggest each change.
+
+This bounded algebraic understanding is **not yet general recovery of the
+decoder, divider, or chemistry stage architecture**. The high-level lifting
+acceptance target remains unmet. See [current limits](docs/FILE-FIRST.md).
+
+## Installation and the original adapter example
 
 Requires Python 3.11+ **with a compatible kickmix wheel** (the checked environment
 uses Python 3.14 and kickmix distribution 1.0.0). The kickmix module reports its
@@ -66,8 +94,9 @@ The full fixture verifier exhausts all 512 inputs. Measurement repair has
 separate exhaustive-branch and actual-native-random tests.
 
 The example's verifier is explicitly labeled a **demo verifier**. A competition
-project must supply its own frozen oracle/verifier adapter; Strata does not
-substitute the demo verifier or fabricate a scale model for a flat gate file.
+score still requires its real verifier and acceptance data. File mode proves
+supported replacements equivalent to the supplied circuit; it does not validate
+the original's contest eligibility or fabricate a scale model.
 
 ## What is implemented
 
@@ -77,6 +106,10 @@ substitute the demo verifier or fabricate a scale model for a flat gate file.
   SVGs and bounded HTML diagrams. Conservative liveness is labeled as such.
   Optional `execution_profile` supplies empirical executed counts, conditional
   dependencies, observed liveness and value fingerprints for explicit inputs.
+- Adapter-free algebraic lifting, native profile-driven candidate selection,
+  arbitrary-input exact regional equivalence and materialization-removal synthesis.
+- Evidence briefs and candidate evaluation for connected-agent hypothesis
+  generation. A CLI invocation alone does not launch an AI provider.
 - Exhaustive small-instance lab, including every dirty input and every HMR
   branch for its supported gate subset. It checks restored inputs, zero scratch
   and phase, returns concrete counterexamples, and refuses oversized domains.
@@ -102,8 +135,8 @@ substitute the demo verifier or fabricate a scale model for a flat gate file.
 High-level lifting of arbitrary untagged arithmetic, automatic scale recovery,
 SAT floor search, automatic synthesis of all ten move types, a production Kaggle
 adapter, and the ecdsa.fail front end are pending. The current lift preserves
-opaque regions and distinguishes primitive typing from **structural** coverage;
-it does not claim the target 90%. Exact symbolic liveness/information slack and
+opaque regions and distinguishes compound algebra from identified arithmetic
+stages; it does not claim the target 90%. Exact symbolic liveness/information slack and
 object allocation need additional proofs or generator traces. No claim is made
 of matching R1–R5, finding 3/4 historical restructures without hints, or finding
 a new competitive circuit. The 322-row memory test is synthetic, not the

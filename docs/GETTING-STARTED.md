@@ -1,9 +1,10 @@
 # Getting started with Strata
 
 Strata helps you change a circuit's stage boundaries and keep the evidence for
-whether the change works. The current release provides a tested framework and
-an executable example. It does not yet automatically discover arbitrary circuit
-algorithms. Check [implementation status](ACCEPTANCE.md) before planning a run.
+whether the change works. Start with the file workflow: inferred functions,
+native profiles and structured feedback feed a connected AI's hypotheses.
+Automatic arithmetic-stage recovery remains partial. Check
+[implementation status](ACCEPTANCE.md) before planning a run.
 
 ## Install
 
@@ -20,6 +21,19 @@ python3.14 -m venv .venv
 
 The remaining commands assume you are in the repository root. Use the explicit
 `.venv/bin/strata` path so you do not accidentally invoke another installation.
+
+## Give the agent your circuit
+
+```bash
+.venv/bin/strata discover /absolute/path/to/circuit.kmb --out work/research
+```
+
+The connected agent follows [the skill](../skills/strata-research/SKILL.md),
+reads `work/research/agent-brief.json`, originates hypotheses, builds candidates,
+and submits them to `evaluate-file`. The next brief includes the results and
+counterexamples. This path requires no task-specific Python adapter.
+See [the full loop](AGENT-DISCOVERY.md) and [file-mode scope](FILE-FIRST.md).
+The commands below retain the original generator-based teaching example.
 
 ## Understand the example
 

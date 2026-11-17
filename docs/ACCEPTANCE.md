@@ -16,7 +16,7 @@ case is complete.
 | Allocation ownership | Partial | Declared register mapping; no inferred dynamic object ownership |
 | Executed costs / conditions / fingerprints | Bounded empirical runner | Explicit input batches and seed; no sampled result called proof |
 | Information slack | Unknown, reported explicitly | Need rank/function proofs |
-| Untagged semantic lift | Research pending | Primitive nodes and opaque fallback; structural coverage reported 0 |
+| Untagged semantic lift | Partial, required core | Adapter-free exact algebraic functions, bilinear/affine maps and materialization episodes; automatic arithmetic-stage architecture recovery remains unmet |
 | Block registry | Implemented extension point | Checked clean-product schema; broad arithmetic recognizers pending |
 | Build-derived prices | Implemented | Constrained demo exact 72→27; no-paper-price policy tested |
 | Floors and weighted gaps | Implemented evidence model | User-supplied bounds only; automatic SAT search pending |
@@ -24,6 +24,9 @@ case is complete.
 | Parameterized full-scale build | Implemented adapter model | Same generator tested at bits=1,2,3 |
 | L3/L4 structural example | Implemented | Materialized-product boundary removed; certified replay |
 | Structural research rounds | Implemented orchestration | Diverse hypotheses, dependency closure, all configured small scales, measured build/verifier/replay, structural witnesses; implementation synthesis still supplied by adapters/researchers |
+| File-driven candidate construction | Implemented subset | Inferred output/phase resynthesis removes materializations without a handwritten adapter; original-file equivalence rechecked |
+| Native profiles guide search | Implemented file path | Static cost, boundary width and materialization evidence rank the bounded candidate budget; conservative liveness never authorizes scratch reuse |
+| Connected-agent hypothesis generation | Implemented handoff/skill | Evidence briefs plus arbitrary candidate evaluation drive the connected AI; standalone CLI does not invoke an AI provider |
 | Lineage + replay | Implemented core | Artifact tamper, stale patch and replay tests |
 | Composition | Compatibility + gated rebuild | Disjoint footprints required; no blind concatenation |
 | Negative-result memory | Implemented | Exact-small size scope; estimates priced; synthetic322-row regression |
@@ -43,10 +46,12 @@ case is complete.
 | New verified competitive design | NOT ACHIEVED | Example is a demonstration, not a research discovery |
 | ecdsa.fail front end | Pending | Core is format-neutral; only kickmix front end exists |
 
-Next engineering work follows the requested phase order: bind real tagged
-stage tables and execution distributions, implement semantic lifting with
-independent block certificates, then bind scalable models and historical
-replay adapters. Do not start a broad proposal engine ahead of those layers.
+The required core is automatic understanding sufficient for restructuring a
+supplied circuit. The file path removes the adapter prerequisite for supported
+algebraic episodes; it does not satisfy complete arithmetic-stage recovery.
+Next engineering work must expand that recovery, phase-debt semantics and
+complete producer–consumer search, then establish the real historical acceptance
+tests. Agent reasoning must consume those recovered facts, never invent them.
 
 Real-input smoke: `REAL-INPUT-SMOKE.json` records analysis of the pinned cand1
 inverse file (44Q, 22,143 operations). It contains derived metrics only and

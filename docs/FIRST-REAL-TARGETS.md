@@ -5,6 +5,11 @@ and chemistry circuits. This is the next application priority. The existing
 background experiment queue is separate and may continue; its results become
 scoped evidence for Strata, not automatic certified designs.
 
+Start from the circuit files and the connected-agent discovery loop. Do not
+require the user to reconstruct the stage tree or write a TaskAdapter. Library
+host connectors supply contest-specific acceptance and cost data; generator
+source is useful when available but is not a prerequisite to file analysis.
+
 ## Base
 
 Use the user's confirmed cand1 archive unless the user supplies a newer base.
@@ -29,14 +34,15 @@ outside this library repository.
 A task is ready for Strata-driven optimization when all of the following have
 measured evidence:
 
-1. The adapter reproduces its exact base and current official cost/acceptance
-   receipt, with the verifier and dependency identities pinned.
+1. The library's host integration reproduces the exact base's current official
+   cost/acceptance receipt, with verifier and dependency identities pinned.
 2. The selected producer–consumer–return region has an independently checked
    external contract, ownership and phase-debt specification. Opaque regions
    elsewhere stay opaque; no fictitious full-circuit semantic coverage.
-3. One parameterized generator builds the small and full instances. The small
-   lab handles actual zero/exception branches, dirty state and measurement
-   outcomes. A hand-written model alone is not a generated circuit test.
+3. A rewrite relying on scale-down has one parameterized generator for small
+   and full instances, covering zero/exception branches, dirty state and
+   measurement outcomes. A file-only exact rewrite instead needs full-boundary
+   equivalence evidence at its actual size; it cannot invent a scale-down model.
 4. Measured prices include consumer adaptation, both traversals, recomputation,
    scratch, numerical error/failure effects and phase repayment.
 5. Full oracle and official verifier runners work through Strata, and the base
@@ -48,8 +54,9 @@ Current missing implementation work remains in [ACCEPTANCE.md](ACCEPTANCE.md).
 
 ## Decoder integration and search
 
-First reproduce the exact source stack behind the submitted decoder, then bind
-stage contracts to that emitted file. Use the detailed circuit report and the
+Recover and check stage contracts from the submitted decoder and its measured
+structure. If source is available, reproduce it and bind it to the exact emitted
+file before relying on its annotations. Use the detailed circuit report and the
 latest algorithm write-up as evidence to verify, not as authoritative counts
 for a different version.
 
@@ -59,7 +66,7 @@ account for all zero/gap branches and HMR phase debt. A component's local wire
 reduction does not reduce the task peak automatically. The hard 889Q cap and
 agreed failure policy remain binding for candidate promotion.
 
-The adapter must price the actual `R(fail_rate) * Q^2 * mean_toffoli` objective
+The host integration must price the actual `R(fail_rate) * Q^2 * mean_toffoli` objective
 using the host's pinned failure rule. Commit comparison seeds before evaluating
 candidates. Passing a favorable single draw cannot select a winner.
 
@@ -80,8 +87,9 @@ useful when a corresponding accepted physical factorization exists.
 
 ## Retain and report
 
-Every attempted design uses a named Strata line. A successful design has its
-small lab, measured build, full oracle, official receipt and replay evidence.
+Every attempted design uses an immutable attempt record or named Strata line.
+A successful design has the appropriate exact-equivalence or scaled-lab evidence,
+measured build, full oracle, official receipt and replay evidence.
 Report exact same-baseline task-cost and portfolio-score deltas, including the
 fixed third task and unchanged draw policy. Keep losing siblings and scoped
 reopen conditions. Reconcile background attempts by contract and method before

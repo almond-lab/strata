@@ -11,6 +11,16 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description='Strata contract restructuring and evidence')
     parser.add_argument('--project', default='strata.toml')
     sub = parser.add_subparsers(dest='cmd', required=True)
+    for name in ('inspect-file', 'optimize', 'discover', 'evaluate-file', 'note'):
+        p=sub.add_parser(name);p.add_argument('input');p.add_argument('--out',required=True)
+        if name=='note':p.add_argument('--note',required=True)
+        if name=='evaluate-file':
+            p.add_argument('candidate');p.add_argument('--hypothesis');p.add_argument('--regions')
+        p.add_argument('--max-window',type=int,default=256)
+        p.add_argument('--max-variables',type=int,default=64)
+        p.add_argument('--max-terms',type=int,default=4096)
+        p.add_argument('--cost',default='Q*(toffoli+t/4)')
+        if name=='optimize':p.add_argument('--max-candidates',type=int,default=64)
     sub.add_parser('init'); sub.add_parser('best')
     for name in ['analyze', 'lift', 'gaps']:
         p = sub.add_parser(name); p.add_argument('task')
@@ -28,6 +38,24 @@ def main(argv=None):
         if name=='park':q.add_argument('--reason',required=True);q.add_argument('--reopen',required=True)
     args = parser.parse_args(argv)
     try:
+        if args.cmd in {'inspect-file','optimize','discover','evaluate-file','note'}:
+            from .file_workflow import inspect_file, optimize_file
+            options=dict(cost=args.cost,max_window=args.max_window,max_variables=args.max_variables,max_terms=args.max_terms)
+            if args.cmd=='optimize':result=optimize_file(args.input,args.out,max_candidates=args.max_candidates,**options)
+            elif args.cmd=='discover':
+                from .discovery import discovery_brief
+                result=discovery_brief(args.input,args.out,**options)
+            elif args.cmd=='evaluate-file':
+                from .discovery import evaluate_candidate
+                hypothesis=json.loads(Path(args.hypothesis).read_text()) if args.hypothesis else None
+                regions=json.loads(Path(args.regions).read_text()) if args.regions else None
+                result=evaluate_candidate(args.input,args.candidate,args.out,hypothesis=hypothesis,regions=regions,**options)
+            elif args.cmd=='note':
+                from .discovery import record_research_note
+                result=record_research_note(args.input,args.out,json.loads(Path(args.note).read_text()))
+            else:result=inspect_file(args.input,args.out,**options)
+            print(json.dumps(result,indent=2,default=str))
+            return 0
         project = open_project(args.project)
         if args.cmd == 'init': result = project.init()
         elif args.cmd == 'best': result=project.best()
