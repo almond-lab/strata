@@ -123,6 +123,13 @@ def main(argv=None):
     for command in ('restructure','search'):
         p=sub.add_parser(command);p.add_argument('input');p.add_argument('--out',required=True)
         p.add_argument('--domain',help='complete finite assignment or address-promise JSON at the input of this artifact')
+        p.add_argument('--domain-at-cut', action='store_true', help='bind --domain directly to the entry of the explicit --range')
+        p.add_argument('--summary', action='store_true', help='print a short summary and write the complete receipt to OUT/restructure.json')
+        p.add_argument('--factor-timeout', type=float, help='algebraic and consumer decomposition solver seconds')
+        p.add_argument('--max-factor-steps', type=int, help='algebraic and consumer decomposition solver work cap')
+        p.add_argument('--max-factor-nodes', type=int, help='algebraic and consumer decomposition graph cap')
+        p.add_argument('--max-orders', type=int, help='algebraic factor order cap')
+        p.add_argument('--max-partitions', type=int, help='consumer decomposition partition cap')
         p.add_argument('--max-assignments',type=int,default=65536,help='finite-domain construction row budget')
         p.add_argument('--clean-inputs',default='');p.add_argument('--cost',default='Q*(toffoli+t/4)')
         p.add_argument('--internal-bits',default='',help='existing classical outputs explicitly private at the complete search boundary')
@@ -307,11 +314,20 @@ def main(argv=None):
                 max_product_terms=args.max_product_terms,scan_range=region,range_unit=args.range_unit,width=args.width,
                 accounting=args.accounting,external_distribution=json.loads(Path(args.external_distribution).read_text()) if args.external_distribution else None,
                 deep_only=args.deep_only or args.cmd=='search',internal_bits=_bit_list(args.internal_bits),
-                domain=args.domain,max_assignments=args.max_assignments,max_and=args.max_and,joint_timeout=args.joint_timeout,
+                domain=args.domain,domain_at_cut=args.domain_at_cut,max_assignments=args.max_assignments,
+                factor_options={key: value for key, value in dict(timeout=args.factor_timeout,
+                    max_factor_steps=args.max_factor_steps,max_factor_nodes=args.max_factor_nodes,
+                    max_orders=args.max_orders,max_partitions=args.max_partitions).items() if value is not None},
+max_and=args.max_and,joint_timeout=args.joint_timeout,
                 joint_max_states=args.joint_max_states,joint_max_expansions=args.joint_max_expansions,
                 fast=args.cmd=='search',search_seconds=args.seconds,trial_seconds=args.trial_seconds,max_finalists=args.max_finalists,
                 goal=args.goal,max_architectures=args.max_architectures,
                 cancel_file=args.cancel_file or (Path(args.out)/'STOP' if args.cmd=='search' else None))
+            if args.summary:
+                best = result.get('best', {})
+                result = dict(status=result['status'], cost_delta=result.get('cost_delta'),
+                              best_cost=best.get('cost'), best_path=best.get('path'),
+                              report=str(Path(args.out).resolve() / 'restructure.json'))
             print(json.dumps(result,indent=2,default=str));return 0
         if args.cmd in {'inspect-file','optimize','discover','evaluate-file','note'}:
             from .file_workflow import inspect_file, optimize_file

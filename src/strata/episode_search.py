@@ -207,7 +207,8 @@ def _episode_private_bits(body, suffix, declared):
 
 def restructure_episode(source, circuit, out, *, scan_range, range_unit,
                         clean_inputs, cost, accounting='static',external_distribution=None,internal_bits=(),
-                        _parent_catalog=None, _parent_design_dir=None, _region_index=None, _localization=None, **options):
+                        _parent_catalog=None, _parent_design_dir=None, _region_index=None, _localization=None,
+                        domain=None, max_assignments=65536, **options):
     from .restructure import restructure_file, _check
     import re
     root = Path(out); root.mkdir(parents=True, exist_ok=True)
@@ -228,6 +229,15 @@ def restructure_episode(source, circuit, out, *, scan_range, range_unit,
     if any(line.split()[0] in {'REGISTER', 'APPEND_TO_REGISTER'} for line in body):
         raise StrataError('selected episode includes public register declarations; select its operations only')
     facts = boundary_facts(lines, start, stop, clean_inputs)
+    clean_at_cut = tuple(facts)
+    if domain is not None:
+        from .promised_domain import _read
+        domain = _read(domain)
+        if domain.get('type') == 'address_promise':
+            proposed_clean = domain.get('clean_wires')
+            if not isinstance(proposed_clean, list) or not set(proposed_clean) <= set(facts):
+                raise StrataError('compact cut promise names clean wires without transported zero evidence')
+            clean_at_cut = tuple(proposed_clean)
     fragment = root/'episode.kmx'
     if fragment.resolve() == Path(source).resolve():
         raise StrataError('episode output would overwrite its source')
@@ -239,10 +249,11 @@ def restructure_episode(source, circuit, out, *, scan_range, range_unit,
     def price_in_parent(c):
         parent=km.Circuit('\n'.join(lines[:start]+strip_metadata(c)+lines[stop:]))
         return measured_resources(parent,accounting=accounting,external_distribution=external_distribution)
-    run = restructure_file(fragment, root/'construction', clean_inputs=tuple(facts),
+    run = restructure_file(fragment, root/'construction', clean_inputs=clean_at_cut,
                            cost=cost, width=circuit.num_qubits,accounting=accounting,
                            external_distribution=external_distribution,_resource_measure=price_in_parent,
-                           internal_bits=local_private,_classical_bit_offset=circuit.num_bits,**options)
+                           internal_bits=local_private,_classical_bit_offset=circuit.num_bits,
+                           domain=domain,max_assignments=max_assignments,**options)
     from .discovery_yield import design_key
     from .restructure import _boundary_metadata
     from .search_screen import stop_reason
@@ -307,7 +318,14 @@ def restructure_episode(source, circuit, out, *, scan_range, range_unit,
                 localization=_localization,
                 width_preserved=full.num_qubits==circuit.num_qubits,retired_clean_parent_wires=sorted(removed),
                 clean_facts='conservative prefix transport; no interior clean promise invented')
-            check = _check(contract,parent_layout(changed),tuple(facts),limits,internal_bits=private)
+            if domain is None:
+                check = _check(contract,parent_layout(changed),clean_at_cut,limits,internal_bits=private)
+            else:
+                from .promised_domain import check_promised_candidate
+                check = check_promised_candidate(contract, parent_layout(changed), run['contract']['domain'],
+                    clean_inputs=clean_at_cut, max_assignments=max_assignments, internal_bits=private,
+                    measurement_mode='independent-map' if private else 'coupled', **limits)
+                contextual.update(domain_hash=check['domain_hash'], host_reachability_verified=False)
             row.update(check=check,contextual_proof=contextual,private_bits=private)
             if not layout_valid or check.get('equivalent') is not True:
                 row.update(status='rejected' if not layout_valid or check.get('equivalent') is False else 'unknown',
@@ -357,6 +375,11 @@ def restructure_episode(source, circuit, out, *, scan_range, range_unit,
         construction=run,parent_width=circuit.num_qubits,contextual_proof=representative.get('contextual_proof',{}),
         objective=dict(expression=cost,accounting=before['accounting'],external_distribution=external_distribution),
         official_verifier_run=False)
+    if domain is not None:
+        result['episode'].update(promise=run['contract']['domain'], host_reachability_verified=False,
+                                 promise_scope='caller-declared entry to this cut')
+        if result['status'] == 'verified_improvement':
+            result['status'] = 'verified_domain_improvement'
     result['structural_gains'] = [row for row in run.get('structural_gains',[]) if row['candidate'] in accepted_ids]
     result['search_control'] = dict(run.get('search_control',{}))
     if stopped():

@@ -194,11 +194,22 @@ def _scheduled_boundary(circuit,context):
         **{key:context[key] for key in ('max_operations','max_variables','max_terms','max_product_terms')})
 
 
+def _factor_limits(context, *, default_timeout, allowed):
+    options = context.get('factor_options', {})
+    limits = {key: options[key] for key in allowed if key in options}
+    timeout = options.get('timeout')
+    wall = context.get('constructor_time_budget')
+    if wall is not None:
+        timeout = min(timeout, .8 * wall) if timeout is not None else .8 * wall
+    return dict(limits, timeout=default_timeout if timeout is None else timeout)
+
+
 def _algebraic_boundary(circuit,context):
     from .algebraic_synthesis import algebraic_boundary_synthesis
-    result=algebraic_boundary_synthesis(circuit,clean_inputs=context['clean_inputs'],cost=context['cost'],
-        resource_measure=context['resource_measure'],
-        **{key:context[key] for key in ('max_operations','max_variables','max_terms','max_product_terms')})
+    limits = _factor_limits(context, default_timeout=3.0,
+                           allowed=('max_factor_nodes','max_factor_steps','max_orders'))
+    result=algebraic_boundary_synthesis(circuit, **_structural_options(context), **limits)
+    result['configured_factor_limits'] = limits
     context['algebraic_result']=result
     return result
 
@@ -224,7 +235,10 @@ def _functional_decomposition(circuit, context):
     if context['semantics'].get('phase',{}).get('monomials'):
         return dict(status='not_applicable',reason='nonzero observable phase')
     from .functional_decomposition import decomposition_synthesis
-    return decomposition_synthesis(circuit, **_structural_options(context))
+    limits = _factor_limits(context, default_timeout=2.0, allowed=('max_factor_nodes','max_partitions','max_factor_steps'))
+    if 'max_factor_steps' in limits:
+        limits['max_steps'] = limits.pop('max_factor_steps')
+    return dict(decomposition_synthesis(circuit, **_structural_options(context), **limits), configured_factor_limits=limits)
 
 
 def _observable_search(circuit, context):
@@ -513,7 +527,8 @@ def restructure_file(path, out, *, clean_inputs=(), cost='Q*(toffoli+t/4)',
                      internal_bits=(),_classical_bit_offset=None,fast=False,
                      search_seconds=None,trial_seconds=None,cancel_file=None,_deadline=None,max_finalists=24,
                      goal='discoveries',max_architectures=1024,domain=None,max_assignments=65536,
-                     max_and=3,joint_timeout=None,joint_max_states=10000,joint_max_expansions=100000):
+                     max_and=3,joint_timeout=None,joint_max_states=10000,joint_max_expansions=100000,
+                     factor_options=None,domain_at_cut=False):
     """Construct and verify complete-boundary candidates; preserve every outcome.
 
     The connected skill invents further mechanisms when bounded constructors
@@ -528,6 +543,14 @@ def restructure_file(path, out, *, clean_inputs=(), cost='Q*(toffoli+t/4)',
     from .floors import _validate_search_limits
     _validate_search_limits(max_and, joint_timeout if joint_timeout is not None else 1.0,
                             joint_max_states, joint_max_expansions)
+    factor_options = {} if factor_options is None else factor_options
+    if (not isinstance(factor_options, dict) or set(factor_options) - {
+            'timeout', 'max_factor_steps', 'max_factor_nodes', 'max_orders', 'max_partitions'}
+            or any(type(v) is not int or v < 1 for k, v in factor_options.items() if k != 'timeout')):
+        raise StrataError('invalid algebraic and consumer decomposition budgets')
+    positive_seconds(factor_options.get('timeout'), 'factor_timeout')
+    if domain_at_cut and (domain is None or scan_range is None):
+        raise StrataError('domain_at_cut requires a domain and explicit range')
     if type(max_finalists) is not int or max_finalists < 0:
         raise StrataError('max_finalists must be a nonnegative integer')
     if goal not in ('discoveries','best-cost') or type(max_architectures) is not int or max_architectures<1:
@@ -556,9 +579,9 @@ def restructure_file(path, out, *, clean_inputs=(), cost='Q*(toffoli+t/4)',
     if any(type(q)is not int or not 0<=q<circuit.num_qubits for q in clean):
         raise StrataError('clean inputs must be physical wires of the supplied circuit; use width for an explicit larger parent layout')
     promise=None
-    if domain is not None:
+    if domain is not None and not domain_at_cut:
         if scan_range is not None or len(circuit)>max_operations:
-            raise StrataError('a search promise applies at artifact entry; supply a bounded complete circuit or increase --max-operations')
+            raise StrataError('a search promise applies at artifact entry; use --domain-at-cut with an explicit range or increase --max-operations')
         from .promised_domain import load_search_domain, check_promised_candidate, promised_domain_synthesis
         promise=load_search_domain(domain,circuit,clean_inputs=clean,max_assignments=max_assignments,max_operations=max_operations)
     if scan_range is not None or len(circuit)>max_operations:
@@ -570,9 +593,10 @@ def restructure_file(path, out, *, clean_inputs=(), cost='Q*(toffoli+t/4)',
         options.update(deep_only=deep_only,fast=fast,trial_seconds=trial_seconds,search_seconds=search_seconds,
                        cancel_file=cancel_file,_deadline=deadline,max_finalists=max_finalists,goal=goal,max_architectures=max_architectures,
                        max_and=max_and,joint_timeout=joint_timeout,
-                       joint_max_states=joint_max_states,joint_max_expansions=joint_max_expansions)
+                       joint_max_states=joint_max_states,joint_max_expansions=joint_max_expansions, factor_options=factor_options)
         if scan_range is not None:
-            return restructure_episode(source,circuit,root,scan_range=scan_range,range_unit=range_unit,**options)
+            return restructure_episode(source,circuit,root,scan_range=scan_range,range_unit=range_unit,
+                                       domain=domain if domain_at_cut else None, max_assignments=max_assignments, **options)
         return restructure_regions(source,circuit,root,**options)
     from .accounting import measured_resources
     measure=_resource_measure or (lambda c:measured_resources(c,accounting=accounting,external_distribution=external_distribution))
@@ -592,7 +616,8 @@ def restructure_file(path, out, *, clean_inputs=(), cost='Q*(toffoli+t/4)',
     if promise is not None:
         def construct_on_promise(parent, context):
             return promised_domain_synthesis(parent,promise,max_assignments=max_assignments,
-                try_joint=True, **_joint_options(context), **_structural_options(context))
+                try_joint=True, internal_bits=context['internal_bits'], classical_bit_offset=context['classical_bit_offset'],
+                **_joint_options(context), **_structural_options(context))
         constructors=[Construction('promised_domain_synthesis',construct_on_promise,'Synthesize on the complete declared input promise')]
     elif not deep_only:
         constructors += [Construction('learned_'+digest(t)[:12],_template_constructor(t),'Replayed learned gate template with checked predicates') for t in memory['templates']]
@@ -638,7 +663,7 @@ def restructure_file(path, out, *, clean_inputs=(), cost='Q*(toffoli+t/4)',
                          max_architectures=max_architectures,extra_finalist_budget=max_finalists-extra_finalists,
                          classical_trajectory=has_classical,fractional_phase=fractional_phase,
                          max_and=max_and,joint_timeout=joint_timeout,joint_max_states=joint_max_states,
-                         joint_max_expansions=joint_max_expansions,**semantic_limits)
+                         joint_max_expansions=joint_max_expansions,factor_options=factor_options,**semantic_limits)
             if not deep_only and semantics['status']=='exact_factored' and semantics.get('phase_zero'):
                 from .factored_semantic import lift_lookup_table
                 table=lift_lookup_table(parent,clean_inputs=clean,max_operations=semantic_limits['max_operations'],
@@ -792,7 +817,7 @@ def restructure_file(path, out, *, clean_inputs=(), cost='Q*(toffoli+t/4)',
                 if queue and len(frontier)<beam:
                     frontier.append(queue.popleft())
         if not frontier or len(attempts)>=max_candidates:break
-    eligible=[s for s in states if not deep_only or s['id']==baseline['id'] or s['id'] in structural_ids]
+    eligible=[s for s in states if promise is not None or not deep_only or s['id']==baseline['id'] or s['id'] in structural_ids]
     best=min(eligible,key=lambda s:s['cost'])
     (root/'best.kmx').write_text(Path(best['path']).read_text())
     memory_path.parent.mkdir(parents=True,exist_ok=True);memory_path.write_text(json.dumps(memory,indent=2)+'\n')
@@ -814,7 +839,7 @@ def restructure_file(path, out, *, clean_inputs=(), cost='Q*(toffoli+t/4)',
                     'Which bounded or failed formulation could reopen under a different construction?'],
                 budgets=dict(rounds=rounds,beam=beam,max_candidates=max_candidates,
                              max_and=max_and,joint_timeout=joint_timeout,joint_max_states=joint_max_states,
-                             joint_max_expansions=joint_max_expansions,**limits))
+                             joint_max_expansions=joint_max_expansions,factor_options=factor_options,**limits))
     if promise is not None:
         result['contract'].update(domain=promise,domain_hash=promise['domain_hash'],all_input_equivalence=False,
             outputs='all physical quantum and public classical outputs, clean restoration and phase on the declared promise')

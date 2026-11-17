@@ -812,7 +812,11 @@ def _evaluate_candidate(original_path, candidate_path, out, *, cost, hypothesis,
         report['feedback']['inference_scope'] = 'this construction on the hashed finite promised domain; no all-input or host acceptance claim'
         return _retain(report, old.path, new.path, root)
     if not report['checks']['width_preserved']:
-        reason = 'boundary_width_changed'
+        omitted = set(range(candidate.num_qubits, original.num_qubits))
+        if omitted and omitted <= set(clean) and candidate.register_data == original.register_data:
+            report['checks']['omitted_trailing_clean_wires'] = sorted(omitted)
+        else:
+            reason = 'boundary_width_changed'
     opcodes = _opcodes(old, new)
     changes = [row for row in opcodes if row[0] != 'equal']
     report['alignment'] = dict(strategy='common_ends_then_bounded_middle',
@@ -887,7 +891,7 @@ def _evaluate_candidate(original_path, candidate_path, out, *, cost, hypothesis,
                 report['counterexample'] = dict(check['counterexample'], scope=report['checks']['scope'])
                 reason = 'boundary_function_mismatch'
             elif check['equivalent'] is not True or restoration['restored'] is not True:
-                reason = 'proof_budget_or_semantics_unavailable'
+                reason = check.get('reason') or 'proof_budget_or_semantics_unavailable'
     elif reason is None:
         local = _local_proofs(old, new, changes, opcodes, requested, limits, max_proof_attempts,
                               independent=measurement_mode=='independent-map',private=internal_bits)
@@ -905,6 +909,11 @@ def _evaluate_candidate(original_path, candidate_path, out, *, cost, hypothesis,
     else:
         report['checks']['reason'] = reason
         report['status'] = 'rejected' if report['checks']['equivalent'] is False else 'unknown'
+        if (report['status'] == 'unknown' and measurement_mode == 'coupled'
+                and any(c.operation_statistics()['HMR'] for c in (original, candidate))):
+            report['checks']['measurement_obligation'] = (
+                'Coupled proof requires matching measurement events. Use independent-map with '
+                'the outcome bits declared private when only public values and phase are observable.')
     report['accepted_gain'] = max(0.0, -report['cost_delta']) if report['checks']['equivalent'] is True else None
     report['cost_delta_scope'] = 'measured diagnostic; no candidate saving is accepted before exact equivalence'
     report['feedback'] = _feedback(report)

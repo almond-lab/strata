@@ -20,6 +20,7 @@ def add_parsers(sub):
     p.add_argument('--metric', action='append', default=[], metavar='NAME=OUTPUT:SELECTOR:UNIT')
     p.add_argument('--setting', action='append', default=[], metavar='NAME=JSON')
     p.add_argument('--timeout', type=float, default=60)
+    p.add_argument('--max-output', type=int, default=1_000_000, help='captured stdout and stderr limit in bytes')
     p.add_argument('--threads', type=int, default=1)
     p.add_argument('--dependency',action='append',default=[],metavar='FILE_OR_DIR',
                    help='also pin a local import, data file, or complete source directory')
@@ -139,7 +140,7 @@ def wrap_command(args):
                 settings=_settings(args.setting), outputs=outputs, metrics=metrics,
                 resources=dict(threads=args.threads, memory_bytes=args.memory_mb * 1024**2,
                                storage_bytes=args.storage_mb * 1024**2),
-                limits=dict(timeout=args.timeout, memory_bytes=args.memory_mb * 1024**2,
+                limits=dict(timeout=args.timeout, max_output=args.max_output, memory_bytes=args.memory_mb * 1024**2,
                             max_file_bytes=args.max_file_mb * 1024**2))
     # Python imports must leave immutable staged source trees byte-identical.
     if trees and Path(argv[0]).name.startswith(('python', 'pypy')):

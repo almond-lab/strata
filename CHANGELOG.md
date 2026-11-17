@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+- Bind a complete domain directly to an explicit episode with
+  `--domain-at-cut`. Preserve the caller's reachability obligation in the receipt.
+- Accept proved zero resets in promised lookup search. Recover measured
+  producers even when the phase repair rebuilds the controls after HMR.
+  Compare measured and reversible erasure of reconstructed product caches.
+- Expose algebraic factor budgets and consumer partition budgets. Report
+  the effective ANF caps separately from the decision-graph fallback.
+- Add a short `search --summary` receipt for stdout and a byte-valued
+  `wrap --max-output` option.
+- Check a narrower candidate when its omitted trailing wires are declared and
+  proved clean. Surface the exact measurement-alignment obligation on evaluation.
+
 - Extend promised-input search with exact care-row XOR/AND search, shared
   cofactor graphs and reversible output encodings. Receipts explain skipped
   formulations and bind independently checked replacements to the input promise.

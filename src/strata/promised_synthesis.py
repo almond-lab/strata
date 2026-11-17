@@ -255,7 +255,8 @@ def _output_basis_maps(polynomials, clean):
 def synthesize(circuit, domain, *, clean_inputs=(), cost='Q*toffoli', resource_measure=None,
                max_operations=10000, max_assignments=65536, max_variables=128, max_terms=65536,
                max_product_terms=65536, max_table_cells=2097152, max_address_bits=12, max_features=1024,
-               try_joint=False, max_and=3, timeout=1.0, max_states=10000, max_expansions=100000):
+               try_joint=False, max_and=3, timeout=1.0, max_states=10000, max_expansions=100000,
+               internal_bits=(), classical_bit_offset=None):
     """Compare low-degree GF(2) interpolation and cofactor-based Boolean completions."""
     limits = dict(max_operations=max_operations, max_variables=max_variables, max_terms=max_terms,
                   max_product_terms=max_product_terms, max_assignments=max_assignments)
@@ -274,11 +275,44 @@ def synthesize(circuit, domain, *, clean_inputs=(), cost='Q*toffoli', resource_m
         lines, _ = window_lines(circuit, max_lines=max_operations)
     except WindowLimit as exc:
         return dict(base, status='unknown', reason=str(exc))
+    original = circuit
+    private = tuple(internal_bits)
+    fresh = max(original.num_bits, classical_bit_offset or 0)
+    source_has_measurement = any(line.startswith('HMR ') for line in lines)
+
+    def verify(left, right, bits=private):
+        return check_promised_candidate(left, right, bound, clean_inputs=clean, internal_bits=bits,
+            measurement_mode='independent-map' if bits else 'coupled', max_table_cells=max_table_cells, **limits)
+
+    if source_has_measurement:
+        from .lookup_structure import measured_value_surrogate
+        circuit, preparation = measured_value_surrogate(original, clean, private, limits, verify=verify)
+        base['measurement_preparation'] = preparation
+        if circuit is None:
+            return dict(base, status='not_applicable',
+                        reason=preparation.get('reason') or preparation.get('proof', {}).get('reason'))
+        lines = str(circuit).splitlines()
+
+    if any(line.startswith('R ') for line in lines):
+        from .restructure import _boundary_metadata
+        retained = [line for line in lines if not line.startswith('R ')]
+        normalized = km.Circuit('\n'.join(retained))
+        if normalized.num_qubits < circuit.num_qubits:
+            metadata = _boundary_metadata(circuit)
+            extra = _boundary_metadata(circuit, circuit.num_qubits-1)[len(metadata):]
+            normalized = km.Circuit('\n'.join(retained + extra))
+        proof = verify(circuit, normalized, tuple(b for b in private if b < circuit.num_bits))
+        base['reset_elision_proof'] = proof
+        if proof.get('equivalent') is not True:
+            return dict(base, status='unknown', reason=proof.get('reason', 'reset_not_proven_zero'))
+        circuit, lines = normalized, retained
+
     classical = []
     for line in lines:
         parsed = _parse(line)
-        if parsed['status'] == 'opaque' or parsed['op'] in ('HMR', 'R', 'Z_POW'):
-            return dict(base, status='not_applicable', reason='completion requires deterministic Boolean and sign gates')
+        if parsed['status'] == 'opaque' or parsed['op'] in ('HMR', 'Z_POW'):
+            return dict(base, status='not_applicable', reason='completion requires deterministic Boolean and sign gates',
+                        instruction=line)
         if parsed['op'].startswith('BIT_') or parsed['op'] in ('PUSH_CONDITION', 'POP_CONDITION'):
             classical.append(line)
     entry, delta, count = _native_table(circuit, bound)
@@ -292,7 +326,7 @@ def synthesize(circuit, domain, *, clean_inputs=(), cost='Q*toffoli', resource_m
             seen.add(column)
     measure = resource_measure or measured_resources
     objective = Formula(cost) if isinstance(cost, str) else cost
-    before = measure(circuit)
+    before = measure(original)
     before_cost = objective(before)
     trials, candidates = [], {}
 
@@ -301,15 +335,24 @@ def synthesize(circuit, domain, *, clean_inputs=(), cost='Q*toffoli', resource_m
         if native is None:
             trial.setdefault('status', 'lowering_budget')
             return
-        candidate = _emit(circuit, native, classical)
-        if len(str(candidate).splitlines()) > max_operations:
-            trial['status'] = 'operation_budget'
-            return
-        resources = measure(candidate)
-        value = objective(resources)
-        trial.update(status='priced', cost=value, printed_gate_count=len(native))
-        if value < before_cost:
-            candidates.setdefault(str(candidate), (value, resources, candidate, trial))
+        pure = _emit(original, native, classical)
+        variants = [(pure, (), trial)]
+        if source_has_measurement:
+            from .lookup_structure import measured_cache_cleanup
+            measured = measured_cache_cleanup(pure, clean, fresh)
+            if measured is not None:
+                measured_trial = dict(trial, cleanup='measured_product_erase')
+                trials.append(measured_trial)
+                variants.append((measured, (fresh,), measured_trial))
+        for candidate, introduced, receipt in variants:
+            if len(str(candidate).splitlines()) > max_operations:
+                receipt['status'] = 'operation_budget'
+                continue
+            resources = measure(candidate)
+            value = objective(resources)
+            receipt.update(status='priced', cost=value, printed_gate_count=len(native))
+            if value < before_cost:
+                candidates.setdefault(str(candidate), (value, resources, candidate, receipt, introduced))
 
     factored = set()
     for reverse in (False, True):
@@ -349,15 +392,14 @@ def synthesize(circuit, domain, *, clean_inputs=(), cost='Q*toffoli', resource_m
         price(native, dict(trial, completion='exact_joint_on_care_rows'))
     ordered_candidates = sorted(candidates.values(), key=lambda row: (row[0], len(row[2])))
     base.update(source_rows_replayed=count, trials=trials, distinct_cheaper_candidates=len(candidates))
-    for value, resources, candidate, trial in ordered_candidates:
-        check = check_promised_candidate(circuit, candidate, bound, clean_inputs=clean,
-                                         max_table_cells=max_table_cells, **limits)
+    for value, resources, candidate, trial, introduced in ordered_candidates:
+        check = verify(original, candidate, private + introduced)
         trial['status'] = check['status']
         if check.get('equivalent') is not True:
             trial['reason'] = check.get('reason', 'boundary_mismatch')
             continue
         outside = check.get('off_domain_witness')
-        if bound['type'] == 'finite':
+        if bound['type'] == 'finite' and not source_has_measurement:
             full = equivalent_factored(lines, str(candidate).splitlines(), clean_inputs=clean,
                                        max_operations=max_operations, max_variables=max_variables,
                                        max_nodes=max_terms, max_apply_steps=32*max_product_terms)
@@ -366,7 +408,7 @@ def synthesize(circuit, domain, *, clean_inputs=(), cost='Q*toffoli', resource_m
         witness = dict(promise_specialization=outside is not None, off_domain_witness=outside,
                        selected_completion=trial['completion'], reversed_order=trial.get('reversed_order'))
         return dict(base, status='constructed', candidate=str(candidate), cost=value, resources=resources,
-                    check=check, structural_witness=witness, witness_hash=digest([bound['domain_hash'],
+                    check=check, introduced_private_bits=list(introduced), structural_witness=witness, witness_hash=digest([bound['domain_hash'],
                     check['original_hash'], check['candidate_hash'], clean, witness]),
                     resource_bill=dict(before=before, after=resources, before_cost=before_cost, after_cost=value,
                                        cost_expression=cost if isinstance(cost, str) else getattr(cost, 'expression', None)))

@@ -99,7 +99,7 @@ def product_lifetimes(lines, clean_inputs=()):
                 unchanged = all(last_write.get(c, -1) < start for c in controls)
                 same_values = saved_values == [signatures.value(c) for c in controls]
                 inverse = op == 'CCX' and sorted(wires[:2]) == controls
-                if same_values and (inverse or op == 'HMR'):
+                if (same_values and inverse) or op == 'HMR':
                     lifetimes.append(dict(start=start, stop=at+1, wire=q, controls=controls,
                         consumers=uses[q][first:-1], clean_entry=clean, controls_untouched=unchanged,
                         cleanup=op, outcome=item['bits'][0] if op == 'HMR' else None))
@@ -119,7 +119,7 @@ def product_lifetimes(lines, clean_inputs=()):
     return items, lifetimes
 
 
-def measured_value_surrogate(circuit, clean_inputs, internal_bits, proof_limits):
+def measured_value_surrogate(circuit, clean_inputs, internal_bits, proof_limits, *, verify=None):
     """Replace standard, private measured product erasures for proposal generation."""
     from .measurement_equivalence import equivalent_independent_outputs
 
@@ -151,8 +151,11 @@ def measured_value_surrogate(circuit, clean_inputs, internal_bits, proof_limits)
         if (repair['status'] != 'supported' or repair['op'] != 'CZ' or repair['condition'] != outcome
                 or sorted(repair['wires']) != record['controls']):
             continue
-        edits[after-1] = lines[record['start']]
-        edits[repair_at] = None
+        # The repair may prepare the saved operands after HMR. At the
+        # existing CZ, those wires are available for a reversible cleanup.
+        a, b = repair['wires']
+        edits[after-1] = None
+        edits[repair_at] = f'CCX q{a} q{b} q{record["wire"]}'
         matched.append(dict(record, phase_repair=repair_at))
     if not matched:
         first = next((i for i, item in enumerate(items)
@@ -169,11 +172,15 @@ def measured_value_surrogate(circuit, clean_inputs, internal_bits, proof_limits)
             or item['op'].startswith('BIT_')) for line in body):
         return None, dict(status='not_applicable', reason='unmatched classical operation remains after HMR normalization',
                           matched=matched)
-    proof = equivalent_independent_outputs(lines, body, clean_inputs=clean_inputs, internal_bits=internal_bits,
-        max_operations=proof_limits['max_operations'], max_variables=proof_limits['max_variables'],
-        max_nodes=4*proof_limits['max_terms'], max_apply_steps=32*proof_limits['max_product_terms'])
+    candidate = km.Circuit('\n'.join(body))
+    if verify is None:
+        proof = equivalent_independent_outputs(lines, body, clean_inputs=clean_inputs, internal_bits=internal_bits,
+            max_operations=proof_limits['max_operations'], max_variables=proof_limits['max_variables'],
+            max_nodes=4*proof_limits['max_terms'], max_apply_steps=32*proof_limits['max_product_terms'])
+    else:
+        proof = verify(circuit, candidate)
     evidence = dict(status='verified' if proof.get('equivalent') is True else 'unknown', matched=matched, proof=proof)
-    return (km.Circuit('\n'.join(body)) if proof.get('equivalent') is True else None), evidence
+    return (candidate if proof.get('equivalent') is True else None), evidence
 
 
 def terminal_cache_fusion(circuit, clean_inputs):
@@ -202,3 +209,18 @@ def terminal_cache_fusion(circuit, clean_inputs):
     body = [edits.get(i, line) for i, line in enumerate(lines)]
     return dict(status='constructed', candidate='\n'.join(line for line in body if line is not None),
                 structural_witness=dict(terminal_products_fused=True, product_lifetimes=fused))
+
+
+
+def measured_cache_cleanup(circuit, clean_inputs, fresh_bit):
+    """Propose zero-paid measured cleanup of restored product caches."""
+    lines = str(circuit).splitlines()
+    _, lifetimes = product_lifetimes(lines, clean_inputs)
+    edits = {}
+    for record in lifetimes:
+        if record['clean_entry'] and record['cleanup'] == 'CCX':
+            a, b = record['controls']
+            edits[record['stop']-1] = f'HMR q{record["wire"]} b{fresh_bit}\nCZ q{a} q{b} if b{fresh_bit}'
+    if not edits:
+        return None
+    return km.Circuit('\n'.join(edits.get(i, line) for i, line in enumerate(lines)))

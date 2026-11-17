@@ -813,6 +813,10 @@ def analyze_complete(lines, **limits):
     anf_limits['max_product_terms'] = min(limits.get('max_product_terms',65536),65536)
     anf_limits['max_terms'] = min(limits.get('max_terms',4096),65536)
     result = analyze_window(materialized, **anf_limits)
+    caps = {key: dict(requested=limits[key], effective=anf_limits[key])
+            for key in ('max_terms', 'max_product_terms') if key in limits and limits[key] != anf_limits[key]}
+    if caps:
+        result['anf_stage_caps'] = caps
     if result['status'] != 'bounded' or result.get('reason') not in {'term_budget','product_budget'}:
         return result
     from .factored_semantic import analyze_factored
@@ -820,4 +824,6 @@ def analyze_complete(lines, **limits):
         max_operations=limits.get('max_operations',128), max_variables=limits.get('max_variables',32),
         max_nodes=limits.get('max_terms',4096), max_apply_steps=32*limits.get('max_product_terms',65536))
     fallback['anf_obstruction'] = result
+    if caps:
+        fallback['anf_stage_caps'] = caps
     return fallback

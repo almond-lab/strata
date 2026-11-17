@@ -8,6 +8,8 @@ bit h(A) suffices. Search and lower F0 + h*(F0+F1) across every consumer.
 from itertools import combinations, islice
 
 from .accounting import measured_resources
+from math import isfinite
+
 from .algebraic_synthesis import _Budget, _Bound, _Factors, _lower, _replay
 from .boolean_synthesis import _layout
 from .cost import Formula
@@ -137,11 +139,13 @@ def _groups(inputs, outputs, cap):
 def decomposition_synthesis(circuit, *, clean_inputs=(), cost='Q*toffoli', resource_measure=None,
                             max_partitions=96, max_steps=250000, max_operations=10000,
                             max_variables=128, max_terms=65536, max_product_terms=65536,
-                            screen_partitions=True):
+                            screen_partitions=True, timeout=2.0, max_factor_nodes=4096):
     """Bounded exact two-class detection and heuristic, verified reversible lowering."""
     from .restructure import _check
-    if any(type(n) is not int or n < 1 for n in (max_partitions, max_steps)):
+    if any(type(n) is not int or n < 1 for n in (max_partitions, max_steps, max_factor_nodes)):
         raise StrataError('decomposition search budgets must be positive integers')
+    if type(timeout) not in (int, float) or not isfinite(timeout) or timeout <= 0:
+        raise StrataError('decomposition timeout must be positive and finite')
     clean = set(_layout(clean_inputs, circuit.num_qubits, 'clean inputs'))
     limits = dict(max_operations=max_operations, max_variables=max_variables,
                   max_terms=max_terms, max_product_terms=max_product_terms)
@@ -162,7 +166,7 @@ def decomposition_synthesis(circuit, *, clean_inputs=(), cost='Q*toffoli', resou
         return dict(status='not_applicable', reason='requires preserved inputs and a separable XOR-output boundary')
     inputs = sorted(support)
     measure, objective = resource_measure or measured_resources, Formula(cost)
-    budget = _Budget(max_steps, 4096, max_terms, max_product_terms, 2.0)
+    budget = _Budget(max_steps, max_factor_nodes, max_terms, max_product_terms, timeout)
     best = None
     tried = matches = verified = screened = 0
     stopped = None
