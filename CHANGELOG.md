@@ -35,7 +35,7 @@ claimed by this workflow release.
 Validation: **671 tests passed**, with five namespace-dependent default skips
 covered in the separate selected run (51 tests passed with real sandbox mode
 enabled). The twenty-setting reference benchmark produced identical outcomes,
-6.27 s sequential versus 4.13 s with two workers. See
+6.10 s sequential versus 4.10 s with two workers. See
 [the validation receipt](docs/V0.4-VALIDATION.json) and
 [benchmark scope](docs/V0.4-BENCHMARK.md).
 

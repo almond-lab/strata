@@ -145,3 +145,66 @@ def test_source_change_during_read_is_not_published(tmp_path, monkeypatch):
     with pytest.raises(StrataError, match='changed while'):
         store.blob_file(source)
     assert not list((store.path / 'objects').iterdir())
+
+
+def test_concurrent_byte_and_file_publishers_never_replace_object(tmp_path, monkeypatch):
+    from concurrent.futures import ThreadPoolExecutor
+    import threading
+    import time
+
+    data = b'concurrent immutable artifact\n' * 32768
+    handle = hashlib.sha256(data).hexdigest()
+    source = tmp_path / 'source'
+    source.write_bytes(data)
+    stores = [Store(tmp_path / 'store') for _ in range(12)]
+    target = stores[0].path / 'objects' / handle
+    start = threading.Barrier(len(stores) + 1)
+    published = threading.Event()
+    finished = threading.Event()
+    publications = []
+    replacements_lock = threading.Lock()
+    real_replace = os.replace
+
+    def slow_publish(source_path, destination):
+        assert Path(destination) == target
+        with replacements_lock:
+            publications.append(str(source_path))
+        # Widen the missing-target race that used to replace a reader's inode.
+        time.sleep(.025)
+        real_replace(source_path, destination)
+        published.set()
+
+    monkeypatch.setattr(os, 'replace', slow_publish)
+
+    def writer(index):
+        start.wait(timeout=10)
+        store = stores[index]
+        return store.blob(data) if index % 2 else store.blob_file(source)
+
+    def observer():
+        assert published.wait(timeout=10)
+        identity = target.stat()
+        checks = 0
+        while not finished.is_set() or checks < 4:
+            assert stores[0].verify_blob(handle)
+            current = target.stat()
+            assert (current.st_ino, current.st_ctime_ns) == (identity.st_ino, identity.st_ctime_ns)
+            checks += 1
+        return checks
+
+    try:
+        with ThreadPoolExecutor(max_workers=len(stores) + 1) as pool:
+            reader = pool.submit(observer)
+            writers = [pool.submit(writer, index) for index in range(len(stores))]
+            start.wait(timeout=10)
+            try:
+                assert [future.result(timeout=20) for future in writers] == [handle] * len(stores)
+            finally:
+                finished.set()
+            assert reader.result(timeout=10) >= 4
+        assert len(publications) == 1
+        assert stores[0].read_blob(handle) == data
+    finally:
+        finished.set()
+        for store in stores:
+            store.db.close()

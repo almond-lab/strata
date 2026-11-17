@@ -5,23 +5,23 @@
   "settings": 20,
   "workers": 2,
   "actual_offline_sandbox": true,
-  "sequential_seconds": 6.270877501927316,
-  "declared_sweep_seconds": 4.1318791611120105,
+  "sequential_seconds": 6.09679507301189,
+  "declared_sweep_seconds": 4.103426595916972,
   "identical_outcomes": true,
   "accepted": 18,
   "rejected": 2,
   "other_statuses": [],
-  "resumed_seconds": 0.8833790600765496,
+  "resumed_seconds": 0.9599205430131406,
   "accepted_results_reused": 18,
-  "report_packet_seconds": 0.14560766308568418,
-  "report": "9697539b981e3cc40c609fa0e1e8cc6f5f2bc09921636876151b89749947b8c4",
-  "packet": "e54f318086b16ce4c17e9e4374a7c9824c4157306b274136b723e0e719251494",
+  "report_packet_seconds": 0.12907049409113824,
+  "report": "f958621091fd4d6c0b91ae9195ab4f1626d41a1309c4c9ce15b34bf80284aa68",
+  "packet": "f9205315761d19b626a294e388ed80a7552e83f50b6f6170dc16a83220f441d9",
   "genericity_fixtures": [
     {
       "manifest": "circuit.json",
-      "seconds": 0.44869389897212386,
-      "experiment": "25ea90397d82515f680a6d255fc9846cc5972ab19fa56d33a8c578964c42973c",
-      "result": "ffb312add3c74dafedf0982c0dca319e3d9a8c305e0b8467ab9ce2dcec64f99f",
+      "seconds": 0.2850837861187756,
+      "experiment": "3ece9990e47b824ea8df4b0d03732395c697bce2312bf03eb0c3cbf12945058a",
+      "result": "773a4b17a21de774a4b26e0b1111fd928f1153672a132951687e4a1ff85e5639",
       "status": "accepted_by_verifier",
       "verified_cost": {
         "value": 9.0,
@@ -42,9 +42,9 @@
     },
     {
       "manifest": "words.json",
-      "seconds": 0.2990533069241792,
-      "experiment": "3240326a0c4fa9a9a6c71421c14e9e0456815cf7e117d6efdbbb51ba50d4e2bf",
-      "result": "e721e6e5e58897153cc1cf91a8438ab03f27b774534671b9b512a7a78aa3e567",
+      "seconds": 0.29778173891827464,
+      "experiment": "b93cd3138fc20571f17297c537e98ee9d81021c3dd82afe59cd75bf654a18fd1",
+      "result": "c235c279f59697a6c7b7a9977c1d8d4a9378e7dc1660c97a4d15aadb87f13aaf",
       "status": "accepted_by_verifier",
       "verified_cost": {
         "value": 30.0,
@@ -52,8 +52,8 @@
         "unit": "reference_operations",
         "evidence_kind": "verified",
         "inputs": {
-          "tokens": 16,
-          "vocabulary": 14
+          "vocabulary": 14,
+          "tokens": 16
         },
         "resource_selectors": {
           "tokens": "resources.tokens",
@@ -70,6 +70,6 @@
     "evidence": "counted orchestration calls, not measured human interventions"
   },
   "scope": "Small reference pipelines. This measures launch/retention overhead and bounded concurrency, not human time saved, full circuit throughput, or production optimization gain.",
-  "validation_load": "Final frozen sources; validation subprocesses completed; shared host without exclusive CPU reservation",
+  "validation_load": "Final immutable-publication fix; validation subprocesses completed; shared host without exclusive CPU reservation",
   "onboarding_scope": "Installed environment; no timed human onboarding study"
 }

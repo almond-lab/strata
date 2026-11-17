@@ -1,5 +1,7 @@
 """Transactional immutable records and content-addressed artifacts."""
 from pathlib import Path
+from contextlib import contextmanager
+import fcntl
 import hashlib
 import json
 import sqlite3
@@ -56,16 +58,34 @@ class Store:
     def blob(self, data):
         h = hashlib.sha256(data).hexdigest()
         p = self.path / 'objects' / h
-        if not p.exists():
-            fd, name = tempfile.mkstemp(dir=p.parent)
+        fd, name = tempfile.mkstemp(dir=p.parent)
+        try:
             with os.fdopen(fd, 'wb') as f:
                 f.write(data)
                 f.flush()
                 os.fsync(f.fileno())
-            os.replace(name, p)
-        elif self.read_blob(h) != data:
-            raise StrataError('hash collision')
-        return h
+            with self._publication():
+                if p.exists():
+                    if self.read_blob(h) != data:
+                        raise StrataError('hash collision')
+                else:
+                    os.replace(name, p)
+                    _sync_directory(p.parent)
+            return h
+        finally:
+            if os.path.exists(name):
+                os.unlink(name)
+
+    @contextmanager
+    def _publication(self):
+        # Different opens also serialize threads in one process. Readers need
+        # no lock because published object inodes are never replaced.
+        with (self.path / '.blob-publication.lock').open('a') as lock:
+            fcntl.flock(lock, fcntl.LOCK_EX)
+            try:
+                yield
+            finally:
+                fcntl.flock(lock, fcntl.LOCK_UN)
 
     def read_blob(self, h):
         if not isinstance(h, str) or len(h) != 64 or any(c not in '0123456789abcdef' for c in h):
@@ -94,11 +114,12 @@ class Store:
                 destination.flush()
                 os.fsync(destination.fileno())
             target = self._blob_path(handle)
-            if target.exists():
-                self.verify_blob(handle)
-            else:
-                os.replace(name, target)
-                _sync_directory(directory)
+            with self._publication():
+                if target.exists():
+                    self.verify_blob(handle)
+                else:
+                    os.replace(name, target)
+                    _sync_directory(directory)
             return handle
         finally:
             if os.path.exists(name):

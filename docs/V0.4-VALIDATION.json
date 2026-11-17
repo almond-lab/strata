@@ -6,7 +6,8 @@
     "passed": 671,
     "skipped": 5,
     "failed": 0,
-    "seconds": 87.61
+    "seconds": 87.61,
+    "scope": "Complete local suite before the final CI-discovered artifact-publication race repair; final full CI rerun is required before release"
   },
   "namespace_enabled_suite": {
     "command": "STRATA_REAL_SANDBOX=1 .venv/bin/python -m pytest -q tests/test_v04_experiments.py tests/test_v04_policy_integration.py tests/test_v04_supervision.py tests/test_workflow_cli_v04.py",
@@ -64,7 +65,7 @@
     "restructure.py": "f31e1dc3a3ace417c076356a26ac40ac3d257502555f27a4e03b3e87cfd58fef",
     "sandbox.py": "9f43de8683e1eddf03eef4c0631417fa1c3cf9cc5ef14217b7a5c4b06db6b593",
     "semantic.py": "19087bffac249c87b58899f82441026b598cb87fe950958c6e86f176d876130d",
-    "store.py": "65f1ee49343181f64be53fa2a2c6bc2e466a18bbb439d89affe34b3853741718",
+    "store.py": "1a54f0ac724dbef1a9546351ffef0067d43a4296d4ba09729d105fd5e7f96e38",
     "streaming.py": "a8c088787e28e3e80a21c4da375a5cc39f7888c0ac63d5f97f160061337bfc98",
     "supervision.py": "ae18e406adaa42a6bbae3a7d83b27ac77bf4a8a79be0482e563cb6f58b6f8e9e",
     "tensor.py": "6833d1b939cc9d07109d8c6caabd2c3344e7bf1e10f2708d025c3e31b1e9ec17",
@@ -98,5 +99,12 @@
     "no timed human onboarding study or production optimization speedup claim"
   ],
   "competition_gain_claimed": false,
-  "external_submission": false
+  "external_submission": false,
+  "publication_repair": {
+    "problem": "Concurrent publishers could replace an existing immutable object during verification",
+    "fix": "Serialize publication, never replace a published object; byte and streaming APIs share the same lock",
+    "targeted_checks_passed": 68,
+    "namespace_dependent_checks_skipped": 3,
+    "regression": "12 mixed byte/file publishers with concurrent verifier; exactly one publication and stable inode/ctime"
+  }
 }
