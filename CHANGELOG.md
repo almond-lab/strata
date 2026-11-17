@@ -1,5 +1,44 @@
 # Change log
 
+## 0.4.0 — 2026-11-17
+
+Adds a runnable experiment workflow for existing numeric, circuit-generator and
+data-processing scripts. JSON/TOML manifests replace handwritten adapters for
+command invocation, declared outputs, structured metrics and independent checks.
+See [the first-run guide](docs/TEN-MINUTES.md) and
+[workflow documentation](docs/V0.4-WORKFLOW.md).
+
+- Bounded sweeps with explicit seeds/replicates, transactional experiment identity,
+  owned attempts, cooperative host reservations and durable completion events.
+- Separate execution, artifact validation and independent acceptance; verified
+  objective comparisons use verifier-bound resources and frozen constants.
+- Pinned staged inputs, runtime/environment and readers; streaming artifact
+  retention; checked stage lineage and hash-bound checkpoints on resume.
+- Owned cancellation and conservative recovery, bounded logs and honest signal
+  diagnostics; unsupported hard aggregate quotas fail before launch.
+- Calibrated cheap gates with disjoint held-out evidence and deterministic full
+  audits. A discovered false negative suspends pruning until recalibration.
+- Experimental live-run continuation policies, validated against whole measured
+  trajectories including late wins. Advisory by default; enabled pauses retain
+  checkpoints, original budgets and explicit override receipts.
+- Reproducible reports and agent packets connecting evidence, hypotheses,
+  decisive experiments and results; compatible transfer prompts reuse the
+  numeric study. The updated agent skill explains the complete loop.
+
+Reference fixtures cover numeric fitting, native circuit generation and a
+non-contest data task. Their verifiers are reference implementations, not official
+competition scorers. The backend is single-host Linux with mandatory offline
+bubblewrap; no cluster service or automatic external submission is installed.
+Historical circuit-discovery milestones remain open, and no contest gain is
+claimed by this workflow release.
+
+Validation: **671 tests passed**, with five namespace-dependent default skips
+covered in the separate selected run (51 tests passed with real sandbox mode
+enabled). The twenty-setting reference benchmark produced identical outcomes,
+6.27 s sequential versus 4.13 s with two workers. See
+[the validation receipt](docs/V0.4-VALIDATION.json) and
+[benchmark scope](docs/V0.4-BENCHMARK.md).
+
 ## 0.3.1 — 2026-11-17
 
 Fixes thirteen v0.3 reports #36–47 and #51: clean-reset consistency, bounded

@@ -18,6 +18,11 @@ from .restructure import restructure_file, ConstructorRegistry
 from .numeric import NumericStudy, EvidenceValue, ResourceReceipt, error_budget, design_space, break_even_scale
 from .numeric_candidates import NumericCandidate, NumericScorer, NumericStage, NumericPipeline
 from .numeric_jobs import NumericJob, score_bets, certify_numeric_bet
+from .experiment_board import ExperimentBoard
+from .experiments import (load_manifest, create_experiment, run_experiment,
+                          experiment_status, create_sweep, run_sweep, sweep_status)
+from .experiment_policy import ScreeningPolicy, ContinuationPolicy
+from .experiment_reports import experiment_report, agent_packet, record_agent_decision
 
 
 def open(path='strata.toml', adapters=None):

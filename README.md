@@ -1,6 +1,8 @@
 # Strata
 
-**Contract-driven circuit restructuring on kickmix.** Strata 0.3 recovers bounded
+**Contract-driven circuit restructuring on kickmix.** Strata 0.4 adds an experiment
+workflow for existing scripts, sweeps, shared job ownership and structured agent
+feedback. Its circuit layer recovers bounded
 semantic functions and effects, constructs candidates through generic mechanisms,
 and retains checked alternatives and reusable transformations. The connected agent
 uses its evidence to propose further structural changes. Automatic understanding of a
@@ -15,7 +17,9 @@ unmet research milestones. See [v0.3.1 fixes](docs/V0.3.1-FIXES.md),
 
 ## Documentation
 
-- [v0.4 plan](docs/V0.4-PLAN.md): proposed execution workflow for existing scripts, bounded sweeps, a shared experiment board and checked artifacts; not shipped v0.4 functionality.
+- [Useful in ten minutes](docs/TEN-MINUTES.md): wrap an existing script, run a sweep and hand the results to your agent, without writing an adapter.
+- [v0.4 experiment workflow](docs/V0.4-WORKFLOW.md): checkpoints, owned cancellation, verified artifacts, calibrated screening, continuation policies and the research loop.
+- [v0.4 design rationale](docs/V0.4-PLAN.md): the time breakdown, delivery priorities and acceptance questions behind the experiment workflow.
 - [v0.3 workflow and examples](docs/V0.3-GUIDE.md): the Strata–agent loop, construction search, finite domains and bounded scans.
 - [Measured lookups](docs/MEASURED-LOOKUPS.md), [kernel recovery](docs/KERNEL-RECOVERY.md), and [seeded tensor search](docs/TENSOR-SEARCH.md): clean resets, HMR-preserving table construction, paid skeletons and real-size decomposition seeds.
 - [v0.3 research limits](docs/V0.3-RESEARCH-LIMITS.md): verified capabilities versus remaining research.
@@ -51,6 +55,22 @@ analysis, including affine maps, bilinear accumulators and materialization
 removal. Unsupported semantics stay opaque. `discover` supplies evidence to the
 connected agent, which follows the skill to originate hypotheses and construct
 candidates. A standalone CLI call does not invoke an AI provider.
+
+## What 0.4 adds
+
+- Wrap existing scripts without a task adapter; retain declared inputs, outputs,
+  settings, metrics, logs and independent verification receipts.
+- Run bounded sweeps with explicit seeds, shared resource claims, event cursors,
+  owned cancellation and checkpoint/stage-lineage resume.
+- Use calibrated cheap tests and held-out continuation policies to prioritize
+  compute, preserving risk labels, audited misses and resumable checkpoints.
+- Give the connected agent a retained research packet and record its next
+  decisive experiment; compare only compatible independently verified costs.
+
+The execution backend is single-host Linux with offline bubblewrap and cooperative
+aggregate reservations. Hard aggregate quotas and a remote cluster scheduler are
+not implemented. A verified fixture workflow does not establish a new contest
+optimization or completion of the open circuit-lifting research milestones.
 
 ## What 0.3 adds
 

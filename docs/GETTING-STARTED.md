@@ -1,4 +1,8 @@
-# Getting started with Strata 0.2
+# Getting started with Strata
+
+For existing fit, rounding, generator or simulation scripts, start with the
+[v0.4 ten-minute workflow](TEN-MINUTES.md). The circuit-file workflow below remains
+available alongside it.
 
 Start with a circuit file. Strata produces bounded semantic evidence, profiles
 and candidate feedback; a connected agent uses those facts to propose changes.

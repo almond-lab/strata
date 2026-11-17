@@ -35,6 +35,8 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description='Strata contract restructuring and evidence')
     parser.add_argument('--project', default='strata.toml')
     sub = parser.add_subparsers(dest='cmd', required=True)
+    from .experiment_cli import add_parsers, COMMANDS as EXPERIMENT_COMMANDS
+    add_parsers(sub)
     p = sub.add_parser('report');p.add_argument('--store', required=True);p.add_argument('--handle');p.add_argument('--format', choices=('json', 'markdown'), default='json')
     p = sub.add_parser('memory-import');p.add_argument('input');p.add_argument('--store', required=True)
     p = sub.add_parser('memory-status');p.add_argument('--store', required=True);p.add_argument('--contract');p.add_argument('--scale')
@@ -104,6 +106,9 @@ def main(argv=None):
         if name=='park':q.add_argument('--reason',required=True);q.add_argument('--reopen',required=True)
     args = parser.parse_args(argv)
     try:
+        if args.cmd in EXPERIMENT_COMMANDS:
+            from .experiment_cli import execute
+            return execute(args)
         if args.cmd in {'numeric-budget','numeric-forecast','numeric-floor','numeric-bets'}:
             from .store import Store
             source=Path(args.input).resolve();destination=Path(args.out).resolve()

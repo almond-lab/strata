@@ -1,6 +1,6 @@
 ---
 name: strata-research
-description: Use Strata to understand a supplied circuit, originate structural optimization hypotheses from its profiles and inferred contracts, build candidates, test them, and iterate. Applies to circuit files and Strata projects; do not wait for the user to supply each idea.
+description: Use Strata to understand circuits and numeric pipelines, originate structural hypotheses, run bounded experiments and sweeps, learn from retained evidence, and iterate. Applies to circuit files, existing scripts and Strata projects; do not wait for the user to supply each idea.
 ---
 
 # Strata research
@@ -60,6 +60,33 @@ skill was copied out of the checkout, resolve these paths in that checkout.
   attach to their contracts and methods, not an entire research family.
 
 ## Numeric-first projects
+
+For an existing fit, round, build or simulation script, start with the checkout's
+`docs/TEN-MINUTES.md` and `docs/V0.4-WORKFLOW.md`. Wrap the existing command and
+declare its real inputs, outputs, metrics and independent verifier. A handwritten
+Python adapter is not required. Do not replace a working pipeline just to make
+it fit Strata's APIs.
+
+Use one shared Store and experiment board for participating agents. Read the
+latest `agent-packet` and completion-event cursor before proposing another run.
+Originate a distinct hypothesis, identify the decisive experiment, and record
+the packet-to-decision-to-experiment link with its budget and reopening condition.
+Use declared sweeps for settings/replicates instead of manually launching each
+command. Claim resources through the board; cancel only by the owned job ID.
+Expired leases are not permission to kill or duplicate work.
+
+Keep execution, artifact validation and independent acceptance separate. Use
+verifier-bound resources for verified cost comparisons. Preserve the safe
+candidate when a proxy, forecast or worker-reported metric improves. Calibrated
+cheap gates must audit rejections; continuation policies require held-out whole
+trajectories, including late wins. Defaults are advisory. A policy pause retains
+the checkpoint and charged budget; an override is recorded, not a fresh budget.
+Never convert a heuristic failure into a permanent structural impossibility.
+
+After each experiment, generate a new packet and revise the next hypothesis
+from the actual outcome. Include compatible untried transfers using explicit
+shape, units, parameter meanings and dependency contracts. Missing measurements
+remain unknown; a successful numeric fixture is not a competition improvement.
 
 When the dominant work is fitting, quantization or selecting table shapes, start
 from the numeric artifact and its external metric rather than from emitted gates.

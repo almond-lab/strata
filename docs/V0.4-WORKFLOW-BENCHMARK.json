@@ -1,0 +1,75 @@
+{
+  "version": 1,
+  "python": "3.14.8",
+  "platform": "Linux-7.3.0-1003-gcp-x86_64-with-glibc2.44",
+  "settings": 20,
+  "workers": 2,
+  "actual_offline_sandbox": true,
+  "sequential_seconds": 6.270877501927316,
+  "declared_sweep_seconds": 4.1318791611120105,
+  "identical_outcomes": true,
+  "accepted": 18,
+  "rejected": 2,
+  "other_statuses": [],
+  "resumed_seconds": 0.8833790600765496,
+  "accepted_results_reused": 18,
+  "report_packet_seconds": 0.14560766308568418,
+  "report": "9697539b981e3cc40c609fa0e1e8cc6f5f2bc09921636876151b89749947b8c4",
+  "packet": "e54f318086b16ce4c17e9e4374a7c9824c4157306b274136b723e0e719251494",
+  "genericity_fixtures": [
+    {
+      "manifest": "circuit.json",
+      "seconds": 0.44869389897212386,
+      "experiment": "25ea90397d82515f680a6d255fc9846cc5972ab19fa56d33a8c578964c42973c",
+      "result": "ffb312add3c74dafedf0982c0dca319e3d9a8c305e0b8467ab9ce2dcec64f99f",
+      "status": "accepted_by_verifier",
+      "verified_cost": {
+        "value": 9.0,
+        "expression": "ceil(gates / 4) * 4 + wires",
+        "unit": "reference_units",
+        "evidence_kind": "verified",
+        "inputs": {
+          "wires": 5,
+          "gates": 4
+        },
+        "resource_selectors": {
+          "gates": "resources.gates",
+          "wires": "resources.wires"
+        },
+        "verifier_identity": "a7635a6587bca64d6d3c77d1e3ab7d33af73ac50124f486bcb0571a1c34e1f7f",
+        "verification": "independent_verifier_resources"
+      }
+    },
+    {
+      "manifest": "words.json",
+      "seconds": 0.2990533069241792,
+      "experiment": "3240326a0c4fa9a9a6c71421c14e9e0456815cf7e117d6efdbbb51ba50d4e2bf",
+      "result": "e721e6e5e58897153cc1cf91a8438ab03f27b774534671b9b512a7a78aa3e567",
+      "status": "accepted_by_verifier",
+      "verified_cost": {
+        "value": 30.0,
+        "expression": "tokens + vocabulary",
+        "unit": "reference_operations",
+        "evidence_kind": "verified",
+        "inputs": {
+          "tokens": 16,
+          "vocabulary": 14
+        },
+        "resource_selectors": {
+          "tokens": "resources.tokens",
+          "vocabulary": "resources.vocabulary"
+        },
+        "verifier_identity": "969f14bdfad427c0d5e31e1b2191221c46ada721d172cc07b5ab8a747666eecc",
+        "verification": "independent_verifier_resources"
+      }
+    }
+  ],
+  "controller_calls": {
+    "sequential_runs": 20,
+    "declared_sweep_create_and_run": 2,
+    "evidence": "counted orchestration calls, not measured human interventions"
+  },
+  "scope": "Small reference pipelines. This measures launch/retention overhead and bounded concurrency, not human time saved, full circuit throughput, or production optimization gain.",
+  "validation_load": "Final frozen sources; validation subprocesses completed; shared host without exclusive CPU reservation",
+  "onboarding_scope": "Installed environment; no timed human onboarding study"
+}

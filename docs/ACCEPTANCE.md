@@ -1,8 +1,9 @@
-# Acceptance ledger — v0.3
+# Acceptance ledger — v0.4
 
 Implemented APIs and passing fixtures do not establish historical competition
 acceptance. This ledger records the distinction; detailed issue-by-issue scope
-is in [V0.3-ISSUES.md](V0.3-ISSUES.md). The product specification is unchanged.
+is in [V0.3-ISSUES.md](V0.3-ISSUES.md) and the
+[v0.4 workflow](V0.4-WORKFLOW.md). The product specification is unchanged.
 
 | Area | State | Evidence and limits |
 |---|---|---|
@@ -16,6 +17,15 @@ is in [V0.3-ISSUES.md](V0.3-ISSUES.md). The product specification is unchanged.
 | Numeric diagnostics and proposals | Implemented scoped tools | Error ledgers, exact caller shape prices, measured sibling-setting transfer and untested combinations; model estimates remain labelled |
 | Numeric convergence and floors | Implemented bounded models | Independent-run trend bootstrap with uncertainty, exact finite rational quadratic minima with continuous compensation; no global scientific floor or calibrated future-pass guarantee |
 | Long numeric jobs and bets | Implemented local orchestration | Pinned offline workers, checkpoints, reserved budgets, observed stop/readiness rules, safe-portfolio accounting and full-verification promotion; no cluster broker or autonomous external submission |
+| Existing script wrapping | Implemented manifests | JSON/TOML, argv-only commands, frozen dependencies/environment, structured output readers and independent verifier receipts; no handwritten adapter for the reference pipelines |
+| Bounded sweeps | Implemented single-host coordinator | Cardinality checks, explicit seeds/replicates, transactional identity, owned attempts and retained budgets; host reservations are cooperative |
+| Shared experiment board | Implemented local ownership | Atomic claims, event cursors, cancellation requests and conservative reconciliation; no remote cluster daemon or hard aggregate cgroup backend |
+| Stage/checkpoint resume | Implemented scoped protocol | Hash-bound checkpoints, stage input lineage, explicit resume command and original charged budgets; scripts without checkpoints cannot resume mid-stage |
+| Cheap-gate screening | Implemented empirical policy | Identity-bound held-out calibration, binomial risk bound and deterministic full audits; proxies remain model evidence |
+| Live continuation decisions | Implemented experimental model | Measured prefix neighbors and held-out trajectory replay including late wins; advisory default, opt-in checkpoint pause, no impossibility or success proof |
+| Agent experiment feedback | Implemented retained loop | Evidence packet → agent hypothesis/decisive experiment → owned run → updated packet, with compatible transfer contracts; no autonomous remote AI invocation |
+| Numeric/circuit/non-contest starters | Implemented reference fixtures | Separate reference verifiers and declared formulas; official competition verifiers remain explicit user-supplied plugin commands |
+| Experiment workflow speed | Fixture benchmark only | Measures sequential/sweep overhead and outcome agreement; human onboarding time and production research speedup are not established |
 | External callbacks | Implemented trusted extension | Pinned sources/dependencies and typed scoped receipts; raw success dictionaries refused |
 | Width accounting | Implemented | `Q` is emitted width, `Q_total` host width, bundle component widths/caps checked |
 | Promised-input lab | Implemented finite domains | Explicit canonical domain hash bound to promise, artifact and scale; all-input contracts cannot be weakened |
@@ -89,6 +99,10 @@ The remaining R6/#19 milestone requires those real bindings and a subsequent
 base-change receipt; fixture tests of apply/reopen do not replace it.
 
 ## Existing receipts
+
+The v0.4 validation and workflow benchmark receipts separately cover software
+regressions, real offline execution and small reference workload timings. They
+do not change the historical circuit-discovery milestones above.
 
 v0.3 release checks and measured benchmarks are recorded in
 `V0.3-VALIDATION.json`, `V0.3-STREAMING-BENCHMARK.json`, and the v0.3 issue map.

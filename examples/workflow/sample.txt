@@ -1,0 +1,2 @@
+Research needs reproducible experiments. Experiments need evidence.
+Useful evidence includes failures, measurements, and independently checked results.

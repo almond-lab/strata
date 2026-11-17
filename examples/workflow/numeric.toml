@@ -1,0 +1,76 @@
+version = 1
+name = "linear-fit-reference"
+contract = "fit y=2*x+1; independently measured MSE below 0.1"
+argv = ["python3", "{dependency:fit}", "--data", "{input:data}", "--steps", "{setting:steps}", "--seed", "{seed}"]
+max_attempts = 3
+max_wall_seconds = 30
+
+[settings]
+steps = 20
+
+[dependencies]
+fit = "numeric_fit.py"
+
+[inputs]
+data = "data.csv"
+
+[resources]
+threads = 1
+memory_bytes = 134217728
+storage_bytes = 1048576
+
+[limits]
+timeout = 5
+memory_bytes = 134217728
+max_file_bytes = 1048576
+
+[[outputs]]
+name = "fit"
+path = "fit.json"
+type = "json"
+[outputs.schema]
+type = "object"
+required = ["slope", "intercept", "mse", "predictions", "points"]
+[outputs.schema.properties.mse]
+type = "number"
+minimum = 0
+
+[[outputs]]
+name = "curve"
+path = "curve.csv"
+type = "csv"
+
+[checkpoint]
+path = "checkpoint.json"
+type = "json"
+[checkpoint.schema]
+type = "object"
+required = ["slope", "intercept"]
+
+[metrics.mse]
+output = "curve"
+selector = "last.mse"
+unit = "squared_response"
+evidence_kind = "measured"
+
+[metrics.points]
+output = "fit"
+selector = "points"
+unit = "observations"
+evidence_kind = "measured"
+
+[verifier]
+version = "workflow-reference/1"
+source = "examples/workflow/verify.py: independent regression residual calculation"
+argv = ["python3", "{dependency:verify}", "fit", "{artifact:fit}", "--input", "{input:data}"]
+[verifier.dependencies]
+verify = "verify.py"
+[verifier.metrics]
+mse = "resources.mse"
+points = "resources.points"
+
+[cost]
+expression = "ceil(points / 4) * steps"
+unit = "vector_batches"
+[cost.resources]
+points = "resources.points"
