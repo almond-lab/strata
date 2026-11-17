@@ -21,7 +21,7 @@ from .cost import Formula
 from .frontends import load_circuit
 from .kickmix import Kickmix
 from .model import StrataError, digest
-from .semantic import analyze_window, equivalent_windows, semantic_function
+from .semantic import analyze_window, analyze_complete, equivalent_windows, semantic_function
 from .streaming import canonical_kernel, file_hash
 
 
@@ -44,6 +44,8 @@ class ConstructorRegistry:
 
 
 def _phase(circuit, context):
+    if context['semantics']['status']=='exact_factored':
+        return dict(status='not_applicable',reason='exact factored boundary recovered; phase constructor requires explicit ANF')
     from .inference import eliminate_clean_phase_workspace
     return eliminate_clean_phase_workspace(circuit, clean_inputs=context['clean_inputs'],
         drop_clean=True, max_operations=context['max_operations'],
@@ -55,7 +57,8 @@ def _measured_lookup(circuit, context):
     from .lookup import resynthesize_measured_lookup
     return resynthesize_measured_lookup(circuit,clean_inputs=context['clean_inputs'],
         max_operations=context['max_operations'],max_variables=context['max_variables'],
-        max_terms=context['max_terms'],max_product_terms=context.get('max_product_terms',65536))
+        max_terms=context['max_terms'],max_product_terms=context.get('max_product_terms',65536),
+        boundary_table=context.get('lookup_table'))
 
 
 def _boundary_metadata(circuit, wire=None, name='strata_boundary'):
@@ -84,7 +87,9 @@ def _direct_consumer(circuit, context):
     from .file_optimizer import _resynthesize
     sem = context['semantics']
     if sem['status'] != 'exact':
-        return dict(status='unknown', reason='exact complete boundary unavailable')
+        return dict(status='not_applicable' if sem['status']=='exact_factored' else 'unknown',
+                    reason='exact factored boundary recovered; direct consumer requires ANF and matching measurement provenance'
+                    if sem['status']=='exact_factored' else 'exact complete boundary unavailable')
     emitted, reason = _resynthesize(sem, max_operations=context['max_operations'])
     if emitted is None:
         return dict(status='unknown', reason=reason)
@@ -284,12 +289,19 @@ def restructure_file(path, out, *, clean_inputs=(), cost='Q*(toffoli+t/4)',
         (root/f'{key}.kmx').write_text(text)
         return dict(id=key,path=str(root/f'{key}.kmx'),resources=resources,cost=formula(resources),parent=parent,mechanism=mechanism)
     baseline=state(circuit,None,'supplied_baseline');states=[baseline];frontier=[(circuit,baseline)];seen={baseline['id']};attempts=[]
-    started=time.monotonic()
+    started=time.monotonic();boundary_receipts={};lookup_tables={}
     for generation in range(rounds):
         following=[]
         for parent,parent_state in frontier:
-            semantics=analyze_window(str(parent).splitlines(),clean_inputs=clean,**limits)
+            semantics=analyze_complete(str(parent).splitlines(),clean_inputs=clean,**limits)
+            boundary_receipts[parent_state['id']]=semantics
             context=dict(semantics=semantics,clean_inputs=clean,**limits)
+            if semantics['status']=='exact_factored' and semantics.get('phase_zero'):
+                from .factored_semantic import lift_lookup_table
+                table=lift_lookup_table(parent,clean_inputs=clean,max_operations=max_operations,
+                    max_variables=max_variables,max_nodes=max_terms,max_apply_steps=32*max_product_terms)
+                context['lookup_table']=table
+                lookup_tables[parent_state['id']]=table
             for constructor in constructors:
                 if len(attempts)>=max_candidates:break
                 attempt=dict(round=generation,parent=parent_state['id'],mechanism=constructor.name)
@@ -328,6 +340,7 @@ def restructure_file(path, out, *, clean_inputs=(), cost='Q*(toffoli+t/4)',
     result=dict(schema_version='3',status='verified_improvement' if best['cost']<baseline['cost'] else 'no_gain',
                 source=str(source),source_sha256=file_hash(source),baseline=baseline,best=best,
                 cost_delta=best['cost']-baseline['cost'],states=states,pareto_frontier=_pareto(states),attempts=attempts,
+                boundary_receipts=boundary_receipts,lookup_tables=lookup_tables,
                 archive=str(memory_path),learned_template_count=len(memory['templates']),seconds=time.monotonic()-started,
                 contract=dict(clean_inputs=clean,public_wires='every other physical wire, fixed indices',outputs='all physical outputs and exact sign equal to supplied baseline; only proved restored clean wires may leave the layout',
                               measurement_scope='branch-preserving equivalence only; no changed instrument proof'),
@@ -344,7 +357,7 @@ def restructure_file(path, out, *, clean_inputs=(), cost='Q*(toffoli+t/4)',
         result['parent_sha256']=baseline['id']
         result['artifacts']={s['id']:store.blob(Path(s['path']).read_bytes()) for s in states}
         result['code']={name:store.blob((Path(__file__).parent/name).read_bytes())
-                        for name in ('restructure.py','semantic.py','factored.py','inference.py','tensor.py','candidate_search.py','domains.py','lookup.py')}
+                        for name in ('restructure.py','semantic.py','factored.py','factored_semantic.py','inference.py','tensor.py','candidate_search.py','domains.py','lookup.py')}
         result['mechanism_archive_blob']=store.blob(memory_path.read_bytes())
         result['record']=store.put('restructure_run',result)
     finally:

@@ -1,0 +1,103 @@
+{
+  "version": "0.4.1",
+  "date": "2026-11-17",
+  "issues": [
+    52,
+    53,
+    54,
+    55,
+    56,
+    57,
+    58,
+    59
+  ],
+  "base_commit": "e4ba9878d855831b5914c79024ca351bf31d9d44",
+  "full_suite": {
+    "command": ".venv/bin/python -m pytest -q",
+    "passed": 736,
+    "skipped": 6,
+    "seconds": 122.27,
+    "log_sha256": "4a2b3a27954497dc47eba3d15656535fe557537d10fac3bcbf0a67e5295743fe"
+  },
+  "offline_sandboxes": {
+    "workflow_checks": 6,
+    "workflow_seconds": 14.37,
+    "owned_process_checks": 2,
+    "owned_process_seconds": 1.38,
+    "default_skips_covered": 6,
+    "scope": "actual offline Bubblewrap; staging/import/callback, cross-manifest comparisons, three reference workloads, config-only complete pipeline, owned cancellation and supervisor-death recovery",
+    "final_rejection_staging_comparison_checks": 4,
+    "final_recheck_seconds": 5.67
+  },
+  "installed_wheel": {
+    "version": "0.4.1",
+    "outside_checkout": true,
+    "source_modules_byte_equal": 54,
+    "offline_circuit_experiment": "accepted_by_verifier",
+    "agent_packet": "generated",
+    "cli_help": "passed",
+    "sha256": "2877e8c52c7dc29cc0825fd0429a8294aac183138ebf0c7dfd670076cf5a38e0"
+  },
+  "historical_loader": {
+    "source_sha256": "06a64018000361fdf1e9cb672131a8766ef8b5f3d366ba0e2ae8ad13a8c41944",
+    "seconds": 64.06999386101961,
+    "status": "no_gain",
+    "resources": {
+      "Q": 128,
+      "toffoli": 283,
+      "t": 0,
+      "rotations": 0,
+      "instructions": 42153,
+      "accounting": "static_emitted",
+      "reaction_depth": 14
+    },
+    "boundary_status": "exact_factored",
+    "lookup_status": "exact",
+    "attempts": [
+      {
+        "mechanism": "observable_phase_elimination",
+        "status": "not_constructed",
+        "reason": "exact factored boundary recovered; phase constructor requires explicit ANF"
+      },
+      {
+        "mechanism": "direct_consumer_synthesis",
+        "status": "not_constructed",
+        "reason": "exact complete boundary unavailable"
+      },
+      {
+        "mechanism": "bilinear_tensor_decomposition",
+        "status": "not_constructed",
+        "reason": "requires exact phase-free bilinear accumulator"
+      },
+      {
+        "mechanism": "guided_bilinear_candidate_search",
+        "status": "not_constructed",
+        "reason": "no exact phase-free bilinear boundary"
+      },
+      {
+        "mechanism": "measured_lookup_resynthesis",
+        "status": "not_constructed",
+        "reason": "no profitable verified measured-lookup construction within the supplied budgets"
+      }
+    ]
+  },
+  "storage_regression": {
+    "attempts": 3,
+    "large_payload_copies_with_keep": 10,
+    "large_payload_copies_after_compact": 1,
+    "resume": "reused immutable artifact",
+    "scope": "logical duplicate count on a small binary fixture, not a physical disk performance benchmark"
+  },
+  "agent_skill_validation": "passed",
+  "limitations": [
+    "Finite committed draw aggregates are not population expectations",
+    "Lookup proof is outcome-parametric basis trajectory semantics with explicit clean workspace",
+    "Other loaders and their reachable domains are not covered by the historical k=0 receipt",
+    "No profitable rewrite or host-verifier acceptance claimed for historical loader construction",
+    "Reflinks depend on filesystem support; streaming staging copies can still cause temporary disk peaks",
+    "Existing historical research milestones remain open"
+  ],
+  "competition_gain_claimed": false,
+  "external_submission": false,
+  "live_research_regression": "Official rejection with absent success-only resources remains rejected_by_verifier, without cost extraction or lost reason."
+}

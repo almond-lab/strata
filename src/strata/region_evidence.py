@@ -12,7 +12,7 @@ from .model import StrataError, digest
 from .store import Store
 
 
-CODE_FILES = ('semantic.py', 'factored.py', 'streaming.py', 'frontends.py', 'kickmix.py', 'model.py', 'file_workflow.py', 'region_evidence.py')
+CODE_FILES = ('semantic.py', 'factored.py', 'factored_semantic.py', 'streaming.py', 'frontends.py', 'kickmix.py', 'model.py', 'file_workflow.py', 'region_evidence.py')
 LIMIT_KEYS = {'max_window', 'max_variables', 'max_terms', 'max_product_terms', 'max_ops', 'clean_inputs'}
 SCOPE = dict(inputs='all arbitrary boundary bit assignments', clean_input_assumptions=[],
              phase='exact sign phase (-1)^Boolean_polynomial',

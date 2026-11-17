@@ -12,6 +12,7 @@ from __future__ import annotations
 from collections import Counter
 from io import StringIO
 from fractions import Fraction
+from itertools import islice
 from .factored import BooleanDAG
 from os import PathLike
 import re
@@ -109,12 +110,15 @@ def _parse(line):
 
 
 def _bipartition(polynomials):
-    """Find a genuine disjoint factor partition of homogeneous quadratic terms."""
-    graph = {}
+    """Partition quadratic factors; retain affine-only inputs in the left word."""
+    graph, affine = {}, set()
     for value in polynomials:
         for term in value:
-            if len(term) != 2:
+            if len(term) > 2:
                 return None
+            if len(term) < 2:
+                affine.update(term)
+                continue
             a, b = sorted(term)
             graph.setdefault(a, set()).add(b)
             graph.setdefault(b, set()).add(a)
@@ -132,7 +136,11 @@ def _bipartition(polynomials):
                 if b not in colors:
                     colors[b] = 1 - colors[a]
                     stack.append(b)
-    return [[q for q in sorted(colors) if colors[q] == c] for c in (0, 1)] if graph else None
+    if not graph:
+        return None
+    for q in affine:
+        colors.setdefault(q, 0)
+    return [[q for q in sorted(colors) if colors[q] == c] for c in (0, 1)]
 
 
 def analyze_window(lines, *, max_variables=32, max_terms=4096,
@@ -161,6 +169,7 @@ def analyze_window(lines, *, max_variables=32, max_terms=4096,
         if item['status'] == 'metadata':
             metadata.append(index)
             continue
+        item['instruction'] = line.rstrip()
         parsed.append((index, item))
         wires.update(item['wires'])
         bits.update(item['bits'])
@@ -180,6 +189,7 @@ def analyze_window(lines, *, max_variables=32, max_terms=4096,
     state = dict(initial)
     classical = {bit: variable(bit) for bit in sorted(bits)}
     phase, products, stack = zero, 0, []
+    product_details = None
     writes = {q: [] for q in wires}
     consumed = {q: [] for q in wires}
     measurements, resets, phase_events = [], [], []
@@ -189,13 +199,16 @@ def analyze_window(lines, *, max_variables=32, max_terms=4096,
             raise _BoundExceeded('term_budget')
 
     def mul(a, b):
-        nonlocal products
+        nonlocal products, product_details
         if not a[0] or not b[0]:
             return zero
         if a[0] == ONE:
             return b
         if b[0] == ONE:
             return a
+        product_details = dict(left_terms=len(a[0]), right_terms=len(b[0]),
+                               requested_products=len(a[0]) * len(b[0]),
+                               products_before=products)
         products += len(a[0]) * len(b[0])
         if products > max_product_terms:
             raise _BoundExceeded('product_budget')
@@ -212,9 +225,11 @@ def analyze_window(lines, *, max_variables=32, max_terms=4096,
         result = frozenset(result)
         return result, dag.zero if not result else dag.product(a[1], b[1])
 
+    current_index, current_instruction = None, None
     try:
         check()
         for index, item in parsed:
+            current_index, current_instruction = index, item['instruction']
             op, qs = item['op'], item['wires']
             condition = classical[item['condition']] if item['condition'] else one
             if op == 'PUSH_CONDITION':
@@ -288,6 +303,8 @@ def analyze_window(lines, *, max_variables=32, max_terms=4096,
             check()
     except _BoundExceeded as exc:
         return dict(status='bounded', reason=str(exc), operation_count=len(parsed),
+                    at=current_index, instruction=current_instruction,
+                    product_details=product_details, products_attempted=products,
                     limits=dict(max_terms=max_terms, max_product_terms=max_product_terms))
     if stack:
         return dict(status='opaque', reason='unclosed_condition_scope', depth=len(stack))
@@ -405,6 +422,12 @@ def _evaluate_terms(terms, assignment):
 
 def semantic_function(result):
     """Canonical receipt payload, including every nonquantum effect and promise."""
+    if result['status'] == 'exact_factored':
+        graph = result['factored']
+        return dict(decisions={k:v for k,v in graph.items() if k not in {'allocated_nodes','apply_steps'}},
+                    measurement_events=result['measurement_events'],
+                    clean_input_assumptions=result['clean_input_assumptions'],
+                    semantic_scope=result['semantic_scope'])
     function = dict(outputs=result['outputs'], phase=result['phase'])
     if result.get('nonquantum_variables') or result.get('clean_input_assumptions'):
         function.update(classical_outputs=result.get('classical_outputs', {}),
@@ -422,8 +445,16 @@ def equivalent_windows(original, candidate, **limits):
     does not align reordered or unrelated measurements. Such comparisons return
     unknown instead of making a branch-correspondence claim.
     """
-    before, after = analyze_window(original, **limits), analyze_window(candidate, **limits)
+    cap=limits.get('max_operations',128)+1
+    original, candidate = list(islice(_lines(original),cap)), list(islice(_lines(candidate),cap))
+    before, after = analyze_complete(original, **limits), analyze_complete(candidate, **limits)
     if before['status'] != 'exact' or after['status'] != 'exact':
+        if (all(r['status'] in {'exact','exact_factored'} or r.get('reason') in {'term_budget','product_budget'} for r in (before,after))
+                and any(r['status'] in {'bounded','exact_factored'} for r in (before,after))):
+            from .factored_semantic import equivalent_factored
+            return equivalent_factored(original, candidate, clean_inputs=limits.get('clean_inputs',()),
+                max_operations=limits.get('max_operations',128), max_variables=limits.get('max_variables',32),
+                max_nodes=limits.get('max_terms',4096), max_apply_steps=32*limits.get('max_product_terms',65536))
         return dict(status='unknown', equivalent=None, before=before, after=after,
                     evidence='exact_semantics_unavailable')
     def event_signature(result):
@@ -553,6 +584,7 @@ def lift_regions(circuit, *, max_ops=None, max_window=128, max_variables=32,
         import kickmix as km
         circuit = km.Circuit.from_file(circuit)
     regions, unknown, metadata, pending = [], [], [], []
+    factored_regions=[]
     pending_wires, census = set(), Counter()
     pending_context = False
     overflow = None
@@ -577,6 +609,14 @@ def lift_regions(circuit, *, max_ops=None, max_window=128, max_variables=32,
         contextual = bool(promised) or any(item.get('condition') or item['op'] in {'HMR', 'PUSH_CONDITION', 'POP_CONDITION'}
                          or item['op'].startswith('BIT_') for _, _, item in chunk)
         if result['status'] == 'bounded' and len(chunk) > 1:
+            if boundary_basis != 'semantic_budget_split' and result.get('reason') in {'term_budget','product_budget'}:
+                from .factored_semantic import analyze_factored
+                factored=analyze_factored([line for _,line,_ in chunk],clean_inputs=promised,
+                    max_operations=max_window,max_variables=max_variables,max_nodes=max_terms,
+                    max_apply_steps=32*max_product_terms)
+                factored_regions.append(dict(start=chunk[0][0],stop=chunk[-1][0]+1,semantics=factored,
+                                             anf_obstruction=result,
+                                             scope='additional complete boundary receipt; excluded from ANF region coverage'))
             # Independent local contracts may start at any closed scope. HMR
             # outcomes from earlier windows become arbitrary classical inputs;
             # no cross-window phase cancellation or provenance is claimed.
@@ -731,7 +771,7 @@ def lift_regions(circuit, *, max_ops=None, max_window=128, max_variables=32,
     flush()
     if total > scanned:
         unknown.append(dict(start=scanned, stop=total, status='unscanned', reason='scan_budget'))
-    return dict(version='1', regions=regions, unknown=unknown, metadata=metadata,
+    return dict(version='1', regions=regions, unknown=unknown, metadata=metadata,factored_regions=factored_regions,
                 census=dict(census),
                 coverage=dict(scope='full' if scanned == total else 'prefix',
                               denominator_scope='scanned_operations',
@@ -760,3 +800,20 @@ def lift_regions(circuit, *, max_ops=None, max_window=128, max_variables=32,
                             max_terms=max_terms, max_product_terms=max_product_terms,
                             max_boundary_zero_facts=max_zero_facts,
                             clean_inputs=clean_inputs))
+
+
+def analyze_complete(lines, **limits):
+    """ANF when bounded, otherwise an explicitly typed exact decision receipt."""
+    materialized = list(islice(_lines(lines),limits.get('max_operations',128)+1))
+    anf_limits = dict(limits)
+    anf_limits['max_product_terms'] = min(limits.get('max_product_terms',65536),65536)
+    anf_limits['max_terms'] = min(limits.get('max_terms',4096),65536)
+    result = analyze_window(materialized, **anf_limits)
+    if result['status'] != 'bounded' or result.get('reason') not in {'term_budget','product_budget'}:
+        return result
+    from .factored_semantic import analyze_factored
+    fallback = analyze_factored(materialized, clean_inputs=limits.get('clean_inputs',()),
+        max_operations=limits.get('max_operations',128), max_variables=limits.get('max_variables',32),
+        max_nodes=limits.get('max_terms',4096), max_apply_steps=32*limits.get('max_product_terms',65536))
+    fallback['anf_obstruction'] = result
+    return fallback

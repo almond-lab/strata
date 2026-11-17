@@ -163,6 +163,9 @@ def _outputs(value):
         spec.setdefault('type', 'binary')
         if spec['type'] not in {'json', 'jsonl', 'csv', 'text', 'binary'}:
             raise StrataError('unsupported output type')
+        if 'nonempty' in spec and type(spec['nonempty']) is not bool:
+            raise StrataError('output nonempty must be boolean')
+        spec.setdefault('nonempty', spec['type'] not in {'text', 'jsonl'})
         if 'schema' in spec and not isinstance(spec['schema'], dict):
             raise StrataError('output schema must be a JSON-schema subset object')
         if type(spec.get('max_parse_bytes', 16 * 1024**2)) is not int or spec.get('max_parse_bytes', 16 * 1024**2) <= 0:
@@ -183,6 +186,7 @@ def load_manifest(path):
     if not isinstance(raw, dict) or raw.get('version', 1) != 1:
         raise StrataError('experiment manifest version must be 1')
     spec = json.loads(canonical(raw))
+    spec['contract_explicit'] = 'contract' in raw
     root = (path.parent / spec.get('working_directory', '.')).resolve()
     if not root.is_dir():
         raise StrataError('manifest working_directory must exist')
@@ -306,6 +310,9 @@ def load_manifest(path):
             raise StrataError('verifier memory limit exceeds the declared aggregate memory reservation')
     spec['runtimes'] = runtimes
     spec.setdefault('max_attempts', 3)
+    spec.setdefault('retention', 'compact')
+    if spec['retention'] not in {'compact', 'keep'}:
+        raise StrataError('retention must be compact or keep')
     if type(spec['max_attempts']) is not int or spec['max_attempts'] < 1:
         raise StrataError('max_attempts must be positive')
     spec.setdefault('max_wall_seconds', (sum(stage['limits']['timeout'] for stage in stages) + (verifier['limits']['timeout'] if verifier else 0)) * spec['max_attempts'])
@@ -342,6 +349,8 @@ def load_manifest(path):
                     raise StrataError('full_stage does not produce the declared full_metric')
             if key == 'continuation' and not any(s.get('checkpoint') and metrics[policy['metric']]['output'] in {o['name'] for o in s['outputs']} for s in stages):
                 raise StrataError('continuation policy needs a checkpoint stage producing its measured metric')
+    from .experiment_comparisons import validate_draw_policy
+    validate_draw_policy(spec)
     spec['reader'] = dict(version=READER_VERSION, source_sha256=_hash(__file__))
     spec.setdefault('name', path.stem)
     spec.setdefault('contract', spec['name'])
@@ -383,7 +392,8 @@ def _create_frozen(store, spec, settings, seed, replicate, parent=None, sources_
         raise StrataError('decisive experiment overrides a declared frozen setting')
     if seed is not None and type(seed) is not int or type(replicate) is not int or replicate < 0:
         raise StrataError('seed must be an explicit integer and replicate a nonnegative integer')
-    if seed is None and any('{seed}' in s['argv'] or '{seed}' in s.get('resume_argv', []) for s in spec['stages']):
+    if seed is None and (any('{seed}' in s['argv'] or '{seed}' in s.get('resume_argv', []) for s in spec['stages']) or
+                         '{seed}' in (spec.get('verifier') or {}).get('argv', [])):
         raise StrataError('this manifest requires an explicit seed')
     if parent:
         store.get(parent, 'experiment')
@@ -482,10 +492,18 @@ def _lock(store, handle):
 
 def _stage_sources(store, work, spec, verifier=False):
     result = {'dependency': {}, 'input': {}}
-    sources = {'dependency': {**spec['dependencies'], **((spec.get('verifier') or {}).get('dependencies', {}) if verifier else {})}, 'input': spec['inputs']}
+    if verifier:
+        from .experiment_comparisons import verifier_sources
+        sources = verifier_sources(spec)
+    else:
+        sources = {'dependency': spec['dependencies'], 'input': spec['inputs']}
     for kind, mapping in sources.items():
         for name, item in mapping.items():
-            target = work / '.strata' / kind / name
+            # Keep source names and sibling module layout without collisions
+            # between equally named files from unrelated source directories.
+            source_path = Path(item['path'])
+            target = (work / '.strata' / kind / 'directories' / name if item['directory']
+                      else work / '.strata' / kind / 'files' / digest(str(source_path.parent))[:20] / source_path.name)
             for relative, blob in item['files'].items():
                 destination = target / relative if item['directory'] else target
                 store.copy_blob(blob, destination)
@@ -496,7 +514,11 @@ def _stage_sources(store, work, spec, verifier=False):
 
 
 def _verify_staged(spec, sources, *, verifier=False, artifacts=None):
-    declarations = {'dependency': {**spec['dependencies'], **((spec.get('verifier') or {}).get('dependencies', {}) if verifier else {})}, 'input': spec['inputs']}
+    if verifier:
+        from .experiment_comparisons import verifier_sources
+        declarations = verifier_sources(spec)
+    else:
+        declarations = {'dependency': spec['dependencies'], 'input': spec['inputs']}
     for kind, mapping in declarations.items():
         for name, item in mapping.items():
             if _files(sources[kind][name]) != item['files']:
@@ -659,10 +681,58 @@ def _metrics(spec, decoded):
 def _restore_artifacts(store, work, artifacts):
     restored = {}
     for name, item in artifacts.items():
-        target = work / '.strata' / 'artifacts' / name
+        target = work / '.strata' / 'artifacts' / name / PurePosixPath(item['path']).name
         store.copy_blob(item['sha256'], target)
         restored[name] = str(target)
     return restored
+
+
+def _compact_attempt(store, attempt_dir, experiment, attempt, policy):
+    """Drop only private attempt copies whose identical bytes remain in CAS.
+
+    Never hard-link a writable worker output into the object store. Incomplete,
+    changed and unvalidated outputs stay available for diagnosis.
+    """
+    result = dict(policy=policy, removed_files=0, removed_logical_bytes=0, errors=[])
+    if policy == 'keep':
+        return result
+    candidates = {}
+    for work in attempt_dir.iterdir():
+        if not work.is_dir() or work.is_symlink():
+            continue
+        private = work / '.strata'
+        if private.is_dir() and not private.is_symlink():
+            for path in private.rglob('*'):
+                if path.is_file() and not path.is_symlink():
+                    candidates[path] = None
+    for _, row in _records(store, 'experiment_stage', experiment):
+        if row['attempt'] != attempt:
+            continue
+        work = attempt_dir / f'stage-{row["index"]:04d}'
+        for item in row['artifacts'].values():
+            candidates[work / item['path']] = item['sha256']
+    for _, row in _records(store, 'experiment_checkpoint', experiment):
+        if row['attempt'] == attempt:
+            item = row['artifact']
+            candidates[attempt_dir / f'stage-{row["index"]:04d}' / item['path']] = item['sha256']
+    for path, expected in candidates.items():
+        try:
+            if (not path.is_file() or any(p.is_symlink() for p in [path, *path.parents])
+                    or not path.resolve().is_relative_to(attempt_dir.resolve())):
+                continue
+            actual = _hash(path)
+            if expected is not None and expected != actual:
+                continue
+            if not store._blob_path(actual).is_file():
+                continue
+            store.verify_blob(actual)
+            size = path.stat().st_size
+            path.unlink()
+            result['removed_files'] += 1
+            result['removed_logical_bytes'] += size
+        except (OSError, StrataError) as exc:
+            result['errors'].append(dict(path=str(path.relative_to(attempt_dir)), error=str(exc)))
+    return result
 
 
 def _save_logs(store, receipt):
@@ -882,7 +952,7 @@ def run_experiment(store, handle, owner='local', board=None, *, resume=True, ove
                 input_checkpoint = _checkpoint_identity(checkpoint)
                 checkpoint_path = None
                 if checkpoint:
-                    target = work / '.strata' / 'resume.checkpoint'
+                    target = work / '.strata' / 'checkpoint' / PurePosixPath(checkpoint['artifact']['path']).name
                     store.copy_blob(checkpoint['artifact']['sha256'], target)
                     checkpoint_path = str(target)
                 command = stage.get('resume_argv') if checkpoint and checkpoint['index'] == index and not checkpoint['completed'] else None
@@ -952,7 +1022,9 @@ def run_experiment(store, handle, owner='local', board=None, *, resume=True, ove
                             accepted = _selector(payload, spec['verifier']['accepted_selector'])
                             if type(accepted) is not bool:
                                 raise StrataError('verifier acceptance selector must be a boolean')
-                            verification.update(receipt=payload, identity=digest(spec['verifier']), version=spec['verifier']['version'])
+                            from .experiment_comparisons import IDENTITY_SCHEMA, verifier_identity
+                            verification.update(receipt=payload, identity=verifier_identity(spec, experiment),
+                                identity_schema=IDENTITY_SCHEMA, version=spec['verifier']['version'])
                             status = 'accepted_by_verifier' if accepted else 'rejected_by_verifier'
                             if accepted:
                                 for name, selector in spec['verifier'].get('metrics', {}).items():
@@ -961,7 +1033,7 @@ def run_experiment(store, handle, owner='local', board=None, *, resume=True, ove
                                     if not math.isclose(metrics[name]['value'], measured, rel_tol=1e-12, abs_tol=1e-12):
                                         raise StrataError('worker metric disagrees with the independent verifier')
                                     metrics[name] = dict(metrics[name], value=measured, evidence_kind='verified', source=dict(metrics[name]['source'], verifier_identity=verification['identity'], verifier_selector=selector))
-                if spec.get('cost'):
+                if spec.get('cost') and status in {'accepted_by_verifier', 'artifact_validated', 'execution_finished'}:
                     formula = Formula(spec['cost']['expression'], functions={'ceil': math.ceil, 'floor': math.floor})
                     names = {node.id for node in ast.walk(formula.tree) if isinstance(node, ast.Name)} - set(formula.functions)
                     constants = {k: v for k, v in experiment['settings'].items() if type(v) in (int, float)}
@@ -981,7 +1053,12 @@ def run_experiment(store, handle, owner='local', board=None, *, resume=True, ove
         except (KeyboardInterrupt, SystemExit) as exc:
             status = 'cancelled'
             error = dict(kind=type(exc).__name__, message='coordinator interrupted; completed checkpoints retained')
+        try:
+            retention = _compact_attempt(store, attempt_dir, handle, attempt, spec.get('retention', 'compact'))
+        except (OSError, StrataError) as exc:
+            retention = dict(policy=spec.get('retention', 'compact'), errors=[str(exc)], status='cleanup_incomplete')
         finish = dict(experiment=handle, attempt=attempt, start_record=start_handle, status=status, seconds=time.monotonic() - started, metrics=metrics, artifacts=artifacts, stages=stage_receipts, error=error, verifier=verification, cost=cost, verified_cost=cost if cost and cost['evidence_kind'] == 'verified' and status == 'accepted_by_verifier' else None, checkpoint=checkpoint, policy_decisions=decisions, numeric_analysis='available' if metrics else 'unavailable: no metric selectors declared', finished_at=time.time(), interpretation=(spec.get('decisive') or {}).get('evidence_scope'))
+        finish['retention'] = retention
         try:
             result_handle = store.put('experiment_finish', finish)
         except BaseException:

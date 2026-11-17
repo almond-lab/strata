@@ -197,9 +197,20 @@ def test_unavailable_complete_semantics_never_emit_a_candidate():
 def test_explicit_product_budget_controls_lookup_analysis_and_restructure_checks(tmp_path):
     original=km.Circuit(QUADRATIC)
     limited=resynthesize_measured_lookup(original,clean_inputs=[4],max_product_terms=1)
-    assert limited['status']=='unknown'
-    assert limited['semantics']['reason']=='product_budget'
-    assert limited['semantics']['limits']['max_product_terms']==1
+    # A decision receipt now proves the complete boundary under the separately
+    # bounded fallback. Segment construction still obeys the ANF product limit.
+    assert limited['status']=='not_constructed' and 'candidate' not in limited
+    assert limited['semantics']['status']=='exact_factored'
+    assert limited['semantics']['limits']['max_apply_steps']==32
+    obstruction=limited['semantics']['anf_obstruction']
+    assert obstruction['reason']=='product_budget'
+    assert obstruction['limits']['max_product_terms']==1
+    assert obstruction['instruction']=='CCX q0 q2 q4'
+    assert limited['segments'][0]['status']=='retained'
+    table=limited['full_boundary_table']
+    assert table['status']=='exact' and table['table']==[0,0,0,1,0,1,0,0]
+    assert table['proof']['dirty_target_independence'] and table['proof']['all_measurement_outcomes']
+    assert table['native_replay']['status']=='passed'
     enough=resynthesize_measured_lookup(original,clean_inputs=[4],max_product_terms=32)
     assert enough['status']=='constructed'
     assert enough['check']['equivalent'] is True
@@ -208,8 +219,11 @@ def test_explicit_product_budget_controls_lookup_analysis_and_restructure_checks
     source.write_text(QUADRATIC)
     blocked=restructure_file(source,tmp_path/'limited',clean_inputs=[4],rounds=1,max_product_terms=1)
     lookup=next(row for row in blocked['attempts'] if row['mechanism']=='measured_lookup_resynthesis')
-    assert lookup['construction']['semantics']['reason']=='product_budget'
-    assert lookup['construction']['semantics']['limits']['max_product_terms']==1
+    assert lookup['construction']['status']=='not_constructed' and 'candidate' not in lookup['construction']
+    assert lookup['construction']['semantics']['status']=='exact_factored'
+    assert lookup['construction']['semantics']['anf_obstruction']['reason']=='product_budget'
+    assert lookup['construction']['semantics']['anf_obstruction']['limits']['max_product_terms']==1
+    assert blocked['status']=='no_gain'
     assert blocked['budgets']['max_product_terms']==1
     passed=restructure_file(source,tmp_path/'sufficient',clean_inputs=[4],rounds=1,max_product_terms=32)
     lookup=next(row for row in passed['attempts'] if row['mechanism']=='measured_lookup_resynthesis')
@@ -234,7 +248,14 @@ def test_cli_restructure_exposes_product_budget_for_lookup_and_phase_constructor
                  '--rounds','1','--clean-inputs','2','--max-product-terms','1'])==0
     report=json.loads(capsys.readouterr().out)
     proposal=next(row for row in report['attempts'] if row['mechanism']=='observable_phase_elimination')
-    assert proposal['construction']['reason']=='product_budget'
+    assert proposal['construction']['status']=='not_applicable'
+    assert 'requires explicit ANF' in proposal['construction']['reason']
+    boundary=report['boundary_receipts'][report['baseline']['id']]
+    assert boundary['status']=='exact_factored' and boundary['phase_zero'] is False
+    assert boundary['limits']['max_apply_steps']==32
+    assert boundary['anf_obstruction']['reason']=='product_budget'
+    assert boundary['anf_obstruction']['limits']['max_product_terms']==1
+    assert report['budgets']['max_product_terms']==1
     assert report['status']=='no_gain'
     assert main(['restructure',str(phase),'--out',str(tmp_path/'phase-enough'),
                  '--rounds','1','--clean-inputs','2','--max-product-terms','32'])==0

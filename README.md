@@ -11,7 +11,8 @@ and the historical discovery benchmarks remain incomplete.
 
 The [product specification](docs/SPECIFICATION.md) is preserved verbatim.
 The [acceptance ledger](docs/ACCEPTANCE.md) separates implemented APIs from
-unmet research milestones. See [v0.3.1 fixes](docs/V0.3.1-FIXES.md),
+unmet research milestones. See [v0.4.1 fixes](docs/V0.4.1-FIXES.md),
+[v0.3.1 fixes](docs/V0.3.1-FIXES.md),
 [v0.3 issue coverage](docs/V0.3-ISSUES.md) and
 [release changes](CHANGELOG.md).
 

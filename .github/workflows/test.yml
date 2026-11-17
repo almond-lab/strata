@@ -16,5 +16,5 @@ jobs:
       - name: Installed wheel smoke test
         working-directory: /tmp
         run: |
-          python -c "import strata, importlib.metadata; assert importlib.metadata.version('strata-restructure') == '0.4.0'; from strata import Bundle, ProbabilityPolicy, OperationStream, restructure_file, ConstructorRegistry; from strata.experiments import create_experiment, run_sweep; from strata.experiment_policy import ScreeningPolicy, ContinuationPolicy"
+          python -c "import strata, importlib.metadata; assert importlib.metadata.version('strata-restructure') == '0.4.1'; from strata import Bundle, ProbabilityPolicy, OperationStream, restructure_file, ConstructorRegistry; from strata.experiments import create_experiment, run_sweep; from strata.experiment_policy import ScreeningPolicy, ContinuationPolicy"
           strata --help

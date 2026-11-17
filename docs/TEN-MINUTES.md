@@ -55,6 +55,13 @@ The wrapper defaults to a 64 MiB cooperative temporary-storage reservation and
 workers; they are not hard aggregate host quotas. A request for unsupported hard
 aggregate enforcement fails before launch.
 
+Staging preserves file extensions and declared sibling Python modules. Empty
+text/JSONL logs are valid unless marked `nonempty: true`. Completed attempts
+default to compact retention: verified artifacts remain in the object store,
+and duplicate attempt copies are removed. Set `retention: keep` in the manifest
+to retain those copies. Allow for temporary staging and verifier copies when
+reserving disk space; see [disk retention](V0.4-WORKFLOW.md#disk-retention).
+
 ## Declare the sweep once
 
 The included grid declares twenty settings. Run it with two workers:

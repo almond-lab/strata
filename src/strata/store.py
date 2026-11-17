@@ -2,6 +2,7 @@
 from pathlib import Path
 from contextlib import contextmanager
 import fcntl
+import errno
 import hashlib
 import json
 import sqlite3
@@ -132,14 +133,31 @@ class Store:
         return True
 
     def copy_blob(self, h, destination):
-        """Verify before atomic replacement; never publish a partial copy."""
+        """Verified private copy, using copy-on-write where the filesystem supports it.
+
+        Reflinks share storage but never a writable inode with immutable CAS.
+        Other filesystems use a bounded-memory copy; callers can compact retained
+        staging after completion without depending on reflink support.
+        """
         source = self._blob_path(h)
         target = Path(destination)
         target.parent.mkdir(parents=True, exist_ok=True)
         fd, name = tempfile.mkstemp(dir=target.parent, prefix=f'.{target.name}.')
         try:
             with os.fdopen(fd, 'wb') as output:
-                if _stream_file(source, output) != h:
+                cloned = False
+                try:
+                    with source.open('rb') as original:
+                        fcntl.ioctl(output.fileno(), 0x40049409, original.fileno())  # Linux FICLONE
+                    cloned = True
+                except OSError as exc:
+                    if exc.errno not in {errno.EXDEV, errno.EOPNOTSUPP, errno.ENOTTY, errno.EINVAL, errno.ENOSYS}:
+                        raise
+                if not cloned:
+                    output.seek(0)
+                    output.truncate()
+                if (cloned and _stream_file(name) != h
+                        or not cloned and _stream_file(source, output) != h):
                     raise StrataError('artifact integrity failure')
                 output.flush()
                 os.fsync(output.fileno())

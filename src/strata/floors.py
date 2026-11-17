@@ -68,6 +68,20 @@ def circuit_floors(circuit, *, from_at=0, at=None, clean_inputs=(), domain=None,
                    max_operations=10000, max_variables=128, max_terms=65536,
                    max_product_terms=1048576, max_assignments=65536):
     """Scoped Boolean floors plus bilinear tensor evidence when recoverable."""
+    if domain is None:
+        from .domains import window_lines, WindowLimit
+        from .semantic import analyze_complete
+        try:
+            complete_lines,complete_at=window_lines(circuit,from_at,at,max_lines=max_operations)
+        except WindowLimit:
+            complete_lines=None
+        if complete_lines is not None:
+            complete=analyze_complete(complete_lines,clean_inputs=clean_inputs,max_operations=max_operations,
+                max_variables=max_variables,max_terms=max_terms,max_product_terms=max_product_terms)
+            if complete['status']=='exact_factored':
+                return dict(status='unknown',reason='Boolean gate floor requires ANF and does not price measurement or classical channels',
+                            from_at=from_at,at=complete_at,semantics=complete,
+                            semantic_status='exact_factored',floor_established=False)
     from .inference import functions_at
     budgets=dict(max_operations=max_operations,max_variables=max_variables,max_terms=max_terms,
                  max_product_terms=max_product_terms,max_assignments=max_assignments)

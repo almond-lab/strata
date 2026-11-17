@@ -83,6 +83,14 @@ trajectories, including late wins. Defaults are advisory. A policy pause retains
 the checkpoint and charged budget; an override is recorded, not a fresh budget.
 Never convert a heuristic failure into a permanent structural impossibility.
 
+For stochastic verifiers, precommit `draw_settings` and `draw_policy` before
+running baseline and candidate experiments. Compare complete artifact-level
+aggregates on identical draw sets; never select the cheapest individual draw.
+Read `docs/V0.4.1-COMPARISONS.md` for the exact schema and incomplete-set behavior.
+Declare verifier-imported helpers in `verifier.dependencies`, independently of
+worker dependencies. Compact retention removes duplicate attempt files after
+validation; consume saved artifacts/checkpoints by their Store handles.
+
 After each experiment, generate a new packet and revise the next hypothesis
 from the actual outcome. Include compatible untried transfers using explicit
 shape, units, parameter meanings and dependency contracts. Missing measurements

@@ -13,7 +13,7 @@ import shlex
 import kickmix as km
 from itertools import combinations
 
-from .semantic import analyze_window, equivalent_windows
+from .semantic import analyze_window, analyze_complete, equivalent_windows
 
 
 def _factor_quadratic(terms):
@@ -223,7 +223,8 @@ def _cubic_updates(sem,max_operations,scratch_wires):
 
 
 def resynthesize_measured_lookup(circuit,*,clean_inputs=(),max_operations=10000,
-                                max_variables=128,max_terms=65536,max_product_terms=65536):
+                                max_variables=128,max_terms=65536,max_product_terms=65536,
+                                boundary_table=None):
     """Return a complete candidate or an explicit bounded construction result.
 
 Only unconditional arithmetic outside condition scopes is rewritten. Every
@@ -235,16 +236,26 @@ index is changed and no extra physical wire is allocated.
     lines=str(circuit).splitlines()
     limits=dict(max_operations=max_operations,max_variables=max_variables,max_terms=max_terms,
                 max_product_terms=max_product_terms)
-    whole=analyze_window(lines,clean_inputs=clean_inputs,**limits)
-    if whole['status']!='exact':
+    whole=analyze_complete(lines,clean_inputs=clean_inputs,**limits)
+    full_table=None
+    if whole['status']=='exact_factored':
+        from .factored_semantic import lift_lookup_table
+        full_table=boundary_table if boundary_table is not None else lift_lookup_table(
+            circuit,clean_inputs=clean_inputs,max_operations=max_operations,
+            max_variables=max_variables,max_nodes=max_terms,max_apply_steps=32*max_product_terms)
+        if full_table['status']!='exact':
+            return dict(status='unknown' if full_table['status'] in {'unknown','bounded'} else 'not_applicable',
+                        reason=full_table['reason'],full_boundary_table=full_table,semantics=whole)
+    elif whole['status']!='exact':
         return dict(status='unknown',reason='measured lookup needs exact complete boundary',semantics=whole)
     if not whole['measurement_events']:
         return dict(status='not_applicable',reason='no measurement-based lookup cleanup')
-    if whole['phase']['monomials'] or any(d['status']!='discharged' for d in whole['effects']['phase_debts']):
+    if (whole.get('phase',{}).get('monomials') or whole.get('phase_zero') is False
+            or any(d['status']!='discharged' for d in whole['effects']['phase_debts'])):
         return dict(status='not_applicable',reason='lookup has unresolved phase debt or a nonzero boundary phase')
     # Construction may not discard a promised clean output leak even if the
     # supplied circuit contains one.
-    if any(whole['outputs'].get(str(q),{}).get('monomials',[]) for q in clean_inputs):
+    if any(q not in whole['effects']['clean_outputs'] and q in whole['inputs'] for q in clean_inputs):
         return dict(status='not_applicable',reason='declared clean lookup workspace is not restored')
     known_zero=set(clean_inputs);output=[];segment=[];start=0;depth=0;attempts=[]
 
@@ -301,7 +312,8 @@ index is changed and no extra physical wire is allocated.
             elif op!='R' and touched:known_zero.discard(touched[-1])
     flush(len(lines))
     if not any(row['status']=='replaced' for row in attempts):
-        return dict(status='not_constructed',reason='no profitable verified measured-lookup construction within the supplied budgets',segments=attempts)
+        return dict(status='not_constructed',reason='no profitable verified measured-lookup construction within the supplied budgets',
+                    segments=attempts,full_boundary_table=full_table,semantics=whole)
     candidate='\n'.join(output)
     if km.Circuit(candidate).num_qubits<circuit.num_qubits:
         # Keep public layout without introducing an extra named register into
@@ -312,6 +324,7 @@ index is changed and no extra physical wire is allocated.
     if check.get('equivalent')is not True:
         return dict(status='unknown',reason='complete measured-lookup equivalence not established',check=check,segments=attempts)
     return dict(status='constructed',candidate=candidate,segments=attempts,check=check,
+        full_boundary_table=full_table,
         reason='factor complete lookup updates while preserving measured values and all HMR phase repairs',
         measurement_scope='same ordered wire/outcome provenance, all inputs and formal outcomes; no changed-instrument theorem',
         scope='quadratic and cubic accumulator segments with existing declared-zero workspace; no universal lookup synthesis or width reduction claim')

@@ -87,7 +87,12 @@ def _independently_accepted(store, finish):
     experiment = store.get(finish['experiment'], 'experiment')
     manifest = _manifest(store, experiment)
     pinned = manifest.get('verifier')
-    if not isinstance(pinned, dict) or verifier.get('identity') != digest(pinned):
+    if not isinstance(pinned, dict):
+        return False
+    from .experiment_comparisons import IDENTITY_SCHEMA, verifier_identity
+    schema = verifier.get('identity_schema')
+    expected = verifier_identity(manifest, experiment) if schema == IDENTITY_SCHEMA else digest(pinned)
+    if schema not in (None, IDENTITY_SCHEMA) or verifier.get('identity') != expected:
         return False
     accepted = verifier.get('receipt')
     selector = pinned.get('accepted_selector', 'accepted')
@@ -130,6 +135,9 @@ def _verified_objective(store, finish, metric):
             return cost
         evidence = finish.get('metrics', {}).get(metric)
         if not evidence or evidence.get('evidence_kind') != 'verified':
+            return None
+        declared_unit = manifest.get('metrics', {}).get(metric, {}).get('unit')
+        if declared_unit is not None and evidence.get('unit') != declared_unit:
             return None
         source = evidence.get('source', {})
         selector = manifest['verifier']['metrics'][metric]
@@ -181,24 +189,13 @@ def experiment_report(store, experiment=None, board=None, payload=None):
             verified_cost=finish.get('verified_cost')))
     metric = payload.get('metric', 'cost' if 'cost' in metric_names or any(r.get('cost') for r in finishes)
                          else metric_names[0] if len(metric_names) == 1 else None)
-    # Different manifests/units are distinct comparison contracts. A scalar
-    # "best" across incompatible tasks would imply an undeclared portfolio.
-    baselines = []
+    # Scientific comparison contracts exclude worker implementation details;
+    # finite draw policies require complete artifact-bound matched observations.
+    baselines, aggregates = [], []
     if metric is not None:
-        groups = {}
-        for row, finish in zip(comparisons, finishes):
-            evidence = _verified_objective(store, finish, metric) if row['independently_accepted'] else None
-            if not row['independently_accepted'] or not isinstance(evidence, dict):
-                continue
-            value = evidence.get('value')
-            if evidence.get('evidence_kind') != 'verified' or type(value) not in (int, float) or not math.isfinite(value):
-                continue
-            key = (row['manifest'], evidence.get('unit'))
-            if key not in groups or ((value < groups[key]['value']) if direction == 'min' else (value > groups[key]['value'])):
-                groups[key] = dict(experiment=row['experiment'], result=row['result'], manifest=row['manifest'],
-                    metric=metric, value=value, unit=evidence.get('unit'), evidence_kind='verified',
-                    verifier=row['verifier'], scope='best independently accepted result in this manifest/unit comparison group')
-        baselines = sorted(groups.values(), key=lambda r: (str(r['manifest']), str(r['unit'])))
+        from .experiment_comparisons import verified_comparisons
+        baselines, aggregates = verified_comparisons(store, by_id, comparisons, finishes,
+            metric, direction, _verified_objective)
     projection = _board_projection(store, experiment)
     # The optional argument is intentionally not read: the board is backed by
     # this Store and receipts make rendering independent of wall-clock time.
@@ -224,8 +221,9 @@ def experiment_report(store, experiment=None, board=None, payload=None):
                for r in comparisons if r['status'] in ('failed', 'screened_out', 'budget_exhausted', 'paused_by_forecast_policy')]
     result = dict(version=1, experiment=experiment, payload=payload_id, experiments=experiments,
         attempts=starts, outcomes=comparisons, stages=stages, board=projection, numeric_jobs=numeric_jobs,
-        metric=metric, direction=direction, verified_baselines=baselines,
-        best_independently_accepted=baselines[0] if len(baselines) == 1 else None,
+        metric=metric, direction=direction, verified_baselines=baselines, artifact_comparisons=aggregates,
+        best_independently_accepted=baselines[0] if len(baselines) == 1 and
+            len({a['comparison_identity'] for a in aggregates}) == 1 else None,
         modeled_bets=payload.get('modeled_bets', []), analyses=_analyses(store, payload),
         failures=reasons, screening=dict(decisions=screening, audits=audits,
             audited_candidates=len(audits), audited_false_negatives=sum(r['false_negative'] for r in audits),
@@ -250,9 +248,14 @@ def render_report_markdown(report):
     if baseline:
         lines.append(f"Independently accepted baseline: {baseline['metric']} = {baseline['value']} {baseline['unit']} (verified).")
     elif report['verified_baselines']:
-        lines.append('Independently accepted baselines are separated by manifest and unit; no cross-task best is implied.')
+        lines.append('Independently accepted baselines have different verifier/objective contracts or precommitted draw sets; no cross-contract best is implied.')
     else:
         lines.append('Independently accepted baseline: unavailable.')
+    for aggregate in report.get('artifact_comparisons', []):
+        if aggregate['aggregate'] != 'deterministic' or aggregate['reasons']:
+            lines += ['', f"Artifact `{aggregate['artifact_identity'][:12]}`: {aggregate['aggregate']} aggregate; "
+                + (f"{aggregate['value']} {aggregate['unit']} (verified finite draws)." if aggregate['comparison_eligible']
+                   else '; '.join(aggregate['reasons']) or 'all-draw vector retained; no scalar ranking declared.')]
     lines += ['', '| Experiment | Status | Metrics and evidence | Wall seconds |', '| --- | --- | --- | --- |']
     for row in report['outcomes']:
         metric_text = []
@@ -347,6 +350,10 @@ def _native_transfers(store, target_handle, metric=None, direction='min', limit=
             reasons.append('setting keys')
         if _native_fingerprint(manifest) != fingerprint:
             reasons.append('actual evaluator/dependency/verifier/runtime identity')
+        verifier_args = (manifest.get('verifier') or {}).get('argv', [])
+        if manifest.get('draw_policy') or any(arg.startswith('{setting:') or arg in ('{seed}', '{replicate}')
+                                             for arg in verifier_args):
+            reasons.append('verifier-varying transfers require complete artifact draw aggregates; individual draw gains are not transferable')
         if reasons:
             rejected.append(dict(experiment=handle,reasons=sorted(reasons)))
         else:
@@ -449,13 +456,14 @@ def agent_packet(store, experiment=None, payload=None, transfer_target=None):
     experiments = {row['record'] for row in report['experiments']}
     prior = [r for r in decisions if experiment is None or r['decisive_experiment'] in experiments]
     body = dict(version=1, report=report['record'], verified_baselines=report['verified_baselines'],
+        artifact_comparisons=report['artifact_comparisons'],
         best_independently_accepted=report['best_independently_accepted'], modeled_bets=report['modeled_bets'],
         tried=[dict(experiment=r['experiment'], result=r['result'], settings=r['settings'], status=r['status']) for r in report['outcomes']],
         failed_hypotheses=report['hypotheses'] + report['failures'],
         active_jobs=report['board']['active_jobs'], completed_comparisons=report['outcomes'],
         unresolved_questions=report['unresolved_questions'], compatible_untried_transfers=transfers,
         prior_agent_decisions=prior, scope='compact retained research state; transfers and bets remain hypotheses')
-    fields = ('tried','completed_comparisons','prior_agent_decisions','verified_baselines',
+    fields = ('tried','completed_comparisons','prior_agent_decisions','verified_baselines','artifact_comparisons',
               'failed_hypotheses','unresolved_questions','modeled_bets')
     body['counts'] = {key:len(body[key]) for key in fields}
     body['counts']['active_jobs'] = len(body['active_jobs'])

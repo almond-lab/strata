@@ -1,5 +1,38 @@
 # Change log
 
+## 0.4.1 — 2026-11-17
+
+Fixes eight reports filed against v0.4.0, #52–59. See the
+[issue map](docs/V0.4.1-FIXES.md) for scopes and limitations.
+
+- Compare compatible candidates produced by different manifests under a pinned
+  verifier/objective contract. Verifier source closure, source layout, constants
+  and explicit scientific contracts remain part of comparison identity.
+- Precommit finite verifier draws and aggregate complete artifact results with
+  mean, worst or vector-only policies. Failed, partial, conflicting or unmatched
+  draw sets cannot produce a lucky verified winner.
+- Preserve staged filenames, extensions, sibling imports and callback sources.
+  Accept valid empty text/JSONL logs with an explicit nonempty override.
+- Compact verified duplicate attempt files by default while retaining immutable
+  artifacts, logs, checkpoints and failed unvalidated outputs. Use private
+  reflinks when available; transient disk copies still require capacity.
+- Recognize bilinear accumulators with affine terms, recover supported complete
+  boundaries with canonical Boolean decisions, and lift complete measured XOR
+  tables with workspace, dirty-target and all-outcome phase checks.
+- Bound native replay allocation by physical quantum/classical width and batch
+  size, including sparse physical IDs. Symbolic budget failures identify their
+  failing instruction and remain explicit unknowns.
+
+A real 128-qubit chemistry loader now yields a complete 2,048×40 table and native
+replay under its declared clean-workspace contract. The constructor retained the
+original: no cheaper circuit or competition gain is claimed. Historical semantic
+typing and research-discovery milestones remain open.
+
+Validation: **736 tests passed**; all six default namespace skips were covered
+in explicit real offline sandbox checks, including final rejection regressions. The installed wheel passed a
+complete independently verified circuit experiment and agent-packet generation
+outside the checkout. See [the validation receipt](docs/V0.4.1-VALIDATION.json).
+
 ## 0.4.0 — 2026-11-17
 
 Adds a runnable experiment workflow for existing numeric, circuit-generator and
