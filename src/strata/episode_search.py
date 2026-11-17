@@ -199,6 +199,8 @@ def _episode_private_bits(body, suffix, declared):
         referenced = {int(bit) for bit in re.findall(r'\bb(\d+)\b', line)} & unresolved
         if referenced and not depth and op in {'HMR', 'BIT_STORE0', 'BIT_STORE1'} and ' if ' not in line:
             overwritten.update(referenced)
+        elif referenced.intersection(declared):
+            raise StrataError('a private episode bit is referenced outside the selected boundary; widen the episode')
         unresolved.difference_update(referenced)
     return (set(declared) & unresolved) | overwritten, overwritten
 
