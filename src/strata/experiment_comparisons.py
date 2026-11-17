@@ -226,6 +226,8 @@ def _expected(manifest):
 def verified_comparisons(store, experiments, comparisons, finishes, metric, direction, verified_objective):
     """Retain all evidence; rank only complete, matched artifact observations."""
     groups = {}
+    invalidations = {r['result']: dict(record=h, **r)
+                     for h, r in store.all('experiment_verification_invalidation')}
     planned_families = {}
     # A scoped report must not hide other precommitted verifier configurations.
     for _, experiment in store.all('experiment'):
@@ -246,8 +248,10 @@ def verified_comparisons(store, experiments, comparisons, finishes, metric, dire
             # A worker-only measurement is not a repeated independent check.
             continue
         evidence = verified_objective(store, finish, metric) if row['independently_accepted'] else None
+        binding = manifest.get('verifier', {}).get('metrics', {}).get(metric)
         declared_unit = ((manifest.get('cost') or {}).get('unit') if metric == 'cost'
-                         else manifest.get('metrics', {}).get(metric, {}).get('unit'))
+                         else manifest.get('metrics', {}).get(metric, {}).get('unit') or
+                         (binding.get('unit') if isinstance(binding, dict) else None))
         unit = evidence.get('unit') if evidence else declared_unit
         if unit is None:
             # Historical receipts may omit metric declarations. Still use the
@@ -269,9 +273,13 @@ def verified_comparisons(store, experiments, comparisons, finishes, metric, dire
         value = evidence.get('value') if isinstance(evidence, dict) else None
         valid = (isinstance(evidence, dict) and evidence.get('evidence_kind') == 'verified' and
                  type(value) in (int, float) and math.isfinite(value))
+        correction = invalidations.get(row['result'])
+        no_verdict = row['status'] not in {'accepted_by_verifier', 'rejected_by_verifier'}
         group['observations'].append(dict(experiment=row['experiment'], result=row['result'],
             status=row['status'], accepted=row['independently_accepted'], verified=valid,
-            value=value if valid else None, draw=_slot(manifest, experiment) if group['policy'] else None))
+            value=value if valid else None, draw=_slot(manifest, experiment) if group['policy'] else None,
+            disposition='invalidated_infrastructure' if correction else 'no_verdict' if no_verdict else 'observation',
+            **({'invalidation': correction} if correction else {})))
         if not group['policy']:
             family = digest(verifier_contract(manifest, experiment, family=True))
             group['family'] = family
@@ -286,6 +294,8 @@ def verified_comparisons(store, experiments, comparisons, finishes, metric, dire
         expected = _expected(group['manifest']) if policy else []
         observed = {}
         for observation in observations:
+            if observation['disposition'] != 'observation':
+                continue
             observed.setdefault(canonical(observation['draw']), []).append(observation)
         missing = []
         if policy:
@@ -297,6 +307,8 @@ def verified_comparisons(store, experiments, comparisons, finishes, metric, dire
                 reasons.append('observed draws outside precommitted set')
         elif len(planned_families[group['family']]) > 1:
             reasons.append('changing verifier settings or seeds without a declared draw policy')
+        if not observed:
+            reasons.append('no completed independent verdict; replacement verification required')
         for draws in observed.values():
             if any(not d['accepted'] or not d['verified'] for d in draws):
                 reasons.append('one or more observations failed independent acceptance or objective verification')
@@ -327,7 +339,7 @@ def verified_comparisons(store, experiments, comparisons, finishes, metric, dire
         aggregates.append(item)
         if not item['comparison_eligible']:
             continue
-        first = observations[0]
+        first = next(o for o in observations if o['disposition'] == 'observation')
         reference = references.setdefault(identity, dict(experiment=first['experiment'], result=first['result'],
             artifact_identity=artifact, value=value, unit=group['unit']))
         if identity not in baselines or ((value < baselines[identity]['value']) if direction == 'min' else value > baselines[identity]['value']):

@@ -33,6 +33,7 @@ READER_VERSION = 'strata-output-readers/1'
 _NAME = re.compile(r'^[A-Za-z_][A-Za-z0-9_.-]*$')
 _PLACEHOLDER = re.compile(r'^\{(setting|input|dependency|artifact):([^{}]+)\}$')
 _SHELLS = {'sh', 'bash', 'dash', 'zsh', 'fish', 'ksh', 'csh', 'pwsh', 'powershell'}
+_SUCCESS = {'accepted_by_verifier', 'artifact_validated', 'execution_finished'}
 
 
 def _finite(value, name, positive=False):
@@ -98,7 +99,9 @@ def _sources(value, root, label):
         files = _files(path)
         if spec.get('sha256') and files != {'': spec['sha256']}:
             raise StrataError('declared dependency sha256 does not match')
-        result[name] = dict(path=str(path), files=files, directory=path.is_dir())
+        modes = {relative: ((path / relative) if path.is_dir() else path).stat().st_mode & 0o777
+                 for relative in files}
+        result[name] = dict(path=str(path), files=files, directory=path.is_dir(), modes=modes)
     return result
 
 
@@ -122,11 +125,11 @@ def _command(argv, root, sources, settings, outputs):
             executable = Path(arg) if Path(arg).is_absolute() else root / arg if '/' in arg else Path(shutil.which(arg) or '')
             if not executable.is_file():
                 raise StrataError('command executable must exist')
-            if executable.name in _SHELLS or executable.resolve().name in _SHELLS:
-                raise StrataError('shell commands are unsupported; use an executable argv array')
             result[i] = str(executable.absolute())
-        elif (root / arg).is_file() or Path(arg).is_absolute() and Path(arg).is_file():
-            source = (root / arg).resolve()
+        elif Path(arg).is_absolute() and Path(arg).is_file():
+            # Relative strings are command arguments, often output filenames.
+            # Their meaning cannot depend on files beside the manifest.
+            source = Path(arg).resolve()
             found = None
             for kind, mapping in sources.items():
                 for name, spec in mapping.items():
@@ -144,8 +147,24 @@ def _command(argv, root, sources, settings, outputs):
         if not match or match[1] != 'dependency':
             raise StrataError('executable placeholders must name a dependency')
         executable = Path(sources['dependency'][match[2]]['path'])
-        if not executable.is_file() or executable.name in _SHELLS or executable.resolve().name in _SHELLS:
-            raise StrataError('executable dependency must be a non-shell file')
+        if not executable.is_file():
+            raise StrataError('executable dependency must be a file')
+    else:
+        executable = Path(result[0])
+    if executable.name in _SHELLS or executable.resolve().name in _SHELLS:
+        shell = executable.resolve().name if executable.resolve().name in _SHELLS else executable.name
+        script = None
+        for arg in result[1:]:
+            if shell in {'pwsh', 'powershell'}:
+                option = arg.lower() in {'-noprofile', '-noninteractive', '-file'}
+            else:
+                option = arg in {'--', '--noprofile', '--norc', '--posix', '--no-config'} or re.fullmatch(r'-[euxnvf]+', arg)
+            if option:
+                continue
+            script = _PLACEHOLDER.fullmatch(arg)
+            break
+        if not script or script[1] != 'dependency' or sources['dependency'][script[2]]['directory']:
+            raise StrataError('shell argv requires a pinned dependency script; shell command strings and -c are unsupported')
     return result
 
 
@@ -258,9 +277,10 @@ def load_manifest(path):
         if not isinstance(overrides, dict) or set(overrides) - limit_keys:
             raise StrataError('unsupported command limit; use timeout, max_output, memory_bytes, max_file_bytes or cpu_seconds')
         return effective_limits(**{**(defaults or {}), **overrides})
-    spec['limits'] = limits(spec.get('limits', {}))
+    declared_limits = spec.get('limits', {})
+    spec['limits'] = limits(declared_limits)
     for stage in stages:
-        stage['limits'] = limits(stage.get('limits', {}), spec['limits'])
+        stage['limits'] = limits(stage.get('limits', {}), declared_limits)
     resources = spec.setdefault('resources', {})
     explicit_memory = 'memory_bytes' in resources
     stage_memory = max(stage['limits']['memory_bytes'] for stage in stages)
@@ -301,9 +321,26 @@ def load_manifest(path):
             raise StrataError('verifier executable sha256 does not match')
         verifier.setdefault('source', verifier['dependencies'] or verifier['argv'][0])
         verifier.setdefault('accepted_selector', 'accepted')
-        if not isinstance(verifier.get('metrics', {}), dict) or set(verifier.get('metrics', {})) - set(metrics):
-            raise StrataError('verifier metric bindings must name declared metrics')
-        verifier['limits'] = limits(verifier.get('limits', {}), spec['limits'])
+        if not isinstance(verifier.get('metrics', {}), dict):
+            raise StrataError('verifier metrics must be a named mapping')
+        for name, binding in verifier.get('metrics', {}).items():
+            if not _NAME.fullmatch(name) or name in settings:
+                raise StrataError('verifier metric names must be simple names and cannot shadow settings')
+            if isinstance(binding, dict):
+                if set(binding) - {'selector', 'unit'} or 'selector' not in binding:
+                    raise StrataError('verifier metric binding requires selector and unit')
+                if not isinstance(binding.get('unit'), str) or not binding['unit'].strip():
+                    raise StrataError('verifier metric needs an explicit unit')
+                if name in metrics and binding['unit'] != metrics[name]['unit']:
+                    raise StrataError('verifier metric unit must match the worker metric unit')
+                selector = binding['selector']
+            else:
+                if name not in metrics:
+                    raise StrataError('verifier-only metric requires a selector and explicit unit')
+                selector = binding
+            if not isinstance(selector, (str, list)):
+                raise StrataError('verifier metric selector must be a dotted path, JSON pointer or path list')
+        verifier['limits'] = limits(verifier.get('limits', {}), declared_limits)
         if not explicit_memory:
             resources['memory_bytes'] = max(resources['memory_bytes'], verifier['limits']['memory_bytes'])
         elif verifier['limits']['memory_bytes'] > resources['memory_bytes']:
@@ -358,12 +395,35 @@ def load_manifest(path):
     return spec
 
 
-def _assert_identity(spec):
-    for group in (spec['inputs'], spec['dependencies'], (spec.get('verifier') or {}).get('dependencies', {})):
-        for item in group.values():
-            if _files(item['path']) != item['files']:
-                raise StrataError('dependency drift blocks resume; create a descendant experiment with new dependencies')
-    if any(_runtime(path) != identity for path, identity in spec['runtimes'].items()):
+def _staged_runtime_paths(spec):
+    dependencies = {**spec['dependencies'], **(spec.get('verifier') or {}).get('dependencies', {})}
+    commands = [stage[key] for stage in spec['stages'] for key in ('argv', 'resume_argv') if stage.get(key)]
+    if spec.get('verifier'):
+        commands.append(spec['verifier']['argv'])
+    paths, live = set(), set()
+    for command in commands:
+        executable = command[0]
+        match = _PLACEHOLDER.fullmatch(executable)
+        if match and match[1] == 'dependency':
+            paths.add(dependencies[match[2]]['path'])
+        elif Path(executable).is_absolute() and any(item['directory'] and Path(executable).is_relative_to(item['path'])
+                                                    for item in dependencies.values()):
+            paths.add(executable)
+        else:
+            live.add(executable)
+    return paths - live
+
+
+def _assert_identity(spec, *, staged=False):
+    groups = (spec['inputs'], spec['dependencies'], (spec.get('verifier') or {}).get('dependencies', {}))
+    if not staged:
+        for group in groups:
+            for item in group.values():
+                if _files(item['path']) != item['files']:
+                    raise StrataError('dependency drift blocks resume; create a descendant experiment with new dependencies')
+    staged_executables = _staged_runtime_paths(spec)
+    if any(_runtime(path) != identity for path, identity in spec['runtimes'].items()
+           if not staged or path not in staged_executables):
         raise StrataError('runtime drift blocks resume')
     if spec['reader'] != dict(version=READER_VERSION, source_sha256=_hash(__file__)):
         raise StrataError('output reader drift blocks resume')
@@ -446,11 +506,11 @@ def experiment_status(store, handle):
             state = 'screened_out'
     if any(row['attempt'] not in completed for _, row in starts):
         state = 'reconciliation_required'
-    elif state != 'accepted_by_verifier' and spent >= experiment['manifest']['max_wall_seconds']:
+    elif state not in _SUCCESS and spent >= experiment['manifest']['max_wall_seconds']:
         state = 'budget_exhausted'
-    elif state != 'accepted_by_verifier' and len(starts) >= experiment['manifest']['max_attempts']:
+    elif state not in _SUCCESS and len(starts) >= experiment['manifest']['max_attempts']:
         state = 'attempt_budget_exhausted'
-    return dict(experiment=handle, identity=experiment['identity'], status=state, attempts=len(starts), completed_stages=len({r['index'] for _, r in stages}), spent_wall_seconds=spent, remaining_wall_seconds=max(0, experiment['manifest']['max_wall_seconds'] - spent), latest=latest, checkpoint=dict(handle=checkpoints[-1][0], **checkpoints[-1][1]) if checkpoints else None, accounting='unfinished stages conservatively charge their reserved timeout and require board reconciliation')
+    return dict(experiment=handle, identity=experiment['identity'], status=state, attempts=len(starts), attempt_budget_exhausted=len(starts) >= experiment['manifest']['max_attempts'], wall_budget_exhausted=spent >= experiment['manifest']['max_wall_seconds'], completed_stages=len({r['index'] for _, r in stages}), spent_wall_seconds=spent, remaining_wall_seconds=max(0, experiment['manifest']['max_wall_seconds'] - spent), latest=latest, checkpoint=dict(handle=checkpoints[-1][0], **checkpoints[-1][1]) if checkpoints else None, accounting='unfinished stages conservatively charge their reserved timeout and require board reconciliation')
 
 
 def _attempt_charge(attempt, charges, settled):
@@ -507,8 +567,10 @@ def _stage_sources(store, work, spec, verifier=False):
             for relative, blob in item['files'].items():
                 destination = target / relative if item['directory'] else target
                 store.copy_blob(blob, destination)
-                source = Path(item['path']) / relative if item['directory'] else Path(item['path'])
-                destination.chmod(source.stat().st_mode & 0o777)
+                # Modes are frozen along with bytes; ongoing attempts never need
+                # the live source again. The fallback supports older manifests.
+                mode = item.get('modes', {}).get(relative, 0o755)
+                destination.chmod(mode)
             result[kind][name] = str(target)
     return result
 
@@ -743,7 +805,10 @@ def _save_logs(store, receipt):
 
 def _readonly_runtimes(spec):
     paths = set()
+    staged = _staged_runtime_paths(spec)
     for executable in spec['runtimes']:
+        if executable in staged:
+            continue
         invocation = Path(executable)
         root = invocation.parent.parent
         # bwrap cannot mount onto a symlink. Preserve the invoked interpreter
@@ -871,7 +936,7 @@ def _screening_pairs(store, spec, decisions, stage, stage_handle, metrics):
     return audits
 
 
-def run_experiment(store, handle, owner='local', board=None, *, resume=True, override_policy=False, claim_timeout=0):
+def run_experiment(store, handle, owner='local', board=None, *, resume=True, override_policy=False, claim_timeout=0, deadline=None):
     """Run eligible stages with one owned claim; keep logs and checked artifacts."""
     from .experiment_board import ExperimentBoard
     experiment = store.get(handle, 'experiment')
@@ -879,12 +944,14 @@ def run_experiment(store, handle, owner='local', board=None, *, resume=True, ove
     _finite(claim_timeout, 'claim timeout')
     if claim_timeout < 0:
         raise StrataError('claim timeout cannot be negative')
+    if deadline is not None:
+        _finite(deadline, 'execution deadline')
     _assert_identity(spec)
     with _lock(store, handle):
         board = board or ExperimentBoard(store)
         _reconcile_lost(store, handle, board)
         state = experiment_status(store, handle)
-        if state['status'] == 'accepted_by_verifier':
+        if state['status'] in _SUCCESS:
             for artifact in state['latest']['artifacts'].values():
                 store.verify_blob(artifact['sha256'])
             return dict(state['latest'], reused=True)
@@ -892,22 +959,44 @@ def run_experiment(store, handle, owner='local', board=None, *, resume=True, ove
             return state
         if state['status'] in {'paused_by_forecast_policy', 'screened_out'} and not override_policy:
             return state
+        if deadline is not None and time.monotonic() >= deadline:
+            return dict(experiment=handle, status='budget_exhausted')
         completed, upstream, predecessor_checkpoint = {}, {}, None
         if resume and state['status'] not in {'artifact_validated', 'execution_finished', 'rejected_by_verifier', 'verification_failed'}:
             completed, upstream, predecessor_checkpoint = _resumable_stages(store, handle, spec)
         job = board.enqueue(handle, spec['resources'])
-        token = board.claim(job, owner)
         claim_deadline = time.monotonic() + claim_timeout
-        while token is None and time.monotonic() < claim_deadline:
-            time.sleep(min(.1, max(0, claim_deadline - time.monotonic())))
+        if deadline is not None:
+            claim_deadline = min(claim_deadline, deadline)
+        token = None
+        try:
             token = board.claim(job, owner)
+            while token is None and time.monotonic() < claim_deadline:
+                if board.job(job)['state'] == 'cancelled':
+                    return dict(experiment=handle, status='cancelled', job=job, withdrawn=True)
+                time.sleep(min(.1, max(0, claim_deadline - time.monotonic())))
+                token = board.claim(job, owner)
+        except BaseException:
+            if token is None:
+                board.request_cancel(job)
+            raise
         if token is None:
-            return dict(experiment=handle, status='waiting_for_resources', job=job)
+            cancelled = board.job(job)['state'] == 'cancelled'
+            board.request_cancel(job)
+            status = ('cancelled' if cancelled else 'budget_exhausted' if deadline is not None and time.monotonic() >= deadline
+                      else 'waiting_for_resources')
+            return dict(experiment=handle, status=status, job=job, withdrawn=True)
+        if deadline is not None and time.monotonic() >= deadline:
+            board.finish(token, 'budget_exhausted')
+            return dict(experiment=handle, status='budget_exhausted', job=job)
         attempt = uuid.uuid4().hex
         attempt_dir = store.path / 'attempts' / handle / attempt
         started = time.monotonic()
         remaining = state['remaining_wall_seconds']
+        if deadline is not None:
+            remaining = min(remaining, max(0, deadline - started))
         try:
+            _assert_identity(spec)
             attempt_dir.mkdir(parents=True)
             start_handle = store.put('experiment_attempt', dict(experiment=handle, attempt=attempt, job=job, owner=owner, reserved_seconds=min(remaining, spec['limits']['timeout']), started_at=time.time(), workdir=str(attempt_dir), policy_override=override_policy))
         except BaseException:
@@ -931,6 +1020,7 @@ def run_experiment(store, handle, owner='local', board=None, *, resume=True, ove
             checkpoint = latest_checkpoint
         status, error, verification, cost = 'failed', None, None, None
         current_index, current_stage, current_work = None, None, None
+        verifying = False
         try:
             for index, stage in enumerate(spec['stages']):
                 if index in completed:
@@ -941,7 +1031,7 @@ def run_experiment(store, handle, owner='local', board=None, *, resume=True, ove
                     if spec.get('continuation') and stage.get('checkpoint') and spec['continuation']['metric'] in old['metrics']:
                         points.append(dict(step=index + 1, value=old['metrics'][spec['continuation']['metric']]['value'], compute_seconds=old.get('cumulative_seconds', 0), source_record=old_handle, metric=spec['continuation']['metric']))
                     continue
-                _assert_identity(spec)
+                _assert_identity(spec, staged=True)
                 current_index, current_stage = index, stage
                 work = attempt_dir / f'stage-{index:04d}'
                 work.mkdir()
@@ -1000,6 +1090,7 @@ def run_experiment(store, handle, owner='local', board=None, *, resume=True, ove
                     raise StrataError('declared metric was not produced')
                 status = 'artifact_validated' if artifacts else 'execution_finished'
                 if spec.get('verifier'):
+                    verifying = True
                     work = attempt_dir / 'verifier'
                     work.mkdir()
                     sources = _stage_sources(store, work, spec, verifier=True)
@@ -1015,8 +1106,15 @@ def run_experiment(store, handle, owner='local', board=None, *, resume=True, ove
                         for name, path in artifact_paths.items():
                             if _hash(path) != artifacts[name]['sha256']:
                                 raise StrataError('independent verifier modified the candidate artifact')
-                        if verification.get('returncode') != 0 or verification.get('status') != 'execution_finished':
+                        if (verification.get('returncode') != 0 or verification.get('status') != 'execution_finished'
+                                or verification.get('diagnosis', {}).get('kind') == 'descendant_process_failed'):
                             status = 'verification_failed'
+                            error = dict(kind='verifier_execution_failed', diagnosis=verification.get('diagnosis'),
+                                         execution_status=verification.get('status'), returncode=verification.get('returncode'))
+                            try:
+                                verification['receipt'] = _decode(verification.get('stdout', verification.get('output', '')).encode(), 'json')
+                            except StrataError:
+                                pass
                         else:
                             payload = _decode(verification.get('stdout', verification.get('output', '')).encode(), 'json')
                             accepted = _selector(payload, spec['verifier']['accepted_selector'])
@@ -1027,12 +1125,17 @@ def run_experiment(store, handle, owner='local', board=None, *, resume=True, ove
                                 identity_schema=IDENTITY_SCHEMA, version=spec['verifier']['version'])
                             status = 'accepted_by_verifier' if accepted else 'rejected_by_verifier'
                             if accepted:
-                                for name, selector in spec['verifier'].get('metrics', {}).items():
+                                for name, binding in spec['verifier'].get('metrics', {}).items():
+                                    selector = binding['selector'] if isinstance(binding, dict) else binding
                                     measured = _selector(payload, selector)
                                     _finite(measured, 'independently verified metric')
-                                    if not math.isclose(metrics[name]['value'], measured, rel_tol=1e-12, abs_tol=1e-12):
+                                    worker_metric = metrics.get(name)
+                                    if worker_metric and not math.isclose(worker_metric['value'], measured, rel_tol=1e-12, abs_tol=1e-12):
                                         raise StrataError('worker metric disagrees with the independent verifier')
-                                    metrics[name] = dict(metrics[name], value=measured, evidence_kind='verified', source=dict(metrics[name]['source'], verifier_identity=verification['identity'], verifier_selector=selector))
+                                    unit = worker_metric['unit'] if worker_metric else binding['unit']
+                                    source = dict(worker_metric['source']) if worker_metric else {}
+                                    source.update(verifier_identity=verification['identity'], verifier_selector=selector)
+                                    metrics[name] = dict(value=measured, unit=unit, evidence_kind='verified', source=source)
                 if spec.get('cost') and status in {'accepted_by_verifier', 'artifact_validated', 'execution_finished'}:
                     formula = Formula(spec['cost']['expression'], functions={'ceil': math.ceil, 'floor': math.floor})
                     names = {node.id for node in ast.walk(formula.tree) if isinstance(node, ast.Name)} - set(formula.functions)
@@ -1046,9 +1149,10 @@ def run_experiment(store, handle, owner='local', board=None, *, resume=True, ove
                     values = {name: values[name] for name in names if name in values}
                     value = formula(values)
                     cost = dict(value=value, expression=spec['cost']['expression'], unit=spec['cost']['unit'], evidence_kind='verified' if trusted else 'model', inputs=values, resource_selectors=bindings, verifier_identity=verification.get('identity') if trusted else None, verification='independent_verifier_resources' if trusted else 'worker_reported')
-            _assert_identity(spec)
+            _assert_identity(spec, staged=True)
         except Exception as exc:
-            status = 'artifact_validation_failed' if stage_receipts and stage_receipts[-1].get('returncode') == 0 else 'failed'
+            status = ('verification_failed' if verifying else 'artifact_validation_failed'
+                      if stage_receipts and stage_receipts[-1].get('returncode') == 0 else 'failed')
             error = dict(kind=type(exc).__name__, message=str(exc), stage=current_stage['name'] if current_stage else None)
         except (KeyboardInterrupt, SystemExit) as exc:
             status = 'cancelled'
@@ -1129,14 +1233,18 @@ def sweep_status(store, handle):
 
 
 def run_sweep(store, handle, workers=None, *, owner='sweep', override_policy=False):
-    """Coordinate bounded workers; each worker has its own SQLite connection."""
+    """Wait fairly for capacity within one shared sweep deadline."""
     from .experiment_board import ExperimentBoard
     sweep = store.get(handle, 'experiment_sweep')
     workers = sweep['workers'] if workers is None else workers
     if type(workers) is not int or workers < 1 or workers > sweep['workers']:
         raise StrataError('workers must be positive and no greater than the frozen sweep concurrency')
-    _assert_identity(sweep['manifest'])
-    # Construct before threads so schema/capacity is frozen by one writer.
+    # Each run_experiment checks the frozen identity before executing or reusing
+    # work, and reports per-experiment source drift without dropping other rows.
+    started = time.monotonic()
+    remaining = max(0, sweep['max_wall_seconds'] - sweep_status(store, handle)['spent_wall_seconds'])
+    deadline = started + remaining
+    # Construct before threads so initial schema/capacity has one writer.
     board = ExperimentBoard(store, capacity=sweep['capacity'])
     capacity = board.snapshot()['capacity']
     usable_workers = min([workers, *[capacity[key] // requested for key, requested in sweep['manifest']['resources'].items() if requested]])
@@ -1158,7 +1266,9 @@ def run_sweep(store, handle, workers=None, *, owner='sweep', override_policy=Fal
                     local.put('experiment_gate', dict(experiment=experiment_id, sweep=handle, decision=decision))
                     if decision['action'] == 'prune':
                         return dict(experiment=experiment_id, status='screened_out', decision=decision)
-            result = run_experiment(local, experiment_id, owner=f'{owner}:{experiment_id[:12]}', board=board, override_policy=override_policy, claim_timeout=min(30, sweep['max_wall_seconds']))
+            result = run_experiment(local, experiment_id, owner=f'{owner}:{experiment_id[:12]}', board=board,
+                                    override_policy=override_policy, claim_timeout=max(0, deadline - time.monotonic()),
+                                    deadline=deadline)
             if decision and decision['action'] == 'audit_full' and result.get('handle') and result.get('metrics'):
                 from .experiment_policy import record_screening_pair
                 metric = policy.get('full_metric', policy['metric'])
@@ -1177,6 +1287,7 @@ def run_sweep(store, handle, workers=None, *, owner='sweep', override_policy=Fal
             except (StrataError, OSError) as exc:
                 results.append(dict(experiment=futures[future], status='blocked', error=str(exc)))
     results.sort(key=lambda row: row['experiment'])
-    receipt = dict(sweep=handle, results=results, status=sweep_status(store, handle), finished_at=time.time())
+    receipt = dict(sweep=handle, results=results, status=sweep_status(store, handle), finished_at=time.time(),
+                   elapsed_wall_seconds=time.monotonic() - started, scheduling='fifo_until_sweep_deadline')
     result_handle = store.put('experiment_sweep_run', receipt)
     return dict(handle=result_handle, **receipt)

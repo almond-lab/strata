@@ -104,7 +104,7 @@ def corrected(n=3):
     # These require full enumeration even when paired operations undo each other.
     ('X q0 if b1\nX q0 if b1', 'none'),
     ('Z_POW q0 0.25 if b1\nZ_POW q0 -0.25 if b1', 'none'),
-    ('NEG if b1\nNEG if b1', 'none'),
+    ('NEG if b1\nNEG if b1', 'affine_hmr'),
     ('R q2 if b1', 'none'),
     # Unconditional exact fractional phases coexist with affine integer signs.
     ('Z_POW q0 0.125\nZ_POW q1 -0.25', 'affine_hmr'),

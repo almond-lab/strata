@@ -141,6 +141,10 @@ def _verified_objective(store, finish, metric):
             return None
         source = evidence.get('source', {})
         selector = manifest['verifier']['metrics'][metric]
+        if isinstance(selector, dict):
+            if evidence.get('unit') != selector.get('unit'):
+                return None
+            selector = selector['selector']
         if (not isinstance(source, dict) or source.get('verifier_identity') != verifier['identity'] or
             source.get('verifier_selector', source.get('selector')) != selector or
             _select(verifier['receipt'], selector) != evidence['value']):
@@ -169,8 +173,8 @@ def experiment_report(store, experiment=None, board=None, payload=None):
     direction = payload.get('direction', 'min')
     if direction not in ('min', 'max'):
         raise StrataError('report comparison direction must be min or max')
-    experiments = [dict(record=h, **r) for h, r in store.all('experiment') if experiment is None or h == experiment]
-    finishes = _records(store, 'experiment_finish', experiment)
+    experiments = [dict(record=h, **r) for h, r in store.all('experiment')]
+    finishes = _records(store, 'experiment_finish')
     starts = _records(store, 'experiment_attempt', experiment)
     stages = _records(store, 'experiment_stage', experiment)
     metric_names = sorted({name for r in finishes for name in r.get('metrics', {})})
@@ -196,6 +200,35 @@ def experiment_report(store, experiment=None, board=None, payload=None):
         from .experiment_comparisons import verified_comparisons
         baselines, aggregates = verified_comparisons(store, by_id, comparisons, finishes,
             metric, direction, _verified_objective)
+    if experiment is not None:
+        # A display focus cannot hide a sibling rejection or a missing draw of
+        # the same artifact. Compute whole-group evidence before narrowing.
+        identities = {a['comparison_identity'] for a in aggregates if experiment in a['experiments']}
+        aggregates = [a for a in aggregates if a['comparison_identity'] in identities]
+        baselines = [b for b in baselines if b['comparison_identity'] in identities]
+        comparisons = [r for r in comparisons if r['experiment'] == experiment]
+        experiments = [r for r in experiments if r['record'] == experiment]
+        finishes = [r for r in finishes if r['experiment'] == experiment]
+    selected_identity = payload.get('comparison_identity')
+    selected_contract = payload.get('contract')
+    if selected_identity is not None and (not isinstance(selected_identity, str) or not selected_identity):
+        raise StrataError('comparison_identity filter must be a nonempty string')
+    if selected_contract is not None and not isinstance(selected_contract, (dict, str)):
+        raise StrataError('contract filter must be a contract value')
+    if selected_identity is not None or selected_contract is not None:
+        allowed = {h for h, exp in by_id.items() if selected_contract is None or
+                   _manifest(store, exp).get('contract') == selected_contract}
+        aggregates = [a for a in aggregates if
+                      (selected_identity is None or a['comparison_identity'] == selected_identity)
+                      and any(e in allowed for e in a['experiments'])]
+        identities = {a['comparison_identity'] for a in aggregates}
+        baselines = [b for b in baselines if b['comparison_identity'] in identities]
+        # Keep every draw in a selected comparison, even across manifests.
+        selected_experiments = {e for a in aggregates for e in a['experiments']}
+        comparisons = [r for r in comparisons if r['experiment'] in selected_experiments]
+        experiments = [r for r in experiments if r['record'] in selected_experiments]
+        starts = [r for r in starts if r['experiment'] in selected_experiments]
+        stages = [r for r in stages if r['experiment'] in selected_experiments]
     projection = _board_projection(store, experiment)
     # The optional argument is intentionally not read: the board is backed by
     # this Store and receipts make rendering independent of wall-clock time.
@@ -220,6 +253,7 @@ def experiment_report(store, experiment=None, board=None, payload=None):
                     reopening_condition='changed hypothesis, settings or additional evidence; this execution is not a proof')
                for r in comparisons if r['status'] in ('failed', 'screened_out', 'budget_exhausted', 'paused_by_forecast_policy')]
     result = dict(version=1, experiment=experiment, payload=payload_id, experiments=experiments,
+        comparison_filter=dict(comparison_identity=selected_identity, contract=selected_contract),
         attempts=starts, outcomes=comparisons, stages=stages, board=projection, numeric_jobs=numeric_jobs,
         metric=metric, direction=direction, verified_baselines=baselines, artifact_comparisons=aggregates,
         best_independently_accepted=baselines[0] if len(baselines) == 1 and
@@ -463,6 +497,8 @@ def agent_packet(store, experiment=None, payload=None, transfer_target=None):
         active_jobs=report['board']['active_jobs'], completed_comparisons=report['outcomes'],
         unresolved_questions=report['unresolved_questions'], compatible_untried_transfers=transfers,
         prior_agent_decisions=prior, scope='compact retained research state; transfers and bets remain hypotheses')
+    from .research_ladder import default_research_ladder
+    body['research_ladder'] = default_research_ladder()
     fields = ('tried','completed_comparisons','prior_agent_decisions','verified_baselines','artifact_comparisons',
               'failed_hypotheses','unresolved_questions','modeled_bets')
     body['counts'] = {key:len(body[key]) for key in fields}
@@ -485,7 +521,8 @@ def agent_packet(store, experiment=None, payload=None, transfer_target=None):
 
 
 def record_agent_decision(store, *, packet, hypothesis, decisive_experiment,
-                          expected_outcome, budget, reopening_condition, actor='agent'):
+                          expected_outcome, budget, reopening_condition, actor='agent',
+                          research_stage=None, research_evidence=None, research_exception=None):
     previous = store.get(packet, 'agent_packet')
     store.get(decisive_experiment, 'experiment')
     for name, value in [('hypothesis', hypothesis), ('expected outcome', expected_outcome),
@@ -494,8 +531,12 @@ def record_agent_decision(store, *, packet, hypothesis, decisive_experiment,
             raise StrataError(f'agent decision requires {name}')
     if not isinstance(budget, dict) or not budget or any(type(v) not in (int, float) or not math.isfinite(v) or v <= 0 for v in budget.values()):
         raise StrataError('agent decision requires positive finite named compute/resource budgets')
+    from .research_ladder import validate_research_decision
+    preflight = validate_research_decision(store, decisive_experiment, budget,
+        stage=research_stage, evidence=research_evidence, exception=research_exception)
     body = dict(version=1, packet=packet, report=previous['report'], hypothesis=hypothesis,
         decisive_experiment=decisive_experiment, expected_outcome=expected_outcome, budget=budget,
         reopening_condition=reopening_condition, actor=actor, evidence_kind='judgment',
+        research_preflight=preflight,
         scope='bounded proposed experiment; successful execution still requires independent acceptance')
     return dict(record=store.put('agent_decision', body), **body)

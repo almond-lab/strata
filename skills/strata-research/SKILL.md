@@ -59,6 +59,35 @@ skill was copied out of the checkout, resolve these paths in that checkout.
 - Preserve unsuccessful lines and scoped reopen conditions. Historical failures
   attach to their contracts and methods, not an entire research family.
 
+## Small-first default
+
+Start each new mechanism with a tiny exact prototype: a small field, few slots,
+short sequence or other meaningful reduced instance. Aim for less than one
+second when feasible, and record the reason when exact checking needs longer.
+Preserve the generator and boundary contract while reducing named scale
+parameters. A cheap empirical screen is not an exact prototype.
+
+Use the tiny receipt to check the proposed mechanism, then record a resource and
+cost scaling model with assumptions before a full build. Compare predicted wall
+time, threads, memory and storage against the declared budget. Build one bounded
+full candidate; keep slow polishing and multiple seeds for selected final
+candidate bytes. Precommit the final verification draws and retain all outcomes.
+An exploratory sweep needs a stated question and budget; avoid repeated full
+builds merely to discover a flaw visible on a tiny instance.
+
+Declare `research_stage` in new `agent-decision` records and use the packet's
+`research_ladder` guidance. Stages `full`, `final`, `polish` and `multi_seed` have
+retained-evidence prerequisites. Read [small-first research](../../docs/SMALL-FIRST.md)
+for the exact receipt, resource-prediction and exception APIs. Omitted stages are
+legacy advisory behavior, not a way for new agent workflows to skip the ladder.
+
+For a fixed file, nonparameterizable task or numeric problem without an exact
+small model, record an explicit justified exception and retained alternative
+evidence. Do not invent a scale-down model or relabel sampled tests as exact.
+Keep the scaling check and full independent verification. Tiny correctness,
+component equivalence and resource extrapolation never establish full-size
+correctness or a measured full-task improvement.
+
 ## Numeric-first projects
 
 For an existing fit, round, build or simulation script, start with the checkout's
@@ -157,7 +186,10 @@ Read the checkout's `docs/STRUCTURAL-RESEARCH.md` for the current API and limits
    states the invariant, affected producer/consumer/return,
    exact adaptation costs that must be measured, and the next decisive test.
    Do not call lack of current synthesis support an impossibility result.
-3. Construct bounded experiments and record their hypotheses. Use
+3. Construct a tiny exact instance of each proposed mechanism, check scaling,
+   then construct a bounded full experiment and record its hypothesis. If the
+   input cannot be parameterized, retain the explicit small-first exception and
+   use the strongest available exact boundary evidence. Use
    `strata restructure FILE --out RUN --clean-inputs WIRES` for installed
    observable-phase, direct-consumer, bilinear and measured-lookup constructors. Declare only
    clean inputs actually guaranteed by the boundary. Extend the trusted

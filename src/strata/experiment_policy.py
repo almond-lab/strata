@@ -62,23 +62,43 @@ def _metric(store, source_record, metric, value, unit, measured=False):
     return metric, source
 
 
-def record_screening_candidate(store, *, identity, proxy, source_record, candidate_key, metric=None):
+def record_screening_candidate(store, *, identity, proxy, source_record, candidate_key, metric=None, artifact=None):
     identity = _identity(identity); proxy = _number(proxy, 'proxy')
     if not isinstance(candidate_key, str) or not candidate_key:
         raise StrataError('candidate key is required')
     metric, source = _metric(store, source_record, metric, proxy, identity['unit'])
     if 'identity' in source and source['identity'] != identity:
         raise StrataError('candidate receipt identity differs')
+    from .screening_evidence import candidate_artifact
+    artifact_hash = candidate_artifact(store, source, artifact)
     return store.put('screening_candidate', dict(version=1, identity=identity, proxy=proxy,
         source_record=source_record, candidate_key=candidate_key, metric=metric,
+        artifact_sha256=artifact_hash,
         evidence_kind='model', scope='cheap evaluator; full independent acceptance remains required'))
 
 
-def record_screening_pair(store, *, candidate, full, full_record, metric=None):
+def record_screening_pair(store, *, candidate, full, full_record, metric=None,
+                          unit=None, comparison_identity=None, artifact_identity=None):
     row = store.get(candidate, 'screening_candidate'); full = _number(full, 'full score')
-    metric, source = _metric(store, full_record, metric, full, row['identity']['unit'], measured=True)
     if full_record == row['source_record']:
         raise StrataError('cheap and full evaluations need separate receipts')
+    from .screening_evidence import independent_objective
+    objective = independent_objective(store, full_record, metric=metric or 'cost',
+                                     comparison_identity=comparison_identity, artifact_identity=artifact_identity)
+    if objective is not None:
+        if full != objective['value'] or unit is not None and unit != objective['unit']:
+            raise StrataError('full value/unit differs from independently verified objective')
+        if not row.get('artifact_sha256') or row['artifact_sha256'] not in objective['artifacts']:
+            raise StrataError('cheap and full evaluations must bind the same artifact; select artifact when recording the candidate')
+        return store.put('screening_pair', dict(version=2, candidate=candidate,
+            identity=row['identity'], candidate_key=row['candidate_key'], proxy=row['proxy'], full=full,
+            full_record=full_record, source_record=row['source_record'], metric=metric or 'cost',
+            full_unit=objective['unit'], full_comparison_identity=objective['comparison_identity'],
+            full_artifact_identity=objective['artifact_identity'],
+            aggregation_direction=objective.get('aggregation_direction'),
+            artifact_sha256=row['artifact_sha256'], evidence_kind='verified',
+            scope='paired cheap measurement and independently verified objective on identical artifact bytes'))
+    metric, source = _metric(store, full_record, metric, full, unit or row['identity']['unit'], measured=True)
     if 'identity' in source and source['identity'] != row['identity']:
         raise StrataError('full evaluator identity differs')
     if source.get('candidate_key', row['candidate_key']) != row['candidate_key']:
@@ -90,6 +110,7 @@ def record_screening_pair(store, *, candidate, full, full_record, metric=None):
     return store.put('screening_pair', dict(version=1, candidate=candidate,
         identity=row['identity'], candidate_key=row['candidate_key'], proxy=row['proxy'], full=full,
         full_record=full_record, source_record=row['source_record'], metric=metric,
+        full_unit=unit or row['identity']['unit'], full_comparison_identity=digest(row['identity']),
         evidence_kind='measured', scope='paired observations on this candidate only'))
 
 
@@ -118,16 +139,25 @@ def _split(store, training, heldout, kind, identity, key):
     if not isinstance(training, (list, tuple)) or not isinstance(heldout, (list, tuple)):
         raise StrataError('training and heldout must be explicit record lists')
     rows = []
-    keys = set(); sources = set()
+    keys = set(); sources = set(); artifacts = set()
     for handles in (training, heldout):
         part = []
         for handle in handles:
             row = store.get(handle, kind)
+            if kind == 'screening_pair':
+                from .screening_evidence import revalidate_pair
+                revalidate_pair(store, row)
             if row['identity'] != identity:
                 raise StrataError('calibration identity drift')
             if row[key] in keys:
                 raise StrataError('training/heldout duplicate or leakage')
             keys.add(row[key])
+            from .screening_evidence import pair_artifact
+            artifact = pair_artifact(store, row) if kind == 'screening_pair' else None
+            if artifact:
+                if artifact in artifacts:
+                    raise StrataError('training/heldout artifact duplicate or leakage')
+                artifacts.add(artifact)
             refs = ({row['source_record'], row['full_record']} if kind == 'screening_pair'
                     else {p['source_record'] for p in row['points']})
             if refs & sources:
@@ -162,17 +192,22 @@ class ScreeningPolicy:
     @classmethod
     def create(cls, store, *, identity, proxy_threshold, full_threshold,
                direction='min', boundary_margin=0., max_false_negative_rate=.05,
-               min_samples=20, alpha=.05, audit_fraction=.1, audit_seed=0):
+               min_samples=20, alpha=.05, audit_fraction=.1, audit_seed=0,
+               full_unit=None, full_comparison_identity=None):
         _identity(identity); _risk_options(direction, max_false_negative_rate, alpha, min_samples)
         if not 0 < _number(audit_fraction, 'audit fraction') <= 1:
             raise StrataError('deterministic full-score audits require a fraction in (0,1]')
         if type(audit_seed) is not int:
             raise StrataError('audit seed must be an integer')
+        if any(v is not None and (not isinstance(v, str) or not v)
+               for v in (full_unit, full_comparison_identity)):
+            raise StrataError('full unit/comparison identity must be nonempty strings')
         body = dict(version=1, identity=identity, proxy_threshold=_number(proxy_threshold, 'proxy threshold'),
             full_threshold=_number(full_threshold, 'full threshold'), direction=direction,
             boundary_margin=_number(boundary_margin, 'boundary margin', 0),
             max_false_negative_rate=max_false_negative_rate, min_samples=min_samples,
             alpha=alpha, audit_fraction=audit_fraction, audit_seed=audit_seed,
+            full_unit=full_unit, full_comparison_identity=full_comparison_identity,
             evidence_kind='model', risk_estimand='fraction of full-evaluator successes screened out',
             risk_assumption='independent heldout candidates representative of the declared domain')
         return cls(store, store.put('screening_policy', body))
@@ -181,6 +216,14 @@ class ScreeningPolicy:
         p = self.policy
         train, test = _split(self.store, training, heldout, 'screening_pair', p['identity'], 'candidate_key')
         reasons = []; coverage = {}
+        units = {r.get('full_unit', p['identity']['unit']) for r in train + test}
+        identities = {r.get('full_comparison_identity', digest(p['identity'])) for r in train + test}
+        if len(units) > 1 or p.get('full_unit') is not None and units - {p['full_unit']}:
+            raise StrataError('full evaluator unit drift in calibration')
+        if len(identities) > 1 or p.get('full_comparison_identity') is not None and identities - {p['full_comparison_identity']}:
+            raise StrataError('full comparison identity drift in calibration')
+        if any(r.get('aggregation_direction') not in (None, p['direction']) for r in train + test):
+            raise StrataError('worst-draw aggregation direction differs from calibration')
         for label, rows in [('training', train), ('heldout', test)]:
             counts = dict(successes=sum(_success(r['full'], p['full_threshold'], p['direction']) for r in rows),
                           failures=sum(not _success(r['full'], p['full_threshold'], p['direction']) for r in rows),
@@ -196,6 +239,8 @@ class ScreeningPolicy:
         if upper > p['max_false_negative_rate']:
             reasons.append('heldout false-negative upper bound exceeds declared risk')
         body = dict(version=1, policy=self.id, identity=p['identity'], training=list(training), heldout=list(heldout),
+            full_unit=next(iter(units), p.get('full_unit')),
+            full_comparison_identity=next(iter(identities), p.get('full_comparison_identity')),
             status='passed' if not reasons else 'insufficient_calibration', reasons=reasons, coverage=coverage,
             heldout_decisions=decisions, false_negatives=misses, successes=successes,
             false_negative_rate=misses / successes if successes else None, false_negative_upper_bound=upper,
@@ -204,10 +249,19 @@ class ScreeningPolicy:
         return dict(record=self.store.put('screening_calibration', body), **body)
 
     def decide(self, candidate, *, calibration=None, identity):
+        from .screening_evidence import pair_artifact
         p = self.policy; row = self.store.get(candidate, 'screening_candidate')
         action = 'abstain'; reason = 'calibration is absent'; cal = None
         if calibration is not None:
             cal = self.store.get(calibration, 'screening_calibration')
+        evidence_error = None
+        if cal is not None and cal.get('status') == 'passed':
+            from .screening_evidence import revalidate_pair
+            try:
+                for h in cal['training'] + cal['heldout']:
+                    revalidate_pair(self.store, self.store.get(h, 'screening_pair'))
+            except StrataError as exc:
+                evidence_error = str(exc)
         if identity != p['identity'] or row['identity'] != p['identity']:
             reason = 'identity outside calibrated domain/settings/dependencies/units'
         elif cal is None:
@@ -216,12 +270,18 @@ class ScreeningPolicy:
             reason = 'calibration belongs to another policy or identity'
         elif cal['status'] != 'passed':
             reason = 'insufficient calibration'
+        elif evidence_error is not None:
+            reason = 'calibration evidence no longer valid: ' + evidence_error
         elif any(a['policy'] == self.id and a['false_negative'] and a['pair'] not in cal['training'] + cal['heldout']
                  for _, a in self.store.all('screening_audit')):
             reason = 'new audited false negative requires recalibration before further pruning'
         elif any(self.store.get(h, 'screening_pair')['candidate_key'] == row['candidate_key']
                  for h in cal['training'] + cal['heldout']):
             reason = 'candidate belongs to calibration data; independent evaluation required'
+        elif row.get('artifact_sha256') and any(
+                pair_artifact(self.store, self.store.get(h, 'screening_pair')) == row['artifact_sha256']
+                for h in cal['training'] + cal['heldout']):
+            reason = 'candidate artifact belongs to calibration data; changing its key does not remove leakage'
         elif _success(row['proxy'], p['proxy_threshold'], p['direction']):
             action = 'evaluate_full'; reason = 'proxy passed the cheap gate'
         else:
@@ -236,8 +296,18 @@ class ScreeningPolicy:
 
     def audit(self, decision, pair):
         d = self.store.get(decision, 'screening_decision'); r = self.store.get(pair, 'screening_pair'); p = self.policy
+        from .screening_evidence import revalidate_pair
+        revalidate_pair(self.store, r)
         if d['policy'] != self.id or d['candidate'] != r['candidate'] or d['action'] not in ('audit_full', 'prune'):
             raise StrataError('audit must bind this policy and its rejected candidate')
+        cal = self.store.get(d['calibration'], 'screening_calibration') if d.get('calibration') else p
+        for h in cal.get('training', []) + cal.get('heldout', []):
+            revalidate_pair(self.store, self.store.get(h, 'screening_pair'))
+        if (cal.get('full_unit') not in (None, r.get('full_unit', p['identity']['unit'])) or
+            cal.get('full_comparison_identity') not in (None, r.get('full_comparison_identity', digest(p['identity'])))):
+            raise StrataError('audit full objective differs from calibration')
+        if r.get('aggregation_direction') not in (None, p['direction']):
+            raise StrataError('audit worst-draw direction differs from calibration')
         body = dict(policy=self.id, decision=decision, pair=pair, evidence_kind='measured',
                     false_negative=_success(r['full'], p['full_threshold'], p['direction']),
                     scope='observed full result of a candidate selected for rejection')

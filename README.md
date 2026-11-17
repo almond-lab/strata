@@ -11,13 +11,15 @@ and the historical discovery benchmarks remain incomplete.
 
 The [product specification](docs/SPECIFICATION.md) is preserved verbatim.
 The [acceptance ledger](docs/ACCEPTANCE.md) separates implemented APIs from
-unmet research milestones. See [v0.4.1 fixes](docs/V0.4.1-FIXES.md),
+unmet research milestones. See [v0.4.2 fixes](docs/POST-0.4.1-FIXES.md),
+[v0.4.1 fixes](docs/V0.4.1-FIXES.md),
 [v0.3.1 fixes](docs/V0.3.1-FIXES.md),
 [v0.3 issue coverage](docs/V0.3-ISSUES.md) and
 [release changes](CHANGELOG.md).
 
 ## Documentation
 
+- [Small-first research](docs/SMALL-FIRST.md): tiny exact prototypes, scaling evidence, bounded full builds and final-only expensive checks; default guidance for connected agents.
 - [Useful in ten minutes](docs/TEN-MINUTES.md): wrap an existing script, run a sweep and hand the results to your agent, without writing an adapter.
 - [v0.4 experiment workflow](docs/V0.4-WORKFLOW.md): checkpoints, owned cancellation, verified artifacts, calibrated screening, continuation policies and the research loop.
 - [v0.4 design rationale](docs/V0.4-PLAN.md): the time breakdown, delivery priorities and acceptance questions behind the experiment workflow.

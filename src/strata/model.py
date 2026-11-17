@@ -47,8 +47,11 @@ class Register:
     wires: tuple[int, ...]
     role: str = 'through'  # through, input, output, clean, dirty
     meaning: str = 'bits'
+    namespace: str = 'quantum'
 
     def __post_init__(self):
+        if self.namespace not in {'quantum', 'classical'}:
+            raise StrataError('unknown register namespace')
         if self.role not in {'through', 'input', 'output', 'clean', 'dirty'}:
             raise StrataError('unknown register role')
         if not self.wires or min(self.wires) < 0 or len(set(self.wires)) != len(self.wires):
@@ -77,7 +80,7 @@ class Contract:
     semantic_version: str = '1'
 
     def __post_init__(self):
-        wires = [q for r in self.registers for q in r.wires]
+        wires = [(r.namespace, q) for r in self.registers for q in r.wires]
         if len(wires) != len(set(wires)):
             raise StrataError('overlapping register ownership')
         if len({r.name for r in self.registers}) != len(self.registers):
@@ -89,7 +92,8 @@ class Contract:
     def fingerprint(self):
         # Physical lanes/names are excluded; logical argument order and meaning remain.
         return digest(dict(registers=[dict(width=len(r.wires), role=r.role,
-                           meaning=r.meaning) for r in self.registers],
+                           meaning=r.meaning, **({'namespace': r.namespace} if r.namespace != 'quantum' else {}))
+                           for r in self.registers],
                            reference=self.reference, promise=self.promise,
                            phase=self.phase, failure=self.failure, scales=self.scales,
                            debts=[dict(measurement=d.measurement, expression=d.expression)

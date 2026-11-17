@@ -162,24 +162,55 @@ def exhaustive(circuit, contract, reference, scale=None, max_trajectories=1_000_
         raise StrataError('exhaustive runner requires exact phase and no failure allowance')
     if not isinstance(contract.promise, str) or not contract.promise:
         raise StrataError('contract promise must be nonempty')
-    declared = {q for r in contract.registers for q in r.wires}
+    quantum_registers = [r for r in contract.registers if r.namespace == 'quantum']
+    classical_registers = [r for r in contract.registers if r.namespace == 'classical']
+    declared = {q for r in quantum_registers for q in r.wires}
     if declared != set(range(circuit.num_qubits)):
         raise StrataError('contract must own every emitted wire, including clean scratch')
+    classical_ids = sorted(b for r in classical_registers for b in r.wires)
+    if any(b >= circuit.num_bits for b in classical_ids):
+        raise StrataError('classical register references a bit outside the emitted circuit')
     program = compile_program(str(circuit))
     check_time()
     hmr = program.hmr_count
     branches = 1 << hmr
     reduced = branch_strategy == 'auto' and hmr >= 2 and program.affine_hmr
+    # Classical public inputs may activate paths that were unreachable when the
+    # compiler assumed internal classical storage initially zero. Reprove the
+    # reduction for every distinct classical assignment in the actual domain.
+    recheck_classical = bool(classical_registers) and branch_strategy == 'auto' and hmr >= 2
+    minimum_count = hmr + 1 if reduced or recheck_classical else branches
+    if minimum_count > max_trajectories * shard_count:
+        detail = (f'; non-affine HMR control requires all 2^{hmr} branches per input; '
+                  'symbolic HMR checking is not implemented in the lab'
+                  if branch_strategy == 'auto' and hmr >= 2 and not reduced and not recheck_classical else '')
+        raise StrataError('exhaustive domain exceeds budget; cannot label a sample exhaustive' + detail)
+    inputs, domain_hash, domain_source = _domain(
+        contract, domain, max_trajectories * shard_count // minimum_count, check_time)
+    if recheck_classical:
+        reduced, seen = True, set()
+        for values in inputs:
+            check_time()
+            assignment = tuple(values[r.name] for r in classical_registers)
+            if assignment in seen:
+                continue
+            seen.add(assignment)
+            bits = {f'b{b}': (values[r.name] >> j) & 1
+                    for r in classical_registers for j, b in enumerate(r.wires)}
+            if not program.affine_hmr_with_inputs(bits):
+                reduced = False
+                break
     branch_ids = [0, *(1 << m for m in range(hmr))] if reduced else range(branches)
     executed_count = hmr + 1 if reduced else branches
-    inputs, domain_hash, domain_source = _domain(
-        contract, domain, max_trajectories * shard_count // executed_count, check_time)
     cases = len(inputs)
     selected = list(range(shard_index, cases, shard_count))
     if not selected:
         raise StrataError('lab shard contains no inputs')
     if len(selected) * executed_count > max_trajectories:
-        raise StrataError('exhaustive domain exceeds budget; cannot label a sample exhaustive')
+        detail = (f'; non-affine HMR control requires all 2^{hmr} branches per input; '
+                  'symbolic HMR checking is not implemented in the lab'
+                  if branch_strategy == 'auto' and hmr >= 2 and not reduced else '')
+        raise StrataError('exhaustive domain exceeds budget; cannot label a sample exhaustive' + detail)
     scope = dict(scale or {})
     kind = evidence_kind or ('exact_small' if scope else 'exact_full')
     if kind not in {'exact_full', 'exact_small'} or kind == 'exact_small' and not scope:
@@ -217,17 +248,25 @@ def exhaustive(circuit, contract, reference, scale=None, max_trajectories=1_000_
 
     trajectories = itertools.product(branch_ids, selected)
     qubits = [km.q(q) for q in range(circuit.num_qubits)]
+    classical_bits = [km.b(b) for b in classical_ids]
+    classical_positions = {b: i for i, b in enumerate(classical_ids)}
     while batch := list(itertools.islice(trajectories, batch_size)):
         check_time()
         executed.update(branch for branch, _ in batch)
         sim = km.Simulator(batch_size=len(batch), counting_operations=False, seed=0)
         sim.use_same_registers_as(circuit)
         initial = np.zeros((circuit.num_qubits, len(batch)), dtype=np.bool_)
-        for r in contract.registers:
+        for r in quantum_registers:
             for j, q in enumerate(r.wires):
                 initial[q] = [(inputs[x][r.name] >> j) & 1 for _, x in batch]
         if qubits:
             sim.write_across_shots(qubits, initial)
+        if classical_bits:
+            initial_bits = np.zeros((len(classical_bits), len(batch)), dtype=np.bool_)
+            for r in classical_registers:
+                for j, b in enumerate(r.wires):
+                    initial_bits[classical_positions[b]] = [(inputs[x][r.name] >> j) & 1 for _, x in batch]
+            sim.write_across_shots(classical_bits, initial_bits)
         reset_failure = program.execute(sim, batch, check_time)
         if reset_failure is not None:
             shot, at, q = reset_failure
@@ -236,6 +275,7 @@ def exhaustive(circuit, contract, reference, scale=None, max_trajectories=1_000_
                                       instruction=at, reset_wire=q, reason='reset_nonzero',
                                       values={f'q{q}': dict(actual=1, expected=0)}))
         actual = sim.read_across_shots(qubits) if qubits else initial
+        actual_bits = sim.read_across_shots(classical_bits) if classical_bits else None
         # Native integer phase reads are vectorized; fractional phase is always
         # read as an exact Fraction, never rounded through a phase-flip flag.
         signs = None if program.fractional_phase else sim.read_phase_flipped_across_shots()
@@ -243,7 +283,9 @@ def exhaustive(circuit, contract, reference, scale=None, max_trajectories=1_000_
             check_time()
             mismatch = {}
             for r, want in zip(contract.registers, expected_values[x]):
-                value = sum(int(actual[q, shot]) << j for j, q in enumerate(r.wires))
+                value = (sum(int(actual[q, shot]) << j for j, q in enumerate(r.wires))
+                         if r.namespace == 'quantum' else
+                         sum(int(actual_bits[classical_positions[b], shot]) << j for j, b in enumerate(r.wires)))
                 if value != want:
                     mismatch[r.name] = dict(actual=value, expected=want)
             phase = Fraction(sim.read_shot_phase(shot)) % 2 if signs is None else Fraction(int(signs[shot]))

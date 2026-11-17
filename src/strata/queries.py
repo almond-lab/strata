@@ -1,5 +1,5 @@
 """Small agent answers with handles to complete evidence."""
-from .model import digest
+from .model import digest, StrataError
 from .engine import applicable_moves
 
 
@@ -30,6 +30,8 @@ class Queries:
             design=next(iter(self.project.tasks.values())).base_design()
         if isinstance(design,str):design=Design(self.project,design)
         design.validate()
+        if any(r.namespace != 'quantum' for r in design.tree.contract.registers):
+            raise StrataError('ownership and information queries currently require quantum-only contracts; classical registers are supported by the lab')
         task=self.project.task(design.record['task'])
         return task.parse_artifact(self.project.store.read_blob(design.record['artifact'])),design
 

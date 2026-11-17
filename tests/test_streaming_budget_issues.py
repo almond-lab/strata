@@ -53,7 +53,7 @@ def test_metadata_only_prefix_does_not_consume_the_original_clean_promise(tmp_pa
     lifted = lift_regions(circuit, max_window=1, clean_inputs=[0])
     assert next(r for r in lifted['regions'] if r['start']==2)['semantics']['clean_input_assumptions']==[0]
     assert lifted['unknown'][-1]['reason']=='reset_not_proven_zero'
-    scan = scan_circuit(circuit,tmp_path,max_window=1,clean_inputs=[0])
+    scan = scan_circuit(circuit,tmp_path,max_window=1,clean_inputs=[0],range_unit='text-line')
     reset_groups = [g for g in scan['groups'] if g['examples'][0]['start'] in {2,4}]
     assert {g['semantics']['status'] for g in reset_groups} == {'exact','opaque'}
 
@@ -138,7 +138,7 @@ def test_untouched_clean_and_hmr_zero_facts_cross_budget_cuts_with_provenance(tm
     assert by_start[2]['boundary_zero_evidence']['0']['kind']=='declared_artifact_input'
     assert by_start[5]['boundary_zero_evidence']['0']==dict(kind='unconditional_hmr',origin_at=4,origin_wire=0)
     assert lifted['unknown']==[dict(start=7,stop=8,status='opaque',reason='reset_not_proven_zero',operation_count=1)]
-    scan = scan_circuit(circuit,tmp_path,max_window=1,clean_inputs=[0])
+    scan = scan_circuit(circuit,tmp_path,max_window=1,clean_inputs=[0],range_unit='text-line')
     exact_resets = next(g for g in scan['groups'] if g['semantics']['status']=='exact' and g['semantics']['effects']['reset_proofs'])
     assert exact_resets['occurrences']==2
     assert {e['boundary_zero_evidence']['q0']['kind'] for e in exact_resets['examples']}=={'declared_artifact_input','unconditional_hmr'}

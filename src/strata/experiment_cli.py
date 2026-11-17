@@ -27,7 +27,7 @@ def add_parsers(sub):
     p.add_argument('--max-file-mb', type=int, default=64)
     p.add_argument('argv', nargs=argparse.REMAINDER)
     p = sub.add_parser('experiment', help='create, run or inspect an existing pipeline')
-    p.add_argument('action', choices=('create', 'run', 'status'))
+    p.add_argument('action', choices=('create', 'run', 'status', 'invalidate'))
     p.add_argument('input', help='manifest path for create/run, or retained experiment handle')
     p.add_argument('--store', required=True)
     p.add_argument('--setting', action='append', default=[], metavar='NAME=JSON')
@@ -36,6 +36,8 @@ def add_parsers(sub):
     p.add_argument('--owner', default='cli')
     p.add_argument('--override-policy', action='store_true', help='resume a policy pause, retaining charged budgets and an override receipt')
     p.add_argument('--parent', help='explicit retained parent when creating a descendant experiment')
+    p.add_argument('--actor', help='attribution for an infrastructure correction')
+    p.add_argument('--reason', help='reason for invalidating a machine-backed infrastructure receipt')
     p = sub.add_parser('sweep', help='declare and execute a bounded reproducible sweep')
     p.add_argument('action', choices=('create', 'run', 'status'))
     p.add_argument('input', help='manifest for create, retained sweep handle otherwise')
@@ -53,11 +55,15 @@ def add_parsers(sub):
     g.add_argument('--events-after', type=int)
     g.add_argument('--cancel', metavar='JOB')
     g.add_argument('--reconcile', metavar='JOB')
+    g.add_argument('--init-capacity', metavar='JSON', help='configure cooperative capacity; changes require an idle board')
+    p.add_argument('--type', dest='event_types', action='append', help='include only these event types')
+    p.add_argument('--exclude', dest='event_excludes', action='append', help='exclude event types, e.g. heartbeat')
     for name in ('experiment-report', 'agent-packet'):
         p = sub.add_parser(name)
         p.add_argument('--store', required=True)
         p.add_argument('--experiment')
         p.add_argument('--payload', help='JSON evidence/report configuration')
+        p.add_argument('--comparison-identity', help='select one verifier/objective comparison group across experiments')
         p.add_argument('--out')
         if name == 'experiment-report':
             p.add_argument('--format', choices=('json', 'markdown'), default='json')
@@ -69,7 +75,8 @@ def add_parsers(sub):
 
 def _read(path):
     try:
-        return json.loads(Path(path).read_text())
+        return json.loads(path if isinstance(path, str) and path.lstrip().startswith(('{', '['))
+                          else Path(path).read_text())
     except (OSError, ValueError) as exc:
         raise StrataError(f'cannot read JSON request {path}: {exc}') from exc
 
@@ -95,10 +102,11 @@ def wrap_command(args):
     if executable is None:
         raise StrataError('command executable was not found')
     argv[0] = str(Path(executable).absolute())  # preserve virtualenv invocation
+    output_paths = {Path(v.partition('=')[2].rpartition(':')[0]) for v in args.output}
     dependencies = {}
     for i, value in enumerate(argv[1:], 1):
         path = Path(value)
-        if path.is_file():
+        if path.is_file() and path not in output_paths:
             name = f'arg{i}'
             dependencies[name] = str(path.resolve())
             argv[i] = '{dependency:' + name + '}'
@@ -150,6 +158,9 @@ def dispatch(args):
     try:
         if args.cmd == 'experiment':
             from .experiments import create_experiment, run_experiment, experiment_status
+            if args.action == 'invalidate':
+                from .experiment_observations import invalidate_verification
+                return invalidate_verification(store, args.input, actor=args.actor, reason=args.reason)
             supplied_path = Path(args.input).is_file()
             if args.action == 'create' or args.action == 'run' and supplied_path:
                 handle = create_experiment(store, args.input, settings=_settings(args.setting) or None,
@@ -185,12 +196,15 @@ def dispatch(args):
         if args.cmd == 'board':
             from .experiment_board import ExperimentBoard
             board = ExperimentBoard(store)
+            if args.init_capacity:
+                return board.configure_capacity(_read(args.init_capacity))
             if args.cancel:
                 return board.request_cancel(args.cancel)
             if args.reconcile:
                 return board.reconcile(args.reconcile)
-            if args.events_after is not None:
-                return dict(events=board.events(after=args.events_after))
+            if args.events_after is not None or args.event_types or args.event_excludes:
+                return board.event_page(after=args.events_after or 0, types=args.event_types,
+                                        exclude_types=args.event_excludes)
             return board.snapshot()
         if args.cmd == 'experiment-policy':
             from .experiment_policy import policy_request
@@ -200,6 +214,8 @@ def dispatch(args):
         if args.cmd == 'agent-decision':
             return record_agent_decision(store, **_read(args.input))
         payload = _read(args.payload) if args.payload else None
+        if args.comparison_identity:
+            payload = dict(payload or {}, comparison_identity=args.comparison_identity)
         if args.cmd == 'agent-packet':
             return agent_packet(store, experiment=args.experiment, payload=payload)
         result = experiment_report(store, experiment=args.experiment, payload=payload)

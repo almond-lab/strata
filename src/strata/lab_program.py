@@ -2,7 +2,7 @@
 
 For each input, accepted control flow leaves the qubit basis trajectory
 independent of the HMR outcomes m. Each HMR contributes m[j] * q[j] to the
-phase; outcome-controlled Z/CZ/CCZ contributes an affine Boolean expression.
+phase; outcome-controlled Z/CZ/CCZ/NEG contributes an affine Boolean expression.
 Thus phase is p0 + sum(m[j] * f[j]) modulo two, with any fractional native
 rotation confined to p0. Zero and unit assignments determine p0 and every
 coefficient. Nonlinear control or outcome-dependent basis changes decline
@@ -39,8 +39,12 @@ def _and(a, b):
     return None if any(term.bit_count() > 1 for term in terms) else frozenset(terms)
 
 
-def _affine(ops):
-    bits, stack, m = {}, [], 0
+def _affine(ops, initial_bits=None):
+    # Lab starts classical storage at zero; finite-domain checking supplies its
+    # explicit boundary assignment instead. Never assume a promised bit is zero.
+    bits = {int(name[1:]): _ONE if value else _ZERO
+            for name, value in (initial_bits or {}).items() if name.startswith('b')}
+    stack, m = [], 0
     for _, words in ops:
         op = words[0]
         if op in _META:
@@ -75,8 +79,9 @@ def _affine(ops):
                 if change is None:
                     return False
                 bits[bit] = old ^ change
-        elif dependent and op not in {'Z', 'CZ', 'CCZ'}:
-            # Outcome-controlled basis gates, reset, NEG and fractional rotations
+        elif dependent and op not in {'Z', 'CZ', 'CCZ', 'NEG'}:
+            # NEG has constant phase polynomial one, hence contributes active.
+            # Outcome-controlled basis gates, reset and fractional rotations
             # are not covered by this restricted theorem.
             return False
     return True
@@ -89,6 +94,11 @@ class Program:
     affine_hmr: bool
     fractional_phase: bool
     temporary_bit: int
+    affine_ops: tuple
+
+    def affine_hmr_with_inputs(self, initial_bits):
+        """Recheck outcome dependence at an explicit classical boundary."""
+        return _affine(self.affine_ops, initial_bits=initial_bits)
 
     def execute(self, sim, batch, check_time):
         stack = []
@@ -165,4 +175,5 @@ def compile_program(text):
                 flush()
     flush()
     return Program(tuple(segments), m, _affine(ops),
-                   any(words[0] == 'Z_POW' for _, words in ops), temporary_bit)
+                   any(words[0] == 'Z_POW' for _, words in ops), temporary_bit,
+                   tuple((i, tuple(words)) for i, words in ops))

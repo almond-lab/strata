@@ -189,7 +189,8 @@ def paid_skeleton(lines):
 
 def scan_circuit(circuit, out, *, source=None, start=0, stop=None,
                  max_window=8192, max_variables=128, max_terms=4096,
-                 max_groups=16, progress=None, progress_every=100000, clean_inputs=()):
+                 max_groups=16, progress=None, progress_every=100000, clean_inputs=(),
+                 range_unit='operation'):
     """Native census + disk-backed bounded semantic index of [start,stop).
 
     Budget cuts in an open classical scope are opaque, never reinterpreted as
@@ -197,6 +198,8 @@ def scan_circuit(circuit, out, *, source=None, start=0, stop=None,
     reference every occurrence in the index. Static counts are not mean costs.
     """
     from .semantic import analyze_window, _parse, _advance_zero_facts, _zeros_after, _trim_zero_facts
+    if range_unit not in {'operation', 'text-line'}:
+        raise StrataError('range_unit must be operation or text-line')
     if not isinstance(start, int) or start < 0 or (stop is not None and (not isinstance(stop, int) or stop <= start)):
         raise StrataError('range must be a nonempty nonnegative half-open interval')
     if min(max_window, max_variables, max_terms, max_groups, progress_every) <= 0:
@@ -218,6 +221,8 @@ def scan_circuit(circuit, out, *, source=None, start=0, stop=None,
         'CREATE TABLE skeletons (fingerprint TEXT PRIMARY KEY, native TEXT, paid INT, anchors INT, count INT); '
         'CREATE TABLE skeleton_occurrences (fingerprint TEXT, start INT, stop INT, linear_hash TEXT, syntax_hash TEXT, mapping TEXT, boundary TEXT); '
         'CREATE INDEX skeleton_group ON skeleton_occurrences(fingerprint);')
+    db.execute('CREATE TABLE IF NOT EXISTS scan_metadata (key TEXT PRIMARY KEY, value TEXT)')
+    db.execute('INSERT OR REPLACE INTO scan_metadata VALUES (?,?)', ('coordinate_unit', range_unit))
     begun = time.monotonic()
     census = Counter()
     buffer = []
@@ -235,10 +240,14 @@ def scan_circuit(circuit, out, *, source=None, start=0, stop=None,
     buffer_zero_inputs = dict(known_zero)
     canonical_hash = hashlib.sha256()
     last_index = 0
+    operation_index = 0
+    selected_text_start = selected_text_stop = None
+    selected_operation_start = selected_operation_stop = None
+    scanned_operations = 0
     stopped_before_eof = False
     def notify(done=False):
         if progress:
-            progress(dict(stage='scan_complete' if done else 'scan', scanned_operations=scanned,
+            progress(dict(stage='scan_complete' if done else 'scan', scanned_operations=scanned_operations,
                           recovered_occurrences=occurrences,
                           seconds=time.monotonic() - begun,
                           peak_rss_bytes=resource.getrusage(resource.RUSAGE_SELF).ru_maxrss * 1024))
@@ -304,18 +313,32 @@ def scan_circuit(circuit, out, *, source=None, start=0, stop=None,
     try:
         notify()
         with native_lines(circuit) as lines:
-            for i, raw in enumerate(lines):
+            for text_index, raw in enumerate(lines):
+                line = raw.rstrip('\r\n')
+                op = line.split(' ', 1)[0]
+                # Native circuit order includes INFO_TAG and control operations,
+                # but register declarations are serialization metadata only.
+                is_operation = op not in {'REGISTER', 'APPEND_TO_REGISTER'}
+                op_index = operation_index
+                operation_index += is_operation
+                if range_unit == 'operation' and not is_operation:
+                    continue
+                i = op_index if range_unit == 'operation' else text_index
                 last_index = i + 1
                 canonical_hash.update(raw.encode())
                 if stop is not None and i >= stop:
                     stopped_before_eof = True
                     break
-                line = raw.rstrip('\r\n')
-                op = line.split(' ', 1)[0]
                 if i < start:
                     if op == 'PUSH_CONDITION': depth += 1
                     if op == 'POP_CONDITION': depth = max(0, depth - 1)
                     continue
+                if selected_text_start is None:
+                    selected_text_start = text_index
+                    selected_operation_start = op_index
+                selected_text_stop = text_index + 1
+                selected_operation_stop = operation_index
+                scanned_operations += is_operation
                 if not buffer:
                     buffer_start = i
                     tainted = depth != 0
@@ -351,6 +374,7 @@ def scan_circuit(circuit, out, *, source=None, start=0, stop=None,
             sample = [dict(start=a, stop=b, wire_mapping=json.loads(m), boundary_zero_evidence=json.loads(z)) for a,b,m,z in db.execute(
                 'SELECT start,stop,mapping,zero_evidence FROM occurrences WHERE fingerprint=? LIMIT 8', (key,))]
             groups.append(dict(fingerprint=key, operations_per_occurrence=operations,
+                               range_unit=range_unit,
                                static_toffoli_per_occurrence=paid, occurrences=count,
                                aggregate_static_toffoli=paid*count,
                                semantics=json.loads(semantics), examples=sample, boundary=boundary,
@@ -367,6 +391,7 @@ def scan_circuit(circuit, out, *, source=None, start=0, stop=None,
                        for a,b,h,s,m,boundary in db.execute(
                            'SELECT start,stop,linear_hash,syntax_hash,mapping,boundary FROM skeleton_occurrences WHERE fingerprint=? LIMIT 8', (key,))]
             skeletons.append(dict(fingerprint=key, grouping='paid_skeleton_modulo_linear_layers',
+                                  range_unit=range_unit,
                                   occurrences=count, anchors_per_occurrence=anchors,
                                   static_toffoli_per_occurrence=paid, aggregate_static_toffoli=paid*count,
                                   linear_layer_variants=variants, operations_per_occurrence=dict(min=minimum,max=maximum),
@@ -388,7 +413,11 @@ def scan_circuit(circuit, out, *, source=None, start=0, stop=None,
                       source=str(source) if source else None,
                       source_sha256=file_hash(source) if source else None,
                       range=dict(start=start, stop=min(stop, last_index) if stop else last_index),
-                      scanned_operations=scanned, full_file_operations=len(circuit),
+                      range_unit=range_unit, occurrence_index_unit=range_unit,
+                      text_line_range=dict(start=selected_text_start, stop=selected_text_stop),
+                      operation_range=dict(start=selected_operation_start, stop=selected_operation_stop),
+                      range_convention='zero-based half-open; operation excludes REGISTER and APPEND_TO_REGISTER, includes INFO_TAG',
+                      scanned_operations=scanned_operations, full_file_operations=len(circuit),
                       scanned_instructions=scanned, full_scan=start==0 and not stopped_before_eof,
                       full_file_resources=dict(Q=circuit.num_qubits, toffoli=stats.num_toffoli_like,
                           t=stats.num_t_like, rotations=stats['Z_POW'], instructions=len(circuit), accounting='static_emitted'),

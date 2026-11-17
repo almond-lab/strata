@@ -1,5 +1,20 @@
 # Change log
 
+## 0.4.2 — 2026-11-17
+
+- Fix reported execution, scheduling, comparison and lab problems after v0.4.1;
+  see the [issue map](docs/POST-0.4.1-FIXES.md) for #60–85 and exact scope.
+- Make tiny exact prototypes, explicit scaling estimates, bounded full builds
+  and final-only expensive checks the default connected-agent research ladder.
+  A small pass never establishes full-size correctness.
+- Preserve scientific rejection evidence while recovering infrastructure
+  failures; guard artifact identity, draw completeness and calibration leakage.
+
+Validation: **844 full-suite tests passed**, plus **13 late range/floor
+regressions** and **27 actual sandbox checks**. A real tiny-to-full research
+workflow and the installed wheel passed independent smoke checks. See the
+[validation receipt](docs/V0.4.2-VALIDATION.json) for commands and limits.
+
 ## 0.4.1 — 2026-11-17
 
 Fixes eight reports filed against v0.4.0, #52–59. See the

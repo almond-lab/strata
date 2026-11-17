@@ -72,10 +72,40 @@ supply typed full-artifact receipts. The aggregate is labeled
 
 ## Exact and promised-input labs
 
-Every emitted wire needs a register owner. `clean` wires start and end at zero;
+Every emitted quantum wire needs a register owner. `clean` wires start and end at zero;
 `dirty` wires are initialized over the declared domain and restored regardless
 of reference output. Return original values explicitly for public registers
 that must remain unchanged.
+
+Quantum registers remain the default. Declare classical boundary registers with
+`Register('mask', (0, 1), namespace='classical')`. Quantum `q0` and classical
+`b0` are distinct owned locations, so they may share an index. Classical
+registers use the same `input`, `through`, `output`, `clean`, and `dirty` roles,
+are enumerated in the joint input domain, and are checked at return. A classical
+`dirty` value must be restored regardless of the reference; a `clean` value must
+start and finish at zero. Return the original value explicitly for a public
+mask that must be preserved. Declared classical indices must be inside the
+emitted circuit's classical storage. Undeclared classical bits remain internal
+storage initialized to zero, preserving existing quantum-only lab behavior.
+
+```python
+from strata.model import Contract, Register
+
+contract = Contract('controlled_x', (
+    Register('value', (0,)),
+    Register('mask', (0,), namespace='classical'),
+), 'value ^= mask')
+
+def reference(inputs, scale):
+    return {'value': inputs['value'] ^ inputs['mask'], 'mask': inputs['mask']}, 0
+# exhaustive(kickmix.Circuit('X q0 if b0'), contract, reference) checks 4 inputs.
+```
+
+Component labs inherit this namespace support. Contract fingerprints distinguish
+classical from quantum arguments while existing quantum-only fingerprints stay
+stable. Project edit checks preserve namespace. Ownership/information queries
+currently reject mixed or classical contracts explicitly; they do not reinterpret
+classical indices as qubit indices.
 
 ```python
 from strata.lab import exhaustive
@@ -97,6 +127,29 @@ branch. Native deterministic instruction runs are cached and batched. For the
 supported affine HMR dependency class, the compiler proves that zero and the
 unit outcome assignments suffice. Otherwise the lab enumerates all branches
 or refuses the budget. `branch_strategy='full'` forces enumeration for audits.
+With declared classical inputs, the lab rechecks that proof for every distinct
+classical assignment in the promised domain. The compiler's standalone
+`affine_hmr` flag describes the default-zero classical boundary only.
+
+Measured uncomputation with `Z`/`CZ`/`CCZ` repairs and conditioned `NEG` is
+supported when the qubit trajectory is independent of measurement outcomes and
+the phase is affine in those outcomes. Measurement alone does not imply a
+non-affine circuit. For example, 47 repaired affine measurements require 48
+executed branches per input.
+
+The native lab does **not** currently integrate the file evaluator's symbolic
+decision-diagram backend. Truly nonlinear outcome controls, such as a phase
+conditioned jointly on two independent HMR bits, or outcome-dependent basis
+operations, require all `2**hmr_count` branches unless the affine theorem proves
+their control identically inactive. Even a cancelling pair of nonlinear phase
+operations can fall outside this conservative theorem. A 47-measurement
+non-affine circuit therefore requires `2**47` branches per input, and 4,096
+inputs require `2**59` executed trajectories; the default 1,000,000 budget refuses
+that run without a certificate. The reported 46-qubit field-inverse artifact was
+not supplied, so its classification after the `NEG` fix has not been established.
+Increasing the budget does not make this method scalable. Fixed HMR seeds or a
+subset of branches provide sampled evidence only and must not be reported as
+exact. The lab's budget diagnostic states this limitation explicitly.
 
 Read receipts literally:
 

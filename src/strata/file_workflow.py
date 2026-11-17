@@ -67,7 +67,7 @@ def _source(path, out, *, writes_candidate=False):
 
 
 def inspect_file(path, out, *, cost='Q*(toffoli+t/4)', max_window=256, max_variables=64, max_terms=4096,
-                 clean_inputs=(),scan_range=None,progress=None,growth_window=None):
+                 clean_inputs=(),scan_range=None,progress=None,growth_window=None,range_unit='operation'):
     from .semantic import lift_regions
     from .file_profile import profile_regions
     source, root, circuit = _source(path, out)
@@ -75,6 +75,7 @@ def inspect_file(path, out, *, cost='Q*(toffoli+t/4)', max_window=256, max_varia
         from .streaming import scan_circuit
         start,stop=scan_range if scan_range else (0,None)
         result=scan_circuit(circuit,root/'stream',source=source,start=start,stop=stop,
+                           range_unit=range_unit,
                            max_window=max_window if growth_window is None else growth_window,max_variables=max_variables,max_terms=max_terms,progress=progress,clean_inputs=clean_inputs)
         _write_json(root/'result.json',result)
         return result
@@ -88,6 +89,7 @@ def inspect_file(path, out, *, cost='Q*(toffoli+t/4)', max_window=256, max_varia
     _write_json(root / 'contract-tree.json', asdict(tree))
     _write_json(root / 'profile.json',profile)
     result = dict(source=str(source), source_sha256=hashlib.sha256(source.read_bytes()).hexdigest(),
+                  source_range_unit='text-line',
                   artifact_sha256=hashlib.sha256(str(circuit).encode()).hexdigest(),
                   resources=Kickmix().measured(circuit), coverage=lift['coverage'],
                   regions=len(lift['regions']), opaque_spans=len(lift['unknown']),

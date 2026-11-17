@@ -1,5 +1,6 @@
 import argparse
 import json
+import re
 import sys
 from dataclasses import asdict
 from pathlib import Path
@@ -10,10 +11,20 @@ from .project import Design
 
 
 def _wire_list(value):
-    wires = tuple(int(item.strip()) for item in value.split(',')) if value.strip() else ()
-    if any(wire < 0 for wire in wires):
-        raise StrataError('wire indices must be nonnegative')
-    return wires
+    if not value.strip():
+        return ()
+    wires = []
+    for item in value.split(','):
+        match = re.fullmatch(r'\s*(\d+)\s*(?:(?:\.\.|-)\s*(\d+)\s*)?', item)
+        if not match:
+            raise StrataError('wire indices must be nonnegative integers, comma lists, or inclusive ranges such as 16..27 or 16-27')
+        start = int(match[1]); stop = int(match[2]) if match[2] is not None else start
+        if stop < start:
+            raise StrataError('wire range end must be at least its start')
+        if len(wires) + stop - start + 1 > 1_000_000:
+            raise StrataError('wire list expansion exceeds the 1000000-index limit')
+        wires.extend(range(start, stop + 1))
+    return tuple(wires)
 
 
 def _memory_status(store, contract, scale):
@@ -67,9 +78,13 @@ def main(argv=None):
             p.add_argument('candidate');p.add_argument('--hypothesis');p.add_argument('--regions')
             p.add_argument('--domain')
             p.add_argument('--max-proof-attempts',type=int,default=64)
+            p.add_argument('--measurement-mode', choices=('coupled', 'independent-map'), default='coupled')
+            p.add_argument('--internal-bits', default='', help='explicitly private classical outcome bits for independent-map checking')
         if name in {'inspect-file','discover','optimize','evaluate-file'}:p.add_argument('--clean-inputs',default='')
         if name in {'discover','inspect-file'}:
             p.add_argument('--range',dest='scan_range')
+            p.add_argument('--range-unit', choices=('operation', 'text-line'), default='operation',
+                           help='zero-based operation offsets (default) or original KMX text lines')
             p.add_argument('--growth-window',type=int,default=None,
                            help='streaming window cap; defaults to explicit --max-window, otherwise 8192')
             p.add_argument('--quiet-progress',action='store_true')
@@ -211,7 +226,7 @@ def main(argv=None):
                     scan_range=(int(parts[0]),int(parts[1]))
                 growth_window = (args.growth_window if args.growth_window is not None
                                  else args.max_window if args.max_window is not None else 8192)
-                options.update(scan_range=scan_range,growth_window=growth_window,
+                options.update(scan_range=scan_range,range_unit=args.range_unit,growth_window=growth_window,
                     progress=None if args.quiet_progress else lambda row:print(json.dumps(row),file=sys.stderr,flush=True))
             if args.cmd=='optimize':result=optimize_file(args.input,args.out,max_candidates=args.max_candidates,**options)
             elif args.cmd=='discover':
@@ -222,7 +237,8 @@ def main(argv=None):
                 hypothesis=json.loads(Path(args.hypothesis).read_text()) if args.hypothesis else None
                 regions=json.loads(Path(args.regions).read_text()) if args.regions else None
                 result=evaluate_candidate(args.input,args.candidate,args.out,hypothesis=hypothesis,regions=regions,
-                                          domain=args.domain,max_proof_attempts=args.max_proof_attempts,**options)
+                                          domain=args.domain,max_proof_attempts=args.max_proof_attempts,
+                                          measurement_mode=args.measurement_mode,internal_bits=_wire_list(args.internal_bits),**options)
             elif args.cmd=='note':
                 from .discovery import record_research_note
                 result=record_research_note(args.input,args.out,json.loads(Path(args.note).read_text()))

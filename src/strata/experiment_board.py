@@ -51,7 +51,7 @@ class ExperimentBoard:
         self.db.executescript('''
             CREATE TABLE IF NOT EXISTS experiment_board_config (
                 singleton INTEGER PRIMARY KEY CHECK(singleton=1), host TEXT NOT NULL,
-                capacity TEXT NOT NULL);
+                capacity TEXT NOT NULL, source TEXT NOT NULL DEFAULT 'explicit');
             CREATE TABLE IF NOT EXISTS experiment_board_jobs (
                 job_id TEXT PRIMARY KEY, experiment_id TEXT NOT NULL,
                 state TEXT NOT NULL, resources TEXT NOT NULL,
@@ -66,22 +66,56 @@ class ExperimentBoard:
                 record_handle TEXT NOT NULL);
         ''')
         with self._transaction():
-            row = self.db.execute('SELECT host, capacity FROM experiment_board_config WHERE singleton=1').fetchone()
+            columns = {row[1] for row in self.db.execute('PRAGMA table_info(experiment_board_config)')}
+            if 'source' not in columns:
+                self.db.execute("ALTER TABLE experiment_board_config ADD COLUMN source TEXT NOT NULL DEFAULT 'explicit'")
+            row = self.db.execute('SELECT host, capacity, source FROM experiment_board_config WHERE singleton=1').fetchone()
             if row:
                 if row[0] != self.host:
                     raise StrataError('experiment board belongs to another host')
-                self.capacity = json.loads(row[1])
-                if capacity is not None and _resources(capacity, capacity=True) != self.capacity:
-                    raise StrataError('experiment board capacity is immutable')
+                if capacity is not None:
+                    requested = _resources(capacity, capacity=True)
+                    if requested != json.loads(row[1]):
+                        if row[2] != 'default':
+                            raise StrataError('experiment board capacity is immutable for this run; configure an idle board explicitly')
+                        self._configure_capacity(requested)
+                    elif row[2] == 'default':
+                        self._configure_capacity(requested)
             else:
                 default = dict(threads=os.cpu_count() or 1,
                                memory_bytes=os.sysconf('SC_PAGE_SIZE') * os.sysconf('SC_PHYS_PAGES'),
                                storage_bytes=shutil.disk_usage(store.path).free)
-                self.capacity = _resources(default if capacity is None else capacity, capacity=True)
-                self.db.execute('INSERT INTO experiment_board_config VALUES (1,?,?)',
-                                (self.host, canonical(self.capacity)))
-                self._retain('experiment_board_capacity', dict(host=self.host, capacity=self.capacity))
-        self.capacity = MappingProxyType(self.capacity)
+                configured = _resources(default if capacity is None else capacity, capacity=True)
+                source = 'default' if capacity is None else 'explicit'
+                self.db.execute('INSERT INTO experiment_board_config(singleton,host,capacity,source) VALUES (1,?,?,?)',
+                                (self.host, canonical(configured), source))
+                self._retain('experiment_board_capacity', dict(host=self.host, capacity=configured, source=source))
+
+    @property
+    def capacity(self):
+        # Other processes may reconfigure an idle board. Never admit against a
+        # cached capacity after that transaction has committed.
+        row = self.db.execute('SELECT capacity FROM experiment_board_config WHERE singleton=1').fetchone()
+        return MappingProxyType(json.loads(row[0]))
+
+    def _configure_capacity(self, requested):
+        previous, source = self.db.execute('SELECT capacity,source FROM experiment_board_config WHERE singleton=1').fetchone()
+        previous = json.loads(previous)
+        self._discard_abandoned_queue()
+        if requested != previous and self.db.execute("SELECT 1 FROM experiment_board_jobs WHERE state IN ('queued','claimed','running','unreconciled') LIMIT 1").fetchone():
+            raise StrataError('experiment board capacity is immutable while queued or active jobs exist')
+        if requested == previous and source == 'explicit':
+            return
+        self.db.execute("UPDATE experiment_board_config SET capacity=?,source='explicit' WHERE singleton=1", (canonical(requested),))
+        self._retain('experiment_board_capacity', dict(host=self.host, capacity=requested,
+                     previous_capacity=previous, source='explicit', timestamp=time.time()))
+
+    def configure_capacity(self, capacity):
+        """Declare cooperative capacity; changes require an idle board."""
+        requested = _resources(capacity, capacity=True)
+        with self._transaction():
+            self._configure_capacity(requested)
+        return dict(self.capacity)
 
     @contextmanager
     def _transaction(self):
@@ -112,6 +146,19 @@ class ExperimentBoard:
             raise StrataError(f'unknown experiment attempt: {job_id}')
         return dict(zip((c[0] for c in cursor.description), row))
 
+    def job(self, job_id):
+        return self._public(self._row(job_id))
+
+    def _discard_abandoned_queue(self):
+        # A queued entry owns no child or resources. Only a proven dead
+        # submitter authorizes automatic withdrawal; legacy/unknown identities
+        # remain available for explicit cancellation.
+        rows = self.db.execute("SELECT job_id,owner_identity FROM experiment_board_jobs WHERE state='queued' AND owner_identity IS NOT NULL").fetchall()
+        for job_id, identity in rows:
+            if process_state(json.loads(identity)) == 'dead':
+                self.db.execute("UPDATE experiment_board_jobs SET state='cancelled',cancel_requested=1,updated=? WHERE job_id=?", (time.time(), job_id))
+                self._event(job_id, 'cancelled', reason='queued submitter exited before claim')
+
     def _owned(self, token):
         if not isinstance(token, str) or not token:
             raise StrataError('invalid experiment ownership token')
@@ -139,13 +186,13 @@ class ExperimentBoard:
         if not isinstance(experiment_id, str) or not experiment_id:
             raise StrataError('experiment identity must be a nonempty string')
         requested = _resources({} if resources is None else resources)
-        if any(requested[k] > self.capacity[k] for k in _RESOURCE_KEYS):
-            raise StrataError('attempt reservation exceeds immutable board capacity')
         job_id, now = uuid.uuid4().hex, time.time()
         with self._transaction():
+            if any(requested[k] > self.capacity[k] for k in _RESOURCE_KEYS):
+                raise StrataError('attempt reservation exceeds immutable board capacity')
             self.db.execute('''INSERT INTO experiment_board_jobs
-                (job_id,experiment_id,state,resources,created,updated) VALUES (?,?,'queued',?,?,?)''',
-                (job_id, experiment_id, canonical(requested), now, now))
+                (job_id,experiment_id,state,resources,owner_identity,created,updated) VALUES (?,?,'queued',?,?,?,?)''',
+                (job_id, experiment_id, canonical(requested), canonical(process_identity()), now, now))
             self._event(job_id, 'enqueued', experiment_id=experiment_id, attempt_id=job_id, resources=requested)
         return job_id
 
@@ -154,8 +201,15 @@ class ExperimentBoard:
         if not isinstance(owner, str) or not owner:
             raise StrataError('claim owner must be a nonempty name')
         with self._transaction():
+            self._discard_abandoned_queue()
             job = self._row(job_id)
             if job['state'] != 'queued':
+                return None
+            # Strict FIFO uses SQLite insertion order, unaffected by wall-clock
+            # adjustments or random job IDs. A large head reservation waits for
+            # existing work to drain before any younger request may claim.
+            first = self.db.execute("SELECT job_id FROM experiment_board_jobs WHERE state='queued' ORDER BY rowid LIMIT 1").fetchone()
+            if first[0] != job_id:
                 return None
             if self.db.execute('''SELECT 1 FROM experiment_board_jobs
                 WHERE experiment_id=? AND state IN ('claimed','running','unreconciled') LIMIT 1''',
@@ -166,7 +220,8 @@ class ExperimentBoard:
                 for name, value in json.loads(body).items():
                     usage[name] += value
             requested = json.loads(job['resources'])
-            if any(usage[name] + requested[name] > self.capacity[name] for name in _RESOURCE_KEYS):
+            capacity = self.capacity
+            if any(usage[name] + requested[name] > capacity[name] for name in _RESOURCE_KEYS):
                 return None
             token, now, identity = uuid.uuid4().hex + uuid.uuid4().hex, time.time(), process_identity()
             self.db.execute('''UPDATE experiment_board_jobs SET state='claimed', owner=?,
@@ -277,15 +332,35 @@ class ExperimentBoard:
         return value
 
     def snapshot(self):
-        cursor = self.db.execute('SELECT * FROM experiment_board_jobs ORDER BY created,job_id')
-        columns = [column[0] for column in cursor.description]
-        jobs = [self._public(dict(zip(columns, row))) for row in cursor.fetchall()]
+        with self._transaction():
+            self._discard_abandoned_queue()
+            cursor = self.db.execute('SELECT * FROM experiment_board_jobs ORDER BY rowid')
+            columns = [column[0] for column in cursor.description]
+            jobs = [self._public(dict(zip(columns, row))) for row in cursor.fetchall()]
+            capacity = dict(self.capacity)
+            source = self.db.execute('SELECT source FROM experiment_board_config WHERE singleton=1').fetchone()[0]
         reserved = {name: sum(j['resources'][name] for j in jobs if j['state'] in _ACTIVE) for name in _RESOURCE_KEYS}
-        return dict(host=self.host, capacity=dict(self.capacity), reserved=reserved, jobs=jobs,
-                    reservation_mode='cooperative', hard_aggregate_enforcement=False)
+        return dict(host=self.host, capacity=capacity, capacity_source=source, reserved=reserved, jobs=jobs,
+                    queue_policy='fifo', reservation_mode='cooperative', hard_aggregate_enforcement=False)
 
-    def events(self, after=0):
+    def event_page(self, after=0, *, types=None, exclude_types=None):
+        """Read filtered events and a cursor covering every examined event."""
         if type(after) is not int or after < 0:
             raise StrataError('event cursor must be a nonnegative integer')
-        rows = self.db.execute('SELECT seq,record_handle FROM experiment_board_events WHERE seq>? ORDER BY seq', (after,)).fetchall()
-        return [dict(self.store.get(handle, 'experiment_board_event'), seq=seq, record_handle=handle) for seq, handle in rows]
+        for names in (types, exclude_types):
+            if names is not None and (not isinstance(names, (list, tuple, set, frozenset)) or any(not isinstance(name, str) or not name for name in names)):
+                raise StrataError('event types must be a collection of nonempty strings')
+        # Fix an upper bound first so concurrently appended events cannot be
+        # skipped when the caller advances this cursor, including empty pages.
+        cursor = max(after, self.db.execute('SELECT COALESCE(MAX(seq),0) FROM experiment_board_events').fetchone()[0])
+        clauses, parameters = ['e.seq>?', 'e.seq<=?'], [after, cursor]
+        for names, operator in ((types, 'IN'), (exclude_types, 'NOT IN')):
+            if names:
+                clauses.append("json_extract(r.body,'$.type') " + operator + ' (' + ','.join('?' for _ in names) + ')')
+                parameters.extend(names)
+        rows = self.db.execute('SELECT e.seq,e.record_handle FROM experiment_board_events e JOIN records r ON r.id=e.record_handle WHERE ' + ' AND '.join(clauses) + ' ORDER BY e.seq', parameters).fetchall()
+        events = [dict(self.store.get(handle, 'experiment_board_event'), seq=seq, record_handle=handle) for seq, handle in rows]
+        return dict(events=events, cursor=cursor)
+
+    def events(self, after=0, *, types=None, exclude_types=None):
+        return self.event_page(after, types=types, exclude_types=exclude_types)['events']

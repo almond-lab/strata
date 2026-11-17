@@ -1,0 +1,344 @@
+{
+  "release": "0.4.2",
+  "date_utc": "2026-11-17",
+  "base_commit": "a4f4edd78d4a1a373b98b98578e1501cc9afde48",
+  "reported_issues": [
+    60,
+    61,
+    62,
+    63,
+    64,
+    65,
+    66,
+    67,
+    68,
+    69,
+    70,
+    71,
+    72,
+    73,
+    74,
+    75,
+    76,
+    77,
+    78,
+    79,
+    80,
+    81,
+    82,
+    83,
+    84,
+    85
+  ],
+  "full_suite": {
+    "command": ".venv/bin/python -m pytest -q",
+    "passed": 844,
+    "skipped": 6,
+    "failed": 0,
+    "seconds": 228.39,
+    "scope": "Full suite before the final13 range/floor regressions; default namespace cases skipped here and covered in real sandbox runs."
+  },
+  "late_regressions": {
+    "command": ".venv/bin/python -m pytest -q tests/test_wire_range_cli.py",
+    "passed": 13,
+    "failed": 0,
+    "seconds": 0.66
+  },
+  "real_sandbox": {
+    "schema": "strata-real-validation/1",
+    "recorded_at": "2026-11-17T16:38:07.542131+00:00",
+    "repository": "/home/dev/algorithms/strata",
+    "package_version": "0.4.2",
+    "base_commit": "a4f4edd78d4a1a373b98b98578e1501cc9afde48",
+    "source_tree_sha256": "232c14bd72ec2f98e986e94aa817c3f2c2625de8369e6d58c439e9194ab7a62b",
+    "source_hashes": {
+      "src/strata/experiments.py": "a28ca8b52df291b89fff13987719c8a7f2d037b09c4ee291eea2e804cc3d4b9b",
+      "src/strata/sandbox.py": "e207fd596c6536c02f58f3f138cd54c9f4028ab1ec3e4d47913d02e80f0c7055",
+      "src/strata/experiment_board.py": "142e5bc3f499409045e980147aead5948b01fd4685baa2d6becb74911b741556",
+      "src/strata/supervision.py": "ae18e406adaa42a6bbae3a7d83b27ac77bf4a8a79be0482e563cb6f58b6f8e9e"
+    },
+    "boundary": "actual bubblewrap-unshare-all; host validation commands ran with approved require_escalated permission",
+    "local_transport_fixture_installed": false,
+    "pytest": {
+      "command": "STRATA_REAL_SANDBOX=1 .venv/bin/pytest -q tests/test_v04_experiments.py::test_real_sandbox_reference_workloads tests/test_v041_staging.py::test_real_sandbox_suffix_import_callback_and_empty_log tests/test_v041_staging.py::test_verifier_rejection_never_requires_success_cost_fields tests/test_v041_comparisons.py::test_different_workers_output_paths_and_unused_settings_share_verified_contract tests/test_v04_supervision.py::test_real_bwrap_cancel_reaps_detached_descendant tests/test_v04_supervision.py::test_real_bwrap_supervisor_death_stops_namespace_and_reconciles tests/test_workflow_cli_v04.py --junitxml=/tmp/strata-042-real-pytest.xml",
+      "returncode": 0,
+      "passed": 11,
+      "skipped": 0,
+      "failed": 0,
+      "seconds": 28.622,
+      "junit": "/tmp/strata-042-real-pytest.xml",
+      "cases": [
+        "tests.test_v04_experiments::test_real_sandbox_reference_workloads[numeric.toml]",
+        "tests.test_v04_experiments::test_real_sandbox_reference_workloads[circuit.json]",
+        "tests.test_v04_experiments::test_real_sandbox_reference_workloads[words.json]",
+        "tests.test_v041_staging::test_real_sandbox_suffix_import_callback_and_empty_log",
+        "tests.test_v041_staging::test_verifier_rejection_never_requires_success_cost_fields[resources0]",
+        "tests.test_v041_staging::test_verifier_rejection_never_requires_success_cost_fields[resources1]",
+        "tests.test_v041_comparisons::test_different_workers_output_paths_and_unused_settings_share_verified_contract",
+        "tests.test_v04_supervision::test_real_bwrap_cancel_reaps_detached_descendant",
+        "tests.test_v04_supervision::test_real_bwrap_supervisor_death_stops_namespace_and_reconciles",
+        "tests.test_workflow_cli_v04::test_wrap_run_report_and_twenty_setting_sweep",
+        "tests.test_workflow_cli_v04::test_missing_artifact_cannot_finish_and_reuse_cannot_hide_dependency_drift"
+      ]
+    },
+    "execution_harness": {
+      "command": "STRATA_REAL_SANDBOX=1 .venv/bin/python /tmp/strata-real-execution-smoke.py > /tmp/strata-042-real-execution.log",
+      "harness_sha256": "a8d991841749616f4a73a6391def3938b8e6ebb8b985f4f9926df79768dfdbf9",
+      "returncode": 0,
+      "passed": 16,
+      "skipped": 0,
+      "failed": 0,
+      "stdout": "/tmp/strata-042-real-execution.log",
+      "cases": [
+        "frozen_source_remove=False_direct=False",
+        "frozen_source_remove=False_direct=True",
+        "frozen_source_remove=True_direct=False",
+        "frozen_source_remove=True_direct=True",
+        "frozen_directory",
+        "live_runtime_drift",
+        "mixed_live_runtime_drift",
+        "derived_cpu_child_success",
+        "explicit_cpu_child_failure",
+        "pinned_shell_literal_argv",
+        "verifier_only_metrics",
+        "worker_artifact_reuse",
+        "worker_execution_reuse",
+        "relative_output_collision",
+        "declared_input_output_collision",
+        "manifest_output_collision"
+      ]
+    },
+    "total": {
+      "passed": 27,
+      "skipped": 0,
+      "failed": 0
+    },
+    "scope_notes": [
+      "The CPU regression launches a real subprocess descendant, observes SIGXCPU at the explicit limit, and checks the verifier crash diagnostic; it does not run ProcessPoolExecutor itself.",
+      "PowerShell behavior is parser-tested elsewhere; no PowerShell interpreter was executed in this Linux validation.",
+      "Per-process rlimits and owned namespace cleanup were exercised; aggregate capacity reservations remain cooperative."
+    ]
+  },
+  "small_first_end_to_end": {
+    "after_tiny": {
+      "decision": "22d01f0c4363243639ea02086aa987ea0fc36bd1f7670b9eb4a6049a8447c59c",
+      "status": "ready"
+    },
+    "before_tiny": {
+      "reason": "research stage requires a retained tiny exact receipt or justified exception",
+      "status": "refused"
+    },
+    "bubblewrap": "bubblewrap 0.12.0",
+    "checks": {
+      "full_cases": 16,
+      "guard_admitted_with_evidence": true,
+      "guard_refused_without_evidence": true,
+      "no_active_or_queued_jobs": true,
+      "real_offline_owned_executions": 4,
+      "tiny_cases": 4,
+      "total_exact_cases": 20
+    },
+    "commands": [
+      {
+        "argv": [
+          "/home/dev/algorithms/strata/.venv/bin/python",
+          "/tmp/strata-042-smallfirst-real-0xlk30ks/store/attempts/6b2f7246b6fccc357beadb07899193f460d0fd70e9daa05e1fa166c92f046a45/8948477f843c451fb2bd1af835bf3d68/stage-0000/.strata/dependency/files/0c19eaea4eeba87e5a9e/generator.py",
+          "2"
+        ],
+        "experiment": "6b2f7246b6fccc357beadb07899193f460d0fd70e9daa05e1fa166c92f046a45",
+        "record": "7b16e1008de2af49b636f03212b7917986c1d2128757244de5903c5f6c86542a",
+        "returncode": 0,
+        "sandbox": "bubblewrap-unshare-all",
+        "seconds": 0.16577333700843155
+      },
+      {
+        "argv": [
+          "/home/dev/algorithms/strata/.venv/bin/python",
+          "/tmp/strata-042-smallfirst-real-0xlk30ks/store/attempts/6b2f7246b6fccc357beadb07899193f460d0fd70e9daa05e1fa166c92f046a45/8948477f843c451fb2bd1af835bf3d68/verifier/.strata/dependency/files/0c19eaea4eeba87e5a9e/checker.py",
+          "/tmp/strata-042-smallfirst-real-0xlk30ks/store/attempts/6b2f7246b6fccc357beadb07899193f460d0fd70e9daa05e1fa166c92f046a45/8948477f843c451fb2bd1af835bf3d68/verifier/.strata/artifacts/candidate/candidate.json",
+          "2"
+        ],
+        "experiment": "6b2f7246b6fccc357beadb07899193f460d0fd70e9daa05e1fa166c92f046a45",
+        "record": "9232351dff2ed7a1f381dba11714dff15cd34904536743a52b142fcfa85c1696",
+        "returncode": 0,
+        "sandbox": "bubblewrap-unshare-all",
+        "seconds": 0.16301230597309768
+      },
+      {
+        "argv": [
+          "/home/dev/algorithms/strata/.venv/bin/python",
+          "/tmp/strata-042-smallfirst-real-0xlk30ks/store/attempts/799205541e0ebd9238054f38eb22f603c79b345dfc6bd9fa81b6b765a4fe9730/f0c7f21ec88a49c18050e5026684c75f/stage-0000/.strata/dependency/files/0c19eaea4eeba87e5a9e/generator.py",
+          "4"
+        ],
+        "experiment": "799205541e0ebd9238054f38eb22f603c79b345dfc6bd9fa81b6b765a4fe9730",
+        "record": "73bd0b60e00d6fdcc8a6ab60196e7f905879f4532435167532a089190fc12e4c",
+        "returncode": 0,
+        "sandbox": "bubblewrap-unshare-all",
+        "seconds": 0.07288698805496097
+      },
+      {
+        "argv": [
+          "/home/dev/algorithms/strata/.venv/bin/python",
+          "/tmp/strata-042-smallfirst-real-0xlk30ks/store/attempts/799205541e0ebd9238054f38eb22f603c79b345dfc6bd9fa81b6b765a4fe9730/f0c7f21ec88a49c18050e5026684c75f/verifier/.strata/dependency/files/0c19eaea4eeba87e5a9e/checker.py",
+          "/tmp/strata-042-smallfirst-real-0xlk30ks/store/attempts/799205541e0ebd9238054f38eb22f603c79b345dfc6bd9fa81b6b765a4fe9730/f0c7f21ec88a49c18050e5026684c75f/verifier/.strata/artifacts/candidate/candidate.json",
+          "4"
+        ],
+        "experiment": "799205541e0ebd9238054f38eb22f603c79b345dfc6bd9fa81b6b765a4fe9730",
+        "record": "d190c7f688f313ffa0371b74aa68611e3d1c04f98b599b0072fd6658e5ecd49d",
+        "returncode": 0,
+        "sandbox": "bubblewrap-unshare-all",
+        "seconds": 0.17044837004505098
+      }
+    ],
+    "final_preflight": {
+      "decision": "2f42bfa1665c800ad2df0161d7efe4693fa9c942abca396922b6a4b909fcbe26",
+      "status": "ready"
+    },
+    "finished_at": 1794933720.36763,
+    "full": {
+      "artifact_sha256": "51df5074592ed5e968eff9eb49d8414ddfaa70a262454e11e4e9ca8bd4613c48",
+      "checked_cases": 16,
+      "checker_seconds": 0.000155959976837039,
+      "exact_check": {
+        "artifact_sha256": "51df5074592ed5e968eff9eb49d8414ddfaa70a262454e11e4e9ca8bd4613c48",
+        "checked_cases": 16,
+        "complete": true,
+        "expected_cases": 16,
+        "method": "exhaustive",
+        "passed": true,
+        "scale": {
+          "n": 4
+        }
+      },
+      "experiment": "799205541e0ebd9238054f38eb22f603c79b345dfc6bd9fa81b6b765a4fe9730",
+      "finish": "fca8231ab98f7bdc40233bab764b8cd514a1b46587fcdd335b3b6763651ae24a",
+      "status": "accepted_by_verifier",
+      "verified_cost": 16.0,
+      "wall_seconds": 0.49380870582535863
+    },
+    "imported_source": "/home/dev/algorithms/strata/src/strata/experiments.py",
+    "installed_distribution_metadata": "0.4.2",
+    "invocation": [
+      "/home/dev/algorithms/strata/.venv/bin/python",
+      "/tmp/strata-042-smallfirst-real.py"
+    ],
+    "predicted_full_wall_seconds": 2.2019189121201634,
+    "resource_prediction": "091b115408c592510bdc9bf6193cc01662b5b59b65a42cd51a0e8a6f6b32d962",
+    "scope": "Real bubblewrap offline end-to-end workflow at n=2 and n=4 only. Tiny success did not establish full correctness; the full artifact was independently checked on all 16 inputs. The scaling prediction is a model, not a large-instance performance claim.",
+    "source_hashes": {
+      "/home/dev/algorithms/strata/src/strata/experiments.py": "a28ca8b52df291b89fff13987719c8a7f2d037b09c4ee291eea2e804cc3d4b9b",
+      "/home/dev/algorithms/strata/src/strata/research_ladder.py": "be55a1b37932851531269d1cfdb59b0639c04108129a964dd515f3e4b616ef03",
+      "/tmp/strata-042-smallfirst-real-0xlk30ks/checker.py": "f908a99805ccd9bcfd85330829984ca330b032e73b3ea84cfbfee6fcf4b753a3",
+      "/tmp/strata-042-smallfirst-real-0xlk30ks/generator.py": "c1b71969112d46081f58e8a42dceed795a61e8049438cb79637fa8933d14583c",
+      "/tmp/strata-042-smallfirst-real-0xlk30ks/manifest.json": "f4397fbabcdb8a28195e77add57fe92564eab83cca8ca977e33948974c9a28fd"
+    },
+    "source_version": "0.4.2",
+    "status": "passed",
+    "store": "/tmp/strata-042-smallfirst-real-0xlk30ks/store",
+    "tiny": {
+      "artifact_sha256": "168b8f1842bd9e31dde49b55c2a78c1689de1d5858a172a650094ceef9ff2848",
+      "checked_cases": 4,
+      "checker_seconds": 0.00015333900228142738,
+      "exact_check": {
+        "artifact_sha256": "168b8f1842bd9e31dde49b55c2a78c1689de1d5858a172a650094ceef9ff2848",
+        "checked_cases": 4,
+        "complete": true,
+        "expected_cases": 4,
+        "method": "exhaustive",
+        "passed": true,
+        "scale": {
+          "n": 2
+        }
+      },
+      "experiment": "6b2f7246b6fccc357beadb07899193f460d0fd70e9daa05e1fa166c92f046a45",
+      "finish": "6ba266805ffd13b2ad65f8b3c38d37a9a041e07f9f4c33b1ae539221eae344c2",
+      "status": "accepted_by_verifier",
+      "verified_cost": 4.0,
+      "wall_seconds": 0.5504797280300409
+    },
+    "tiny_check": "45674ad2d50857109169b1397865ebc6bb9250dfb27a02a47093e69ddcf531b9",
+    "tiny_decision": "c46745724bb521ee2066d116fbb69a1605570305304f5b4f11c0ceb3208cd902",
+    "workspace": "/tmp/strata-042-smallfirst-real-0xlk30ks"
+  },
+  "installed_wheel": {
+    "status": "passed",
+    "version": "0.4.2",
+    "module": "/tmp/strata-v042-installed/strata/__init__.py",
+    "classical_lab_cases": 4,
+    "research_default": "tiny_exact",
+    "python_module_cli": true,
+    "inclusive_wire_ranges": true,
+    "cwd": "/tmp",
+    "wheel_sha256": "cb9424737a7ab07ab4418422761205b223b326fab1187a28324ad1c52d0ca8ea"
+  },
+  "production_source_hashes": {
+    "src/strata/__init__.py": "d8daf0b8fc5265804d5729e50d9a1b6e5cdeb45341ae1edabb9ac06f307dbbf5",
+    "src/strata/__main__.py": "57224c899e9a2b143b8a69a2c2724b8b18e12a8f988e6e8620930ff979ff5331",
+    "src/strata/acceptance.py": "c3fdf22443d066dd50244807c5058b19e94fb91cff7b7bf22374d20f55fdea43",
+    "src/strata/artifacts.py": "d8f56ca3b645f54fd2256d0726d72a4e6f294044f885bdbaca5cdf53bf3a96f5",
+    "src/strata/blocks.py": "6d10e59eab00bd31afed519135371a4ce360d875e321be4a04839ee3c0787697",
+    "src/strata/bundle.py": "887cf68778bb8044bd88b1ff7361f5e0323c4624a88bf11e5a3fb0ab130e2cb8",
+    "src/strata/callbacks.py": "bc7a94aa801bbb88f04722beb23a5bc7da63a861405fc18ddcd27a6ec70670db",
+    "src/strata/candidate_search.py": "5cfcd03a7f81e7f81425e4fefc8d5b1239521e105009a991dc298080ad97212f",
+    "src/strata/circuit_tape.py": "f4accf25d6108dc2004418b6efb5a48121b8574311888fdaa18c7d3f67830d13",
+    "src/strata/cli.py": "8e005724f3b0ea911eb0cb5bf2117aa76f9c232690a904a48c84b455bc327b49",
+    "src/strata/component_lab.py": "49336e17d4ce8be6f5c10e0eafbfd520df01d471c79dab2f4a6960dd625ba4cb",
+    "src/strata/cost.py": "56aa40d278a5146ba8567c1a2e15e751addf3844726dc7b589279d9c29f0c1d9",
+    "src/strata/declarative.py": "ee9329012564e53acfe86332ad8970844caac1fa279bcb52987243520e41d2ec",
+    "src/strata/demo.py": "b7ef2818401bd9d1b4809408e2bc334e39aef9bf5173e6a1db5a3a7867530dbd",
+    "src/strata/discovery.py": "9ae05f1bf84d8e819d4bb8235a38da848f23a57a86f8ff561a6fdbd4186a982b",
+    "src/strata/domains.py": "3bbfc013ad7875ee7734b856e81b55ba8c8b0ffb2875b0f9da5ef2aa842c45e2",
+    "src/strata/engine.py": "62e6747e8093711caedf0c84dea87fb83f5d16fba3e21304648434d7e7b66304",
+    "src/strata/experiment_board.py": "142e5bc3f499409045e980147aead5948b01fd4685baa2d6becb74911b741556",
+    "src/strata/experiment_cli.py": "837cb837345ab962363e21338880924677c19cb19601506bae0c701aa5e0a547",
+    "src/strata/experiment_comparisons.py": "77d7924a0952c1d0aa45e68c5871393873274a83019169fe34ac078641aedc77",
+    "src/strata/experiment_observations.py": "8121eaaca318fe986e1491f50c56ef23b5544a2b3fb40a900d8b64e7a86cae4e",
+    "src/strata/experiment_policy.py": "768d348f6efc224e5d71f5d3f2cd492b53e9bbc2327a55960f7aaabbee57232b",
+    "src/strata/experiment_reports.py": "5b8d1fbe4b4bccbfe2c1aaa1cffdf55a32e9f027a831683812fff028dda4bea6",
+    "src/strata/experiments.py": "a28ca8b52df291b89fff13987719c8a7f2d037b09c4ee291eea2e804cc3d4b9b",
+    "src/strata/factored.py": "baf6d482f51a8a1d1216c23cbfbafc84e1d10ec0246968ddd07eabf8e4f24cef",
+    "src/strata/factored_semantic.py": "0fcde83449d918233fb0c51d2e82866cab1bbd71e60a163a6668350b070a30cf",
+    "src/strata/file_optimizer.py": "e61a527e8a979e4d09feb4d6ca80bf4763751d3e3d46e850584bcc8e645ed87b",
+    "src/strata/file_profile.py": "730fc9cf207ca1b6e27ffd9bca096fe950a896417d9f4fb13ac5e64b49f6a4ed",
+    "src/strata/file_workflow.py": "6ac0e7c7699948be049aacfc92d50c509b685f2b236e9290de459690aa205a11",
+    "src/strata/floors.py": "69bac139117178972bb159f0254a26916f541c50543da5b40b3022699a01e7cf",
+    "src/strata/frontends.py": "0fcb46fabc26b3fff9a46ff06252096539cc6c38895eda15debc58166815f29d",
+    "src/strata/inference.py": "639ae5a001c0cf3c5283e0a3f8327239ced9567c736c1857e44f902069f89879",
+    "src/strata/kickmix.py": "26e104d3d58a2c8f18c4261451ba663d0719bac1f6a6b860abfa3f865410b9c0",
+    "src/strata/lab.py": "982f6806ac91457d7c54b2b0701627c5bc2833777377ccb46ba5ba378c06c7d1",
+    "src/strata/lab_program.py": "054c4a045c3bb898c2b0d8387c9ae24fb9f2468d2f3f6e474f65d1eb6d33d033",
+    "src/strata/lookup.py": "635ff426587ba7ff159d0d1eb64f155649f46e607dc62e5a07008bb946e8cb7e",
+    "src/strata/memory.py": "80ac287b4041d06fc59ecf3825255a439d1a713aa17c7f6d5a1f6dd2b3e2d057",
+    "src/strata/model.py": "168b2e3baab4cce4b353f26d286fd1227242031719e64c84988e0ec3cd657e63",
+    "src/strata/numeric.py": "44e3dc8de973757dc5e89fff95922743d760e8f59fdf1ed20aff87858c03f12e",
+    "src/strata/numeric_candidates.py": "723c3999074e1818df08e8ddbf020c336cf3ce0b03b5270cf62fd00497feb14f",
+    "src/strata/numeric_jobs.py": "40c557ed08766fd5b1808da3ea732459f42e08c2b3f8e3090587bd2485ab990a",
+    "src/strata/numeric_models.py": "48c24833a292fd804d21c708b760d4775cb3d7f9abc2e7cf038df1fce3acef2b",
+    "src/strata/probability.py": "cb91fde7925824d1db47e74af05f173c1e506d022d09d27c45d36b2311183974",
+    "src/strata/project.py": "770326b0b7b536b5d04188f16cc407b3c1d4fdcafcc26f52ff1969a9f179abf5",
+    "src/strata/protocols.py": "ec95195a8639433b89670f5d2cc8810dbae6ffe02241f4ed5e1295940fd68645",
+    "src/strata/queries.py": "bc52925aacda9439648f62ed7fdf6ea0d36c59419561a5dc55126ee8068b704a",
+    "src/strata/region_evidence.py": "0253cca7f1130b758230c4d5502af9c63ad406e5236d075bb0a22188e2133eb1",
+    "src/strata/reports.py": "6652b2df08c7e16ae19a4e61d2095027ee1f4251d9f8f9268ed190659a749ceb",
+    "src/strata/research.py": "fe98677869015f3ee65a131c4d2335cd5259830ba9c64b93c8115a99c4568907",
+    "src/strata/research_ladder.py": "be55a1b37932851531269d1cfdb59b0639c04108129a964dd515f3e4b616ef03",
+    "src/strata/restructure.py": "eefc344bc5034f8ab603a388b2b08a25b6fd4dc8e2d6f5f452ce7aab6001715c",
+    "src/strata/sandbox.py": "e207fd596c6536c02f58f3f138cd54c9f4028ab1ec3e4d47913d02e80f0c7055",
+    "src/strata/screening_evidence.py": "4bd944fe62ac6087b0bb53a1346826c4a4738751c384a509607c44601c4e1860",
+    "src/strata/semantic.py": "6f2a1f7589570a1d7b9973bce547b1cedcc1be811e6cfa8a1968a9bb4f482e50",
+    "src/strata/store.py": "4c2065b8c97bbc6b8546415dac993de09fc1197ae9c5776008054669839a73d5",
+    "src/strata/streaming.py": "a1b0ee25124d13d415d7490360dae8e646e306030568152b4b8854ed444621fa",
+    "src/strata/supervision.py": "ae18e406adaa42a6bbae3a7d83b27ac77bf4a8a79be0482e563cb6f58b6f8e9e",
+    "src/strata/tensor.py": "6833d1b939cc9d07109d8c6caabd2c3344e7bf1e10f2708d025c3e31b1e9ec17",
+    "src/strata/trace.py": "f03820931815be5ed6c4a66a7bbe8e263742b14cccb89170f48ae7d54c2f1e3d"
+  },
+  "ci": "GitHub Actions runs the complete suite and installed-wheel smoke against the published commit; consult that commit's checks.",
+  "limits": [
+    "No original51M-line circuit rerun; bounded alignment regression240003lines.",
+    "No general nonlinear-HMR symbolic lab backend; documented limit remains.",
+    "No measurement-aware gate floor; Boolean floor scope remains explicit.",
+    "No competition optimization or score gain claimed.",
+    "Small-instance evidence and scaling models do not prove full-size correctness.",
+    "Legacy unlabelled research decisions remain advisory; opaque command scale is not inferred."
+  ]
+}

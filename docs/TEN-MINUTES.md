@@ -6,6 +6,9 @@ adapter. This guide assumes an installed Strata environment and Linux with
 bubblewrap/user namespaces available. It runs offline; it does not submit results
 to a competition.
 
+The same CLI is available as `python -m strata` (use the interpreter from your
+environment). A source checkout can use `PYTHONPATH=src python -m strata`.
+
 ## Try an included pipeline
 
 From a source checkout, the reference fit has a separate verifier and a declared
@@ -30,6 +33,15 @@ non-contest examples exercise the same API:
 ```
 
 ## Wrap your script
+
+If the existing script launches its own `bwrap`, adapt its **inner** invocation
+to run the payload directly inside Strata's sandbox. Some Linux/AppArmor policies
+allow the outer sandbox but forbid nested user namespaces. Keep Strata's outer
+sandbox enabled; it provides no network, read-only host mounts, private temporary
+storage and the declared writable workspace. Preserve the original script's
+explicit environment and input declarations (for example, `env -i` plus its
+required variables). Test the adapted wrapper before a long sweep. A nested
+namespace failure is an infrastructure failure, not evidence against a candidate.
 
 For an existing `fit.py` that accepts a step count and writes `result.json` with
 a numeric `loss` field:

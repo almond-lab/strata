@@ -61,8 +61,11 @@ def effective_limits(*, timeout=60, max_output=1_000_000, memory_bytes=2*1024**3
     cpu_seconds = max(1, math.ceil(timeout)) if cpu_seconds is None else cpu_seconds
     values = dict(memory_bytes=memory_bytes, max_file_bytes=max_file_bytes,
                   cpu_seconds=cpu_seconds, max_output=max_output)
-    if any(type(value) is not int or value <= 0 for value in values.values()):
-        raise StrataError('sandbox resource limits must be positive integers')
+    for name, value in values.items():
+        if type(value) is float and math.isfinite(value) and value.is_integer():
+            value = values[name] = int(value)
+        if type(value) is not int or value <= 0:
+            raise StrataError(f'sandbox {name} must be a positive integer')
     return dict(timeout=timeout, **values)
 
 
@@ -96,6 +99,7 @@ def run(argv, workdir, timeout=60, max_output=1_000_000, memory_bytes=2*1024**3,
         raise StrataError('hard aggregate quotas require delegated cgroups; unsupported by this backend')
     configured = effective_limits(timeout=timeout, max_output=max_output, memory_bytes=memory_bytes,
                                   max_file_bytes=max_file_bytes, cpu_seconds=cpu_seconds)
+    memory_bytes, max_file_bytes, max_output = (configured[key] for key in ('memory_bytes', 'max_file_bytes', 'max_output'))
     if environment is not None and env_overrides is not None:
         raise StrataError('declare environment only once')
     explicit_env = declared_environment(environment if environment is not None else env_overrides)
@@ -211,6 +215,13 @@ def run(argv, workdir, timeout=60, max_output=1_000_000, memory_bytes=2*1024**3,
     for diagnostic in ('MemoryError', 'Failed to allocate', 'Cannot allocate memory'):
         if diagnostic in output:
             diagnosis['evidence'].append(f'{diagnostic}; possible address-space limit {memory_bytes} bytes reached')
+    # A verifier can catch a child failure and exit zero. Keep its execution
+    # receipt, but expose that failure so it cannot masquerade as a verdict.
+    for diagnostic in ('BrokenProcessPool', 'A process in the process pool was terminated abruptly',
+                       'concurrent.futures.process.BrokenProcessPool'):
+        if diagnostic in output:
+            diagnosis['kind'] = 'descendant_process_failed'
+            diagnosis['evidence'].append(f'{diagnostic}; child termination cause is unconfirmed')
     if error:
         diagnosis['evidence'].append(error)
     result = dict(argv=list(argv), sandbox='bubblewrap-unshare-all', returncode=code,

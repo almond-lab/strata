@@ -9,6 +9,8 @@ from __future__ import annotations
 
 from difflib import SequenceMatcher
 from collections import Counter
+from contextlib import ExitStack
+from functools import lru_cache
 import hashlib
 import json
 from pathlib import Path
@@ -55,9 +57,9 @@ def _bounds(max_window, max_variables, max_terms):
     return limits
 
 
-def _artifact(path, circuit, formula):
+def _artifact(path, circuit, formula, canonical_hash=None):
     resources = Kickmix().measured(circuit)
-    return dict(path=str(path), sha256=_hash(str(circuit)),
+    return dict(path=str(path), sha256=canonical_hash or _hash(str(circuit)),
                 source_sha256=_source_hash(path), resources=resources, cost=formula(resources))
 
 
@@ -79,11 +81,15 @@ def _opcodes(old, new):
            old[len(old) - suffix - 1] == new[len(new) - suffix - 1]):
         suffix += 1
     old_end, new_end = len(old) - suffix, len(new) - suffix
-    middle = SequenceMatcher(None, old[prefix:old_end], new[prefix:new_end],
-                             autojunk=max(old_end-prefix, new_end-prefix) > 100_000)
     result = [('equal', 0, prefix, 0, prefix)] if prefix else []
-    result += [(tag, a+prefix, b+prefix, c+prefix, d+prefix)
-               for tag, a, b, c, d in middle.get_opcodes()]
+    # Bound both materialization and quadratic repetitive matching. Large
+    # unmatched middles remain explicit; common ends never enter the matcher.
+    if max(old_end-prefix, new_end-prefix) > 4096:
+        result.append(('replace', prefix, old_end, prefix, new_end))
+    else:
+        middle = SequenceMatcher(None, old[prefix:old_end], new[prefix:new_end], autojunk=False)
+        result += [(tag, a+prefix, b+prefix, c+prefix, d+prefix)
+                   for tag, a, b, c, d in middle.get_opcodes()]
     if suffix:
         result.append(('equal', old_end, len(old), new_end, len(new)))
     return result
@@ -258,10 +264,12 @@ def _local_proofs(old, new, changes, opcodes, requested, limits, max_attempts):
     for interval in intervals:
         a, b = interval['start'], interval['stop']
         c, d = interval['candidate_start'], interval['candidate_stop']
-        if a < old_at or c < new_at or old[old_at:a] != new[new_at:c]:
+        from .circuit_tape import same_span
+        if a < old_at or c < new_at or not same_span(old, old_at, a, new, new_at, c):
             return finish('outside_proof_interval_changed')
         old_at, new_at = b, d
-    if old[old_at:] != new[new_at:]:
+    from .circuit_tape import same_span
+    if not same_span(old, old_at, len(old), new, new_at, len(new)):
         return finish('outside_proof_interval_changed')
     return finish(None, True)
 
@@ -307,12 +315,16 @@ def _feedback(report):
 
 def _retain(report, original_bytes, candidate_bytes, root):
     store = Store(root / '.strata')
-    if original_bytes is not None:
-        report['baseline']['blob'] = store.blob(original_bytes)
-    if candidate_bytes is not None:
-        report['candidate']['blob'] = store.blob(candidate_bytes)
+    for side, artifact in (('baseline', original_bytes), ('candidate', candidate_bytes)):
+        if artifact is None:
+            continue
+        retained = store.blob_file(artifact) if isinstance(artifact, Path) else store.blob(artifact)
+        expected = report[side].get('sha256') or report[side].get('source_sha256')
+        if retained != expected:
+            raise StrataError(f'{side} artifact changed before retention; retry with a stable file')
+        report[side]['blob'] = retained
     report['code'] = {name:store.blob((Path(__file__).parent / name).read_bytes())
-                      for name in ('semantic.py', 'factored.py', 'factored_semantic.py', 'streaming.py', 'domains.py', 'discovery.py', 'frontends.py')}
+                      for name in ('semantic.py', 'factored.py', 'factored_semantic.py', 'streaming.py', 'domains.py', 'discovery.py', 'frontends.py', 'circuit_tape.py', 'lab_program.py')}
     handle = store.put('file_candidate_preflight' if report['kind'] == 'file_candidate_preflight'
                        else 'file_candidate_attempt', report)
     report['record'] = handle
@@ -450,6 +462,11 @@ def _recovery_targets(circuit, lifted, profile, source, root, store, max_targets
     spans = []
     intervals = [(ex['start'], ex['stop']) for group in (kernel_scan or {}).get('groups', [])
                  for ex in group['examples'][:1]]
+    if (kernel_scan or {}).get('range_unit') == 'operation':
+        operation_lines = [i for i, line in enumerate(lines)
+                           if line.split(' ', 1)[0] not in {'REGISTER', 'APPEND_TO_REGISTER'}]
+        operation_lines.append(len(lines))
+        intervals = [(operation_lines[a], operation_lines[b]) for a, b in intervals]
     for a, b in intervals:
         body = '\n'.join(lines[a:b])
         fragment = km.Circuit(body)
@@ -564,9 +581,88 @@ def _finite_clean_restoration(original, candidate, promise, clean, outcome_count
     return dict(restored=True)
 
 
+def _stream_clean_restoration(lines, clean, max_facts):
+    """Bounded constant propagation, including reset legality, over the artifact.
+
+    This can establish restoration after an arbitrary-boundary local rewrite
+    without attempting a whole-artifact polynomial. Losing a fact is unknown.
+    HMR phase is preserved by the separate local equivalence proof.
+    """
+    constants = dict.fromkeys(clean, 0)
+    depth, evictions = 0, 0
+    limit = max(max_facts, len(clean))
+    reset_unknown = False
+    parse = lru_cache(maxsize=256)(_parse)
+    for at, line in enumerate(lines):
+        item = parse(line)
+        op, qs = item['op'], item['wires']
+        if item['status'] == 'metadata':
+            continue
+        if item['status'] != 'supported':
+            constants.clear()
+            reset_unknown = True
+            continue
+        conditional = bool(depth or item.get('condition'))
+        if op == 'PUSH_CONDITION':
+            depth += 1
+        elif op == 'POP_CONDITION':
+            depth = max(0, depth - 1)
+        elif op == 'R':
+            reset_unknown |= constants.get(qs[0]) != 0
+        elif op == 'HMR':
+            if not conditional:
+                constants[qs[0]] = 0
+            elif constants.get(qs[0]) != 0:
+                constants.pop(qs[0], None)
+        elif op in {'X', 'CX', 'CCX'}:
+            controls, target = qs[:-1], qs[-1]
+            if any(constants.get(q) == 0 for q in controls):
+                continue
+            if not conditional and all(constants.get(q) == 1 for q in controls) and target in constants:
+                constants[target] ^= 1
+            else:
+                constants.pop(target, None)
+        elif op in {'SWAP', 'CSWAP'}:
+            if op == 'CSWAP' and constants.get(qs[0]) == 0:
+                continue
+            a, b = qs[-2:]
+            va, vb = constants.get(a), constants.get(b)
+            certain = not conditional and (op == 'SWAP' or constants.get(qs[0]) == 1)
+            if certain or va == vb:
+                for q, value in ((a, vb), (b, va)):
+                    if value is None:
+                        constants.pop(q, None)
+                    else:
+                        constants[q] = value
+            else:
+                constants.pop(a, None)
+                constants.pop(b, None)
+        while len(constants) > limit:
+            constants.pop(next(iter(constants)))
+            evictions += 1
+    restored = not reset_unknown and not depth and all(constants.get(q) == 0 for q in clean)
+    return dict(restored=True if restored else None, evidence='bounded_constant_transport_and_reset_obligations',
+                reason=None if restored else 'clean_restoration_semantics_unavailable',
+                max_facts=limit, fact_evictions=evictions,
+                unresolved_zero_outputs=[q for q in clean if constants.get(q) != 0],
+                unresolved_reset_legality=reset_unknown)
+
+
 def evaluate_candidate(original_path, candidate_path, out, *, cost=DEFAULT_COST,
                        hypothesis=None, regions=None, max_window=256,
-                       max_variables=64, max_terms=4096, domain=None, clean_inputs=(), max_proof_attempts=64):
+                       max_variables=64, max_terms=4096, domain=None, clean_inputs=(), max_proof_attempts=64,
+                       measurement_mode='coupled', internal_bits=()):
+    with ExitStack() as tapes:
+        return _evaluate_candidate(original_path, candidate_path, out, cost=cost,
+            hypothesis=hypothesis, regions=regions, max_window=max_window,
+            max_variables=max_variables, max_terms=max_terms, domain=domain,
+            clean_inputs=clean_inputs, max_proof_attempts=max_proof_attempts,
+            measurement_mode=measurement_mode, internal_bits=internal_bits, tapes=tapes)
+
+
+def _evaluate_candidate(original_path, candidate_path, out, *, cost, hypothesis, regions,
+                        max_window, max_variables, max_terms, domain, clean_inputs,
+                        max_proof_attempts, measurement_mode, internal_bits, tapes):
     """Measure and retain an AI-authored file candidate without a TaskAdapter.
 
     Ranges use zero-based half-open indices in canonical source text.  They
@@ -574,6 +670,10 @@ def evaluate_candidate(original_path, candidate_path, out, *, cost=DEFAULT_COST,
     A failed boundary proof does not claim a task-domain failure.
     """
     limits = _bounds(max_window, max_variables, max_terms)
+    if measurement_mode not in {'coupled', 'independent-map'}:
+        raise StrataError('measurement_mode must be coupled or independent-map')
+    if (measurement_mode != 'coupled' or internal_bits) and domain is None:
+        raise StrataError('independent measurement maps require an explicit finite domain')
     if type(max_proof_attempts) is not int or max_proof_attempts < 1:
         raise StrataError('max_proof_attempts must be a positive integer')
     formula = Formula(cost)
@@ -583,22 +683,23 @@ def evaluate_candidate(original_path, candidate_path, out, *, cost=DEFAULT_COST,
     if binding['status'] == 'mismatch':
         return _parent_mismatch(parent_path, child_path, out, hypothesis, binding, limits, cost)
     original = load_circuit(parent_path)
-    binding = _parent_binding(hypothesis, source_hash, _hash(str(original)))
+    from .circuit_tape import canonical_tape
+    old = tapes.enter_context(canonical_tape(original))
+    binding = _parent_binding(hypothesis, source_hash, old.sha256)
     if binding['status'] == 'mismatch':
         return _parent_mismatch(parent_path, child_path, out, hypothesis, binding, limits, cost)
     from .inference import _wires
     clean = sorted(_wires(original, clean_inputs, 'clean inputs'))
     root = _safe_output(out, [parent_path, child_path], ['evaluation.json'])
-    baseline = _artifact(parent_path, original, formula)
+    baseline = _artifact(parent_path, original, formula, old.sha256)
     if baseline['source_sha256'] != source_hash:
         raise StrataError('source changed during parent preflight; retry with a stable artifact')
-    raw_candidate = child_path.read_bytes()
     try:
         candidate = load_circuit(child_path)
     except (ValueError, RuntimeError) as exc:
         report = dict(schema_version='1', kind='agent_candidate_evaluation', status='unknown',
                       parent_sha256=baseline['sha256'], baseline=baseline,
-                      candidate=dict(path=str(child_path), sha256=None, source_sha256=_hash(raw_candidate),
+                      candidate=dict(path=str(child_path), sha256=None, source_sha256=_source_hash(child_path),
                                      resources=None, cost=None, blob_encoding='raw_unparsed'),
                       objective=dict(expression=cost, accounting='static_emitted'),
                       hypothesis=hypothesis, hypothesis_binding=binding, clean_inputs=clean,
@@ -611,9 +712,9 @@ def evaluate_candidate(original_path, candidate_path, out, *, cost=DEFAULT_COST,
                                   boundaries_preserved=False))
         report['feedback'] = _feedback(report)
         report['feedback']['next_test'] = 'Correct the syntax in the selected circuit format using the parser error, then resubmit the concrete candidate for measurement and exact equivalence.'
-        return _retain(report, str(original).encode(), raw_candidate, root)
-    measured = _artifact(child_path, candidate, formula)
-    old, new = str(original).splitlines(), str(candidate).splitlines()
+        return _retain(report, old.path, child_path, root)
+    new = tapes.enter_context(canonical_tape(candidate))
+    measured = _artifact(child_path, candidate, formula, new.sha256)
     requested = _requested_ranges(regions, len(old))
     report = dict(schema_version='1', kind='agent_candidate_evaluation',
                   parent_sha256=baseline['sha256'], baseline=baseline, candidate=measured,
@@ -632,6 +733,7 @@ def evaluate_candidate(original_path, candidate_path, out, *, cost=DEFAULT_COST,
                     clean_inputs=clean, required_zero_outputs=clean, domain_hash=None,
                     boundary='whole artifact' if clean or domain is not None else 'arbitrary regional boundaries',
                     physical_width=original.num_qubits, phase='exact_sign')
+    contract.update(measurement_mode=measurement_mode, internal_classical_outputs=list(internal_bits))
     report.update(contract=contract, contract_hash=digest(contract))
     reason = None
     if domain is not None:
@@ -644,8 +746,9 @@ def evaluate_candidate(original_path, candidate_path, out, *, cost=DEFAULT_COST,
         contract['domain_hash'] = promise['domain_hash']
         report['contract_hash'] = digest(contract)
         check = equivalent_on_domain(original, candidate, promise,
-                                     max_operations=max_window)
-        if clean and check.get('equivalent') is True:
+                                     max_operations=max_window, measurement_mode=measurement_mode,
+                                     internal_bits=internal_bits, required_zero_outputs=clean)
+        if clean and measurement_mode == 'coupled' and check.get('equivalent') is True:
             restoration = _finite_clean_restoration(original, candidate, promise, clean,
                                                     check['outcome_count'], max_window)
             check['clean_outputs_restored'] = restoration['restored']
@@ -663,12 +766,36 @@ def evaluate_candidate(original_path, candidate_path, out, *, cost=DEFAULT_COST,
         report['counterexample'] = check.get('counterexample')
         report['feedback'] = _feedback(report)
         report['feedback']['inference_scope'] = 'this construction on the hashed finite promised domain; no all-input or host acceptance claim'
-        return _retain(report, str(original).encode(), str(candidate).encode(), root)
+        return _retain(report, old.path, new.path, root)
     if not report['checks']['width_preserved']:
         reason = 'boundary_width_changed'
     opcodes = _opcodes(old, new)
     changes = [row for row in opcodes if row[0] != 'equal']
-    if reason is None and clean:
+    report['alignment'] = dict(strategy='common_ends_then_bounded_middle',
+                               coordinate_unit='text-line', max_middle_lines=4096,
+                               changed_intervals=[dict(start=a, stop=b, candidate_start=c, candidate_stop=d)
+                                                  for _, a, b, c, d in changes],
+                               storage='disk-backed canonical tape; sparse offsets and bounded line cache')
+    if reason is None and clean and max(len(old), len(new)) > max_window:
+        # A clean-input declaration must not force a local edit into a giant
+        # whole-artifact proof. Prove the substitution on arbitrary boundaries,
+        # then discharge the declared whole-artifact cleanup separately.
+        local = _local_proofs(old, new, changes, opcodes, requested, limits, max_proof_attempts)
+        report['intervals'], report['recovery'] = local['intervals'], local['recovery']
+        report['function_hashes'] = [row['function_hash'] for row in local['intervals'] if 'function_hash' in row]
+        reason = local['reason']
+        report['checks']['scope'] = 'arbitrary-boundary substitutions plus explicit whole-artifact clean restoration'
+        if local['equivalent'] is True:
+            restoration = _stream_clean_restoration(old, clean, max(max_window, max_variables))
+            report['checks']['clean_restoration'] = restoration
+            report['checks']['clean_outputs_restored'] = restoration['restored']
+            if restoration['restored'] is not True:
+                reason = restoration['reason']
+        elif local['equivalent'] is False:
+            # A dirty-boundary mismatch is not a clean-domain counterexample.
+            report['checks']['local_counterexample'] = local['counterexample']
+            reason = 'clean_domain_local_proof_unavailable'
+    elif reason is None and clean:
         report['checks']['scope'] = 'whole artifact with explicit zero inputs and restored zero outputs; all other inputs arbitrary'
         if requested is not None and any(not any(x <= a <= b <= y for x, y in requested)
                                          for _, a, b, _, _ in changes):
@@ -720,13 +847,13 @@ def evaluate_candidate(original_path, candidate_path, out, *, cost=DEFAULT_COST,
     report['feedback'] = _feedback(report)
     if clean:
         report['feedback']['inference_scope'] = 'this construction under the hashed whole-artifact clean promise; no all-input or host acceptance claim'
-    return _retain(report, str(original).encode(), str(candidate).encode(), root)
+    return _retain(report, old.path, new.path, root)
 
 
 def discovery_brief(input_path, out, *, cost=DEFAULT_COST, max_window=256,
                     max_variables=64, max_terms=4096, max_targets=8,
                     scan_range=None, progress=None, streaming_threshold=2_000_000,
-                    growth_window=None, clean_inputs=()):
+                    growth_window=None, clean_inputs=(), range_unit='operation'):
     """Prepare ranked observations and expandable evidence for a connected AI."""
     from .file_workflow import inspect_file
 
@@ -759,6 +886,7 @@ def discovery_brief(input_path, out, *, cost=DEFAULT_COST, max_window=256,
         circuit = load_circuit(source)
         start, stop = scan_range if scan_range is not None else (0, None)
         scan = scan_circuit(circuit, root/'stream', source=source, start=start, stop=stop,
+                            range_unit=range_unit,
                             max_window=max_window if growth_window is None else growth_window, max_variables=max_variables,
                             max_terms=max_terms, max_groups=max_targets, progress=progress,clean_inputs=clean_inputs)
         manifest = dict(schema_version='3', kind='streaming_discovery_brief',
@@ -793,6 +921,7 @@ def discovery_brief(input_path, out, *, cost=DEFAULT_COST, max_window=256,
     research_notes = [(h, v) for h, v in store.all('agent_research_note') if v['parent_sha256'] == parent_hash]
     from .streaming import scan_circuit
     kernel_scan = scan_circuit(circuit, root/'stream', source=source,
+                               range_unit=range_unit,
                                max_window=max_window if growth_window is None else growth_window, max_variables=max_variables,
                                max_terms=max_terms,max_groups=max_targets,progress=progress,clean_inputs=clean_inputs)
     granularity, recovery = _recovery_targets(circuit, lifted, profile, source, root, store, max_targets, kernel_scan)
@@ -859,6 +988,7 @@ def discovery_brief(input_path, out, *, cost=DEFAULT_COST, max_window=256,
                                            next_questions=v['next_agent_questions'],learning_scope=v['learning_scope']))
                          for h,v in structural_history]
     manifest = dict(schema_version='1', source=str(source), parent_sha256=parent_hash,
+                    source_range_unit='text-line', kernel_range_unit=kernel_scan['range_unit'],
                     parent_hash_encoding='canonical_text',
                     source_sha256=inspection['source_sha256'],
                     baseline=dict(resources=inspection['resources'], cost=Formula(cost)(inspection['resources'])),

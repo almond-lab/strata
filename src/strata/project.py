@@ -552,7 +552,7 @@ class Line:
 
     def validate_edit(self, old_circuit, old_tree, circuit, tree):
         def public(c):
-            return [(r.name, len(r.wires), r.role, r.meaning) for r in c.registers if r.role != 'clean']
+            return [(r.name, len(r.wires), r.role, r.meaning, r.namespace) for r in c.registers if r.role != 'clean']
         if public(old_tree.contract) != public(tree.contract):
             raise StrataError('external register contract changed')
         if (old_tree.contract.reference, old_tree.contract.promise, old_tree.contract.phase, old_tree.contract.failure) != (tree.contract.reference, tree.contract.promise, tree.contract.phase, tree.contract.failure):

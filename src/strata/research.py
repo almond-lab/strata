@@ -111,7 +111,7 @@ def structural_change(before, after, artifact_changed, witness=None):
     this audit cannot independently infer internal wire meanings.
     """
     def contract(c):
-        return dict(registers=[(len(r.wires),r.role,r.meaning) for r in c.registers if r.role!='clean'],
+        return dict(registers=[(len(r.wires),r.role,r.meaning,r.namespace) for r in c.registers if r.role!='clean'],
                     reference=c.reference,promise=c.promise,phase=c.phase,failure=c.failure,
                     debts=[(d.created_by,d.repaid_by,d.measurement,d.expression) for d in c.debts])
     def flatten(root):

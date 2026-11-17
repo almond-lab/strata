@@ -65,7 +65,12 @@ def test_file_clean_promise_is_not_reasserted_at_an_interior_boundary(tmp_path):
     assert report['counterexample']['inputs']['2'] == 0
     assert report['intervals'][0]['start'] == 0
     bounded = evaluate_candidate(source, source, tmp_path / 'bounded', clean_inputs=[2], max_window=2)
-    assert bounded['status'] == 'unknown' and bounded['checks']['equivalent'] is None
+    assert bounded['status'] == 'verified_no_gain' and bounded['checks']['equivalent'] is True
+    restoration = bounded['checks']['clean_restoration']
+    assert restoration['evidence'] == 'bounded_constant_transport_and_reset_obligations'
+    assert restoration['restored'] is True and restoration['unresolved_zero_outputs'] == []
+    assert restoration['unresolved_reset_legality'] is False
+    assert bounded['recovery']['semantic_comparisons'] == 0
 
 
 def test_clean_edit_regions_still_constrain_changes(tmp_path, clean_pair):

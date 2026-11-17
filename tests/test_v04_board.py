@@ -15,8 +15,14 @@ from strata.sandbox import process_identity, process_state
 from strata.store import Store
 
 
-def _claim(path, job_id):
-    return ExperimentBoard(Store(path)).claim(job_id, f'worker-{os.getpid()}')
+def _claim(path, job_id, wait=0):
+    board = ExperimentBoard(Store(path))
+    deadline = time.monotonic() + wait
+    token = board.claim(job_id, f'worker-{os.getpid()}')
+    while token is None and time.monotonic() < deadline:
+        time.sleep(.005)
+        token = board.claim(job_id, f'worker-{os.getpid()}')
+    return token
 
 
 def _abandoned(path, launching=False):
@@ -45,7 +51,7 @@ def test_concurrent_jobs_cannot_overspend_thread_pool(tmp_path):
     board = ExperimentBoard(Store(tmp_path), dict(threads=2, memory_bytes=100))
     jobs = [board.enqueue(str(i), dict(threads=1, memory_bytes=10)) for i in range(8)]
     with ProcessPoolExecutor(max_workers=4, mp_context=multiprocessing.get_context('fork')) as pool:
-        claims = list(pool.map(_claim, [str(tmp_path)] * len(jobs), jobs))
+        claims = list(pool.map(_claim, [str(tmp_path)] * len(jobs), jobs, [.25] * len(jobs)))
     assert sum(token is not None for token in claims) == 2
     assert board.snapshot()['reserved']['threads'] == 2
 
@@ -78,6 +84,8 @@ def test_expired_live_owner_never_duplicates_or_releases(tmp_path):
     assert board.claim(other, 'other') is None
     board.heartbeat(token)
     board.finish(token, 'failed')
+    assert board.claim(other, 'other') is None  # The older duplicate is now first.
+    board.request_cancel(duplicate)
     assert board.claim(other, 'other')
 
 
