@@ -55,12 +55,13 @@ def _source(path, out, *, writes_candidate=False):
     if not source.is_file():
         raise StrataError('supply an individual .kmx/.kmb circuit file; bundles need their host acceptance configuration')
     root = Path(out).resolve()
-    reports=('result.json','semantic-lift.json','contract-tree.json','profile.json')
+    reports=('result.json','semantic-lift.json','contract-tree.json','profile.json','region-evidence.json')
     protected=reports+('candidate.kmx',) if writes_candidate else reports
     if any(source == root / name for name in protected) or (root/'analysis') in source.parents:
         raise StrataError('output would overwrite the supplied circuit')
     root.mkdir(parents=True, exist_ok=True)
-    circuit = Kickmix().load(source)
+    from .frontends import load_circuit
+    circuit = load_circuit(source)
     return source, root, circuit
 
 
@@ -71,6 +72,9 @@ def inspect_file(path, out, *, cost='Q*(toffoli+t/4)', max_window=256, max_varia
     lift = lift_regions(circuit, max_window=max_window, max_variables=max_variables, max_terms=max_terms)
     tree = contract_tree(circuit, lift)
     profile=profile_regions(circuit,lift,root/'analysis',formula=cost)
+    from .region_evidence import record_region_evidence
+    evidence = record_region_evidence(source, circuit, tree, lift, Store(root / '.strata'))
+    _write_json(root / 'region-evidence.json', evidence)
     _write_json(root / 'semantic-lift.json', lift)
     _write_json(root / 'contract-tree.json', asdict(tree))
     _write_json(root / 'profile.json',profile)
@@ -80,6 +84,8 @@ def inspect_file(path, out, *, cost='Q*(toffoli+t/4)', max_window=256, max_varia
                   regions=len(lift['regions']), opaque_spans=len(lift['unknown']),
                   contract_tree=str(root / 'contract-tree.json'), semantic_lift=str(root / 'semantic-lift.json'),
                   profile=str(root / 'profile.json'), views=profile['views'],
+                  region_evidence=str(root / 'region-evidence.json'), region_evidence_record=evidence['record'],
+                  evidence_summary=evidence['summary'],
                   task_adapter_required=False,
                   limitations=['Algebraic region contracts are recovered; arithmetic algorithms and task intent may remain unknown.',
                                'No clean ancillas are inferred. Unsupported operations and bounded regions remain explicit.'])
@@ -103,15 +109,20 @@ def optimize_file(path, out, *, cost='Q*(toffoli+t/4)', max_window=256, max_vari
     if replay.get('equivalent') is not True:
         raise StrataError('candidate failed independent replacement replay; no output candidate retained')
     store = Store(root / '.strata')
+    from .region_evidence import record_region_evidence
+    evidence = record_region_evidence(source, circuit, tree, lift, store)
+    _write_json(root / 'region-evidence.json', evidence)
     original_hash = store.blob(str(circuit).encode())
     candidate_hash = store.blob(str(candidate).encode())
     code = {name:store.blob((Path(__file__).parent / name).read_bytes())
-            for name in ('semantic.py', 'file_optimizer.py', 'file_workflow.py')}
+            for name in ('semantic.py', 'file_optimizer.py', 'file_workflow.py', 'region_evidence.py', 'frontends.py')}
     certificate = store.put('file_equivalence', dict(original=original_hash, candidate=candidate_hash,
-                            evidence=replay, code=code, kickmix_version=importlib.metadata.version('kickmix')))
+                            evidence=replay, region_evidence=evidence['record'], code=code, kickmix_version=importlib.metadata.version('kickmix')))
     result.update(source=str(source), source_sha256=hashlib.sha256(source.read_bytes()).hexdigest(),
                   source_contract_tree=digest(tree), coverage=lift['coverage'],
                   equivalence_certificate=certificate, replay=replay,
+                  region_evidence=str(root / 'region-evidence.json'), region_evidence_record=evidence['record'],
+                  evidence_summary=evidence['summary'],
                   task_adapter_required=False, official_verifier_run=False,
                   score_status='static file objective only; contest acceptance and portfolio score not measured')
     handle = store.put('file_optimization', result)
@@ -124,5 +135,7 @@ def optimize_file(path, out, *, cost='Q*(toffoli+t/4)', max_window=256, max_vari
     return dict(status=result['status'], source=str(source), candidate=str(root / 'candidate.kmx'),
                 result=str(root / 'result.json'), baseline=result['baseline'], optimized=result['candidate'],
                 equivalence_certificate=certificate, replay=replay.get('equivalent'),
+                region_evidence=str(root / 'region-evidence.json'), region_evidence_record=evidence['record'],
+                evidence_summary=evidence['summary'],
                 coverage=lift['coverage'], record=handle, official_verifier_run=False,
                 score_status=result['score_status'])

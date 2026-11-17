@@ -244,8 +244,9 @@ class ResearchRound:
                 adapter=self.project.task(self.parent.record['task']).adapter()
                 witness=None
                 if hasattr(adapter,'audit_restructure'):
-                    old_circuit=self.project.frontend.parse(self.project.store.read_blob(self.parent.record['artifact']).decode())
-                    new_circuit=self.project.frontend.parse(self.project.store.read_blob(built['artifact']).decode())
+                    task=self.project.task(self.parent.record['task'])
+                    old_circuit=task.parse_artifact(self.project.store.read_blob(self.parent.record['artifact']))
+                    new_circuit=task.parse_artifact(self.project.store.read_blob(built['artifact']))
                     witness=adapter.audit_restructure(old_circuit,self.parent.tree,new_circuit,region_from_dict(built['tree']))
                     if witness.get('before_artifact')!=self.parent.record['artifact'] or witness.get('after_artifact')!=built['artifact']:
                         raise StrataError('structural witness is bound to different artifacts')

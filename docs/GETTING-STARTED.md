@@ -1,130 +1,224 @@
-# Getting started with Strata
+# Getting started with Strata 0.2
 
-Strata helps you change a circuit's stage boundaries and keep the evidence for
-whether the change works. Start with the file workflow: inferred functions,
-native profiles and structured feedback feed a connected AI's hypotheses.
-Automatic arithmetic-stage recovery remains partial. Check
-[implementation status](ACCEPTANCE.md) before planning a run.
+Start with a circuit file. Strata produces bounded semantic evidence, profiles
+and candidate feedback; a connected agent uses those facts to propose changes.
+A project is useful when you also have a generator, a full task verifier, a
+numeric bundle or an explicit promised domain. See [acceptance status](ACCEPTANCE.md)
+for capabilities that remain partial.
 
 ## Install
 
-Clone the private repository using your GitHub account, then install into an
-isolated environment. Python 3.14 is the tested version.
+Python 3.14 is tested; the package requires Python 3.11+ and a compatible kickmix
+wheel. From a private checkout:
 
 ```bash
-git clone https://github.com/almond-lab/strata.git
-cd strata
 python3.14 -m venv .venv
 .venv/bin/python -m pip install -e '.[test]'
 .venv/bin/python -m pytest -q
 ```
 
-The remaining commands assume you are in the repository root. Use the explicit
-`.venv/bin/strata` path so you do not accidentally invoke another installation.
+The examples assume the repository root and use an explicit environment path.
 
-## Give the agent your circuit
+## Give the connected agent a circuit
 
 ```bash
-.venv/bin/strata discover /absolute/path/to/circuit.kmb --out work/research
+.venv/bin/strata inspect-file /absolute/path/circuit.kmb --out work/inspection
+.venv/bin/strata discover /absolute/path/circuit.kmb --out work/research
 ```
 
-The connected agent follows [the skill](../skills/strata-research/SKILL.md),
-reads `work/research/agent-brief.json`, originates hypotheses, builds candidates,
-and submits them to `evaluate-file`. The next brief includes the results and
-counterexamples. This path requires no task-specific Python adapter.
-See [the full loop](AGENT-DISCOVERY.md) and [file-mode scope](FILE-FIRST.md).
-The commands below retain the original generator-based teaching example.
+Inspection and automatic optimization also save `region-evidence.json` with
+fixed-region symbolic receipts, opaque-region unknowns and a store handle.
+Their result includes `region_evidence_record` and counts in `evidence_summary`.
+The [adapter guide](ADAPTER-GUIDE.md#floors-queries-and-research-memory) explains
+explicit symbolic replay and its scope. No small generator or clean-input
+assumption is inferred from these receipts.
 
-## Understand the example
+The agent follows [the repository skill](../skills/strata-research/SKILL.md),
+reads `work/research/agent-brief.json`, originates hypotheses and builds a
+candidate when justified. Submit a candidate and optional hypothesis JSON:
 
-The example takes three bit strings, `a`, `b` and `y`, and performs
-`y ^= a & b`. It preserves `a` and `b`; `y` may contain arbitrary initial data.
+```bash
+.venv/bin/strata evaluate-file /absolute/path/circuit.kmb /absolute/path/candidate.kmx \
+  --out work/research --hypothesis hypothesis.json
+```
 
-The base computes products into scratch, copies them into `y`, then clears the
-scratch. The redesigned circuit applies products directly to `y`. That changes
-what crosses the intermediate boundary and removes the scratch register.
+When no candidate is justified, retain a research note instead:
 
-At three bits the base costs 12 qubits × 6 Toffolis = 72. The redesign costs
-9 qubits × 3 Toffolis = 27. This is a teaching fixture, not a competition result.
+```json
+{
+  "note_class": "prebuild_blocker",
+  "hypotheses": ["Change the producer representation and adapt its consumer"],
+  "blockers": ["The complete return boundary is not yet established"],
+  "next_tests": ["Recover the consumer and cleanup obligations"]
+}
+```
 
-## Ingest and inspect
+```bash
+.venv/bin/strata note /absolute/path/circuit.kmb --out work/research --note note.json
+```
+
+A note is reported reasoning, not proof or an accepted gain. Candidate records
+include exact-boundary checks where supported, counterexamples, diagnostic cost
+deltas and reopening conditions. A lower measured cost with failed equivalence
+is not a saving. `discover` updates the next brief with this history. A standalone
+CLI invocation does not run an AI provider. See [the discovery loop](AGENT-DISCOVERY.md).
+
+The second input codec is available through `strata.frontends.OperationStream`:
+JSONL records such as `{"op":"CCX","qubits":[0,1,2]}` use the same native
+execution backend. Its supported operation set is explicit; it is not a second
+simulator or an ecdsa.fail-specific integration.
+
+## Read a report without rerunning work
+
+Reports need only the retained `.strata` store, including for the file workflow:
+
+```bash
+.venv/bin/strata report --store work/research/.strata --format markdown > work/research/insights.md
+.venv/bin/strata report --store work/research/.strata --format json > work/research/insights.json
+```
+
+Add `--handle HANDLE` to select a saved round, design, Line or file record. The
+Python API also exposes named design/round selectors:
+
+```python
+from pathlib import Path
+import json
+from strata.store import Store
+from strata.reports import report, markdown_report
+
+store = Store('work/research/.strata')
+saved = report(store)  # Also accepts handle=..., design=..., or round=...
+Path('work/research/insights.json').write_text(json.dumps(saved, indent=2))
+Path('work/research/insights.md').write_text(markdown_report(saved))
+```
+
+The report includes plans/results, Lines and mechanisms, measured deltas,
+evidence scopes, file attempts, notes, shared failures and reopening conditions.
+Stored gap snapshots are shown per design; a missing snapshot stays unknown.
+Reporting neither loads a project configuration nor calls generators/verifiers.
+It can still summarize work after original source files have disappeared.
+
+## Run the original generator example
+
+The fixture computes `y ^= a & b` while preserving `a`, `b` and arbitrary initial
+accumulator values. The base materializes products into scratch; the candidate
+consumes them directly. At three bits, resources change from 12Q/6 Toffolis to
+9Q/3 Toffolis, and cost from 72 to 27.
 
 ```bash
 .venv/bin/strata --project examples/and_fusion/strata.toml init
 .venv/bin/strata --project examples/and_fusion/strata.toml analyze and
 .venv/bin/strata --project examples/and_fusion/strata.toml gaps and
-.venv/bin/strata --project examples/and_fusion/strata.toml best
 ```
 
-`init` checks that the adapter reproduces the supplied base, runs the small lab
-and full fixture verifier, then stores the base. `analyze` writes structured
-metrics and actual kickmix views under
-`examples/and_fusion/.strata/analysis/and/`. Open `index.html` in a browser.
+`init` reproduces the supplied base and runs lab, measured pricing and full
+gates. `analyze` writes kickmix views under the project's `.strata/analysis`.
+`gaps` saves a snapshot as well as returning current bounds.
 
-The gap table reports unknown floors explicitly. A library construction is an
-upper bound; a small-size exact result is limited to that size. Neither is a
-full-size impossibility proof.
-
-## Make and verify a structural change
-
-Run this from the repository root:
-
-```bash
-.venv/bin/python - <<'PY'
+```python
 import strata
 
 p = strata.open('examples/and_fusion/strata.toml')
 p.init()
 base = p.task('and').base_design()
-line = p.open_line(
-    parent=base,
-    move='fuse',
-    regions=['lane-0', 'lane-1', 'lane-2'],
-    implementation={'fused': True},
-    note='Consume each product directly in the output accumulator',
-)
+line = p.open_line(base, 'fuse', ['lane-0', 'lane-1', 'lane-2'],
+                   implementation={'fused': True},
+                   note='Consume products directly; remove scratch')
 lab = line.lab(bits=2)
 if not lab.passed:
     raise RuntimeError(lab.counterexample)
 price = line.build()
-result = line.verify()
+design = line.verify()
 print('Measured cost delta:', price['delta'])
-print('Design:', result.id)
-print('Replay:', p.replay(result.id)['passed'])
+print('Design:', design.id)
+print('Replay:', p.replay(design.id)['passed'])
 print('Portfolio:', p.best())
-PY
 ```
 
-The small lab exhausts 64 inputs, including every initial accumulator. Full
-verification covers all 512 inputs at three bits. Replay regenerates the
-artifact and rechecks its verifier and recorded cost. Losing but correct
-variants can also be retained; `best` selects the cheapest certified one.
+The two-bit lab covers 64 inputs; the full fixture verifier covers 512 at three
+bits. The verifier is explicitly a demo verifier. This example is not a new
+competition result.
 
-The gate order is deliberate: **small lab → measured full build → full oracle
-→ pinned verifier**. A passing component test alone does not produce a certified
-full design.
+## Understand evidence labels
 
-## Read the results
-
-| Result | What it establishes |
+| Evidence | What it establishes |
 |---|---|
-| Exhaustive lab pass | The declared small instance matches its reference for all enumerated inputs and HMR branches |
-| Build price | The emitted full implementation has measured resources under the adapter's distribution |
-| Oracle/verifier pass | The task's full-domain or fixed-draw acceptance checks passed |
-| Certificate | Those records are bound to this artifact, implementation, adapter and design |
-| Replay pass | The recorded implementation rebuilds and rechecks successfully |
+| `exact_small` | Complete declared inputs/branches at an explicit finite scale |
+| `exact_full` | Complete declared finite input domain for this fixed artifact |
+| `affine_hmr` reduction | A proved supported dependency class allows fewer executed branch witnesses; receipts retain both counts |
+| `sample` shard | Partial domain checks; cannot certify a design alone |
+| `full_artifact` | A scoped pinned external check; no automatic claim of exhaustive small-model coverage |
+| `component_scoped` | Component evidence plus frozen-byte obligations; full cross-component checks still required |
+| Measured build price | Actual complete-artifact resources under the declared domain |
+| Certificate/replay | Bound evidence and reproducibility; not a general theorem or signed attestation |
 
-Certificates are reproducibility evidence, not Lean proofs. Finite testing is
-not a theorem about all sizes. Native HMR lab phases use exact fractions of π,
-modulo two.
+For HMR, `tested = cases × executed_branches`; `represented_trajectories` may
+be larger when the supported reduction applies. No receipt should call the
+represented trajectories executed simulations. Checked resets may clear only
+already-zero targets. A promised input set is bound by its canonical domain hash.
 
-## Start your own task
+## Import existing research memory
 
-See [writing an adapter](ADAPTER-GUIDE.md). A flat circuit can be analyzed without
-source, but Strata cannot invent a scale-down generator or mathematical
-reference. The CLI ships with the demo adapter only; custom trusted Python
-adapters are registered through `strata.open(..., adapters=...)`.
+```bash
+.venv/bin/strata memory-import attempts.csv --store work/research/.strata
+.venv/bin/strata memory-status --store work/research/.strata
+.venv/bin/strata memory-status --store work/research/.strata --contract FINGERPRINT --scale '{"bits":2}'
+```
 
-Never edit the retained base or official verifier to accommodate a candidate.
-Keep large/private circuit artifacts out of the library repository. Strata has
-no automatic competition submission command.
+The CLI importer uses bindings already present in the input. Use Python to add a
+binding map or apply evidence to a saved design:
+
+```python
+from strata.memory import import_attempts, apply_memory
+
+counts = import_attempts(p.store, 'attempts.csv',
+                        contract_map={'attempt-17': base.tree.contract.fingerprint})
+application = apply_memory(p.store, base.id)
+```
+
+JSONL, CSV and JSON arrays/wrapped notes are accepted. Explicit stored
+`contract_fingerprint` fields can supply a binding; the mapping overrides them.
+Unbound rows remain explicit. Narrative “proof” or “closed” labels cannot close
+a family. Strong evidence needs a valid blob in this store, and exact-small
+needs a size. `apply_memory` reports scope matches and reopening after contract
+or scale changes without rewriting the original records.
+
+To record strong evidence directly, store its bytes first and pass the returned
+hash as `Store.negative(..., evidence=hash)` or
+`Line.park(..., evidence='build', evidence_artifact=hash)`. The hash confirms
+content identity, not the correctness of its interpretation.
+
+## Ask bounded structural questions
+
+These commands load a circuit without a project or generator:
+
+```bash
+.venv/bin/strata function-of producer.kmx --wire 2 --at 1 --support 0,1 --clean-inputs 2
+.venv/bin/strata slack producer.kmx --at 1 --wires 0,1,2 --clean-inputs 2
+.venv/bin/strata floors producer.kmx
+```
+
+Here `--at 1` means after the first normalized instruction. Clean inputs are an
+explicit assumption; declare them only when the task contract establishes zero.
+Functional queries search a stated polynomial family; a `no` is limited to that
+family. Slack measures compressible information, not a scratch lease. The CLI
+floor uses all final outputs and arbitrary initial inputs, and reports a counting
+bound in a free-XOR/NOT, two-input-AND model. It does not accept clean-input
+assumptions or claim a measurement/phase/host-cost lower bound. Unsupported
+inference returns unknown. Python `exact_minimum` additionally supports bounded
+exact-small synthesis.
+
+## Connect your own task
+
+The [adapter guide](ADAPTER-GUIDE.md) covers:
+
+- Config-only tasks with a pinned verifier command and no Python adapter.
+- Circuit/data bundles with per-component width caps and frozen components.
+- Trusted typed callbacks and component labs.
+- Explicit promised domains, probability policies, floors and functional queries.
+
+A source-less artifact can use full-artifact checks without pretending it has a
+small generator. Use `Q` for emitted width and `Q_total` for separate host
+accounting. Keep verifier code and retained bases unchanged; large/private
+artifacts belong outside this repository. Strata has no automatic competition
+submission command.

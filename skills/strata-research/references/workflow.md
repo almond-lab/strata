@@ -47,7 +47,11 @@ certified.
 
 ## Evidence vocabulary
 
-- **Lab pass:** every enumerated input and HMR branch at the specified size.
+- **Lab pass:** the entire declared input domain and HMR outcomes at the
+  specified size, either enumerated or covered by the exact affine branch
+  reduction. Report executed versus represented counts separately. Partial
+  shards (`sample`) cannot certify a design; a promised input set must come
+  from the declared domain, not from filtering failed examples.
 - **Measured build:** actual emitted and executed resources, priced by the task
   formula; check full versus region-only scope.
 - **Full oracle:** the real external task domain, including phase and restoration.
@@ -70,10 +74,22 @@ registers are errors.
 - `p.best()` selects cheapest certified variants; it does not submit anything.
 - `p.replay(design_id)` checks artifact, ancestry, verifier identity and cost.
 
-Current `holders` and `is_function_of` queries can return unknown. Do not invent
-ownership or dependency proofs to fill that gap. Automatic arithmetic lifting,
-SAT floor search and historical replay adapters remain incomplete unless the
-checked-out acceptance ledger has newer measured evidence.
+`Queries.holders(design, at)` reports exact bounded value functions and declared
+input identities; allocator ownership still requires allocation events.
+`Queries.is_function_of(wire, at, support, design=design)` searches bounded
+low-degree expressions over current wire values. `Queries.slack(design, at)`
+reports information bounds, not free workspace. Budget exhaustion returns
+unknown. Automatic broad arithmetic lifting and historical proposal replays
+remain incomplete; exact-small AND search has only its stated Boolean model.
+
+For config-only tasks, `[task.verifier]` pins the executable and declared
+dependencies and runs through the offline Sandbox. Typed Python callbacks are
+trusted code and are not sandboxed. A frozen component may be omitted from
+small component tests only when its bytes are pinned; full checks include it.
+
+Use `strata report --store PATH --format markdown` for the evidence summary.
+JSON output is the default; `--handle` scopes it to a stored design, line,
+research round or file run. Reports work without the original project sources.
 
 ## Report format
 

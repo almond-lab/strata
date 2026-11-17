@@ -22,6 +22,8 @@ from .artifacts import manifest, verify_manifest
 
 
 def adapter_hash(adapter):
+    if hasattr(adapter, 'identity_hash'):
+        return adapter.identity_hash()
     path = inspect.getsourcefile(type(adapter))
     if not path:
         raise StrataError('adapter must have a pinned source file')
@@ -62,6 +64,12 @@ class Project:
     def open_line(self, parent, move, regions, note='', implementation=None, reads=(), writes=(), replacement_regions=()):
         if isinstance(parent, str):
             parent = Design(self, parent)
+        parent.validate()
+        task = self.task(parent.record['task'])
+        implementation = implementation or {}
+        adapter = task.adapter()
+        if hasattr(adapter, 'freeze_implementation'):
+            implementation = adapter.freeze_implementation(implementation)
         tree = parent.tree
         patch = Patch(move, tuple(regions), tuple(tree.find(r).contract.fingerprint for r in regions),
                       tuple(tree.find(r).occurrence for r in regions), implementation or {}, tuple(reads), tuple(writes), tuple(replacement_regions))
@@ -101,7 +109,7 @@ class Project:
         if adapter_hash(adapter) != d.record['adapter_hash']:
             raise StrataError('adapter source changed')
         built, tree = adapter.build(d.record['parameters'], d.record['implementation'])
-        artifact = hashlib.sha256(str(built).encode()).hexdigest()
+        artifact = hashlib.sha256(task.serialize(built)).hexdigest()
         if artifact != d.record['artifact'] or asdict(tree) != json.loads(json.dumps(asdict(d.tree))):
             # Dataclass tuple/list normalization via canonical hash instead.
             if artifact != d.record['artifact'] or digest(tree) != digest(d.tree):
@@ -123,12 +131,20 @@ class Project:
             line.result('verified')
         parent = Design(self, a.record['parent'])
         patches = compose(a.patch, b.patch, parent.tree)
+        adapter = self.task(parent.record['task']).adapter()
+        merge_implementation = getattr(adapter, 'merge_implementation', None)
+        left, right = a.patch.implementation, b.patch.implementation
+        for key in set(left) & set(right):
+            if key == 'files' and merge_implementation is not None:
+                for name in set(left[key]) & set(right[key]):
+                    if digest(left[key][name]) != digest(right[key][name]):
+                        raise StrataError('component file conflict: ' + name)
+            elif digest(left[key]) != digest(right[key]):
+                raise StrataError('generator parameter conflict')
         impl = dict(parent.record['implementation'])
         for patch in patches:
-            for key, value in patch['implementation'].items():
-                if key in impl and key in a.patch.implementation and key in b.patch.implementation and a.patch.implementation[key] != b.patch.implementation[key]:
-                    raise StrataError('generator parameter conflict')
-                impl[key] = value
+            impl = (merge_implementation(impl, patch['implementation']) if merge_implementation is not None
+                    else {**impl, **patch['implementation']})
         # Returns an unverified line. Lab/build/full gates must run on the combination.
         return self.open_line(parent, 'replace-stages', ['root'], 'composition: ' + first + ' + ' + second, impl)
 
@@ -136,27 +152,202 @@ class Project:
 class Task:
     def __init__(self, project, config):
         self.project, self.config, self.id = project, config, config['id']
+        self._command_adapter = None
 
     def adapter(self):
+        if 'verifier' in self.config and 'adapter' not in self.config:
+            if self._command_adapter is None:
+                from .declarative import CommandAdapter
+                self._command_adapter = CommandAdapter(self.project.root, self.config)
+            return self._command_adapter
         name = self.config.get('adapter', self.id)
         if name not in self.project.adapters:
             raise StrataError(f'task {self.id} needs adapter {name!r}; cannot invent a scalable model or verifier')
         return self.project.adapters[name]
 
     def formula(self):
-        return Formula(self.config['cost'], getattr(self.adapter(), 'cost_functions', {}))
+        functions=dict(getattr(self.adapter(), 'cost_functions', {}))
+        policy=self.probability_policy()
+        if policy:
+            for key,value in policy.cost_functions().items():
+                if key in functions:raise StrataError('ambiguous probability penalty function')
+                functions[key]=value
+        return Formula(self.config['cost'],functions)
+
+    def probability_policy(self):
+        if 'probability' not in self.config:return None
+        from .probability import ProbabilityPolicy
+        return ProbabilityPolicy.from_config(self.config['probability'])
+
+    @staticmethod
+    def probability_data(receipt):
+        if not isinstance(receipt,dict):raise StrataError('stochastic price requires precommitted draw receipts')
+        details=receipt.get('details',{})
+        if not isinstance(details,dict):raise StrataError('invalid probability receipt details')
+        draws={key:receipt.get(key,details.get(key)) for key in ('seeds','draws','selection','selected_seed')}
+        if draws['selection'] is None:draws.pop('selection')
+        return draws
+
+    def price_resources(self, resources, receipt=None):
+        policy=self.probability_policy()
+        if not policy:return dict(cost=self.formula()(resources),probability=None)
+        evidence=policy.evaluate(self.probability_data(receipt),self.formula())
+        return dict(cost=evidence['cost'],probability=evidence)
 
     def params(self, small=False):
         return {k: v['small'][0] if small else v['full'] for k, v in self.config.get('scale', {}).items()}
 
+    @property
+    def frontend(self):
+        adapter = self.adapter()
+        if hasattr(adapter, 'frontend'):
+            if self.config.get('components'):
+                from .bundle import BundleFrontend
+                configured = BundleFrontend(self.config['components'])
+                if not isinstance(adapter.frontend, BundleFrontend) or adapter.frontend.identity_hash() != configured.identity_hash():
+                    raise StrataError('adapter frontend does not match configured component contract')
+            return adapter.frontend
+        kind = self.config.get('frontend', 'kickmix')
+        if kind == 'bundle':
+            from .bundle import BundleFrontend
+            return BundleFrontend(self.config.get('components', []))
+        if kind == 'data':
+            from .bundle import DataFrontend
+            return DataFrontend(Path(self.config['base']).name)
+        if kind != 'kickmix':
+            from .frontends import frontend_for
+            return frontend_for(kind)
+        return self.project.frontend
+
+    def serialize(self, artifact):
+        from .callbacks import artifact_bytes
+        data = artifact_bytes(self.frontend, artifact)
+        if not isinstance(data, bytes):
+            raise StrataError('frontend serialization must return bytes or text')
+        if artifact_bytes(self.frontend, self.frontend.parse(data.decode())) != data:
+            raise StrataError('frontend does not preserve serialized artifact bytes')
+        return data
+
+    def parse_artifact(self, data):
+        artifact = self.frontend.parse(data.decode())
+        if self.serialize(artifact) != data:
+            raise StrataError('stored artifact has a noncanonical frontend encoding')
+        return artifact
+
+    def task_hash(self):
+        source = inspect.getsourcefile(type(self.frontend))
+        if not source:
+            raise StrataError('frontend needs a pinned source file')
+        return digest(dict(config=self.config, frontend=hashlib.sha256(Path(source).read_bytes()).hexdigest(),
+                           frontend_identity=self.frontend.identity_hash() if hasattr(self.frontend, 'identity_hash') else None))
+
+    def measured(self, artifact):
+        metrics = self.frontend.measured(artifact)
+        if type(metrics.get('Q')) not in (int, float) or metrics['Q'] < 0:
+            raise StrataError('frontend must measure nonnegative emitted width Q')
+        cap = self.config.get('max_qubits')
+        if cap is not None and metrics['Q'] > cap:
+            raise StrataError('build exceeds hard width')
+        return metrics
+
+    def check_resources(self, artifact, resources):
+        metrics = self.measured(artifact)
+        if not isinstance(resources, dict) or 'Q' not in resources:
+            raise StrataError('verifier must report emitted width Q; use Q_total for host width')
+        for name, value in resources.items():
+            if isinstance(value, (int, float)) and (isinstance(value, bool) or not math.isfinite(value)):
+                raise StrataError('resources must contain finite numeric metrics')
+        if 'Q_total' in resources and (type(resources['Q_total']) not in (int, float) or resources['Q_total'] < metrics['Q']):
+            raise StrataError('Q_total must cover the emitted component width')
+        if resources['Q'] != metrics['Q']:
+            raise StrataError('verifier width disagrees with emitted circuit; Q_total is separate host width')
+        widths = metrics.get('component_widths')
+        if widths is not None and resources.get('component_widths') != widths:
+            raise StrataError('verifier component widths disagree with emitted bundle')
+        from .acceptance import check_acceptance
+        check_acceptance(self.config.get('accept', {}), resources)
+        return metrics
+
+    def run_lab(self, artifact, tree, parameters, limits=None):
+        adapter = self.adapter()
+        if hasattr(self.frontend, 'validate_tree'):
+            self.frontend.validate_tree(tree)
+        options = limits or {}
+        if set(options) - {'max_trajectories', 'timeout', 'batch_size', 'shard_index', 'shard_count', 'branch_strategy'}:
+            raise StrataError('unknown lab limit')
+        if hasattr(adapter, 'lab_components'):
+            from .component_lab import run_component_labs
+            result = run_component_labs(self.frontend, artifact, tree, parameters, adapter, options)
+        elif hasattr(adapter, 'lab'):
+            from .callbacks import FullArtifactLab
+            from .lab import LabResult
+            result = adapter.lab(artifact, tree, parameters, self.config.get('domain', {}), **options)
+            if not isinstance(result, (FullArtifactLab, LabResult)):
+                raise StrataError('external lab must return a typed scoped lab receipt')
+        else:
+            domain = adapter.lab_domain(parameters) if hasattr(adapter, 'lab_domain') else None
+            result = exhaustive(artifact, tree.contract, adapter.reference, parameters, domain=domain,
+                                evidence_kind='exact_small' if self.config.get('scale') else 'exact_full', **options)
+        return result
+
+    def lab_record(self, result, artifact, tree, parameters):
+        record = asdict(result)
+        if record.get('evidence_kind') not in {'full_artifact', 'component_scoped'} and record.get('circuit_hash') != hashlib.sha256(str(artifact).encode()).hexdigest():
+            raise StrataError('lab checked a different circuit')
+        record['binding'] = dict(artifact=hashlib.sha256(self.serialize(artifact)).hexdigest(),
+                                contract=tree.contract.fingerprint, parameters=parameters, promise=tree.contract.promise,
+                                adapter_hash=adapter_hash(self.adapter()), task_hash=self.task_hash())
+        if record.get('evidence_kind') == 'component_scoped' and record.get('circuit_hash') != record['binding']['artifact']:
+            raise StrataError('component lab checked a different bundle')
+        if record.get('passed') and record.get('evidence_kind')!='sample':
+            self.validate_lab(record)
+        elif record.get('evidence_kind')=='sample':
+            shard=record.get('shard',{})
+            if (record.get('exhaustive') is not False or type(shard.get('count')) is not int or shard['count']<2
+                or type(shard.get('index')) is not int or not 0<=shard['index']<shard['count']
+                or record.get('contract_hash')!=tree.contract.fingerprint or record.get('scope')!=parameters
+                or record.get('promise')!=tree.contract.promise):
+                raise StrataError('sample lab binding mismatch')
+        return record
+
+    def validate_lab(self, lab):
+        binding = lab.get('binding', {})
+        if binding.get('adapter_hash') != adapter_hash(self.adapter()) or binding.get('task_hash') != self.task_hash():
+            raise StrataError('lab adapter or task binding mismatch')
+        if lab.get('contract_hash') != binding.get('contract'):
+            raise StrataError('lab contract binding mismatch')
+        if lab.get('evidence_kind') == 'component_scoped':
+            from .component_lab import validate_component_lab
+            validate_component_lab(lab, self.frontend)
+            if lab.get('scope') != binding.get('parameters') or lab.get('circuit_hash') != binding.get('artifact'):
+                raise StrataError('component lab parameter or artifact binding mismatch')
+        elif lab.get('evidence_kind') == 'full_artifact':
+            receipt = lab.get('receipt', {})
+            scope = dict(parameters=binding.get('parameters'), domain=self.config.get('domain', {}))
+            expected = dict(stage='lab', artifact_hash=binding.get('artifact'), parameters_hash=digest(binding.get('parameters')),
+                            domain_hash=digest(self.config.get('domain', {})), scope='full_artifact', passed=True)
+            if any(receipt.get(k) != value for k, value in expected.items()) or lab.get('scope') != scope or lab.get('passed') is not True:
+                raise StrataError('invalid full-artifact lab receipt')
+            if not lab.get('verifier_hash') or lab['verifier_hash'] != receipt.get('verifier_hash'):
+                raise StrataError('unbound full-artifact lab verifier')
+            if lab.get('circuit_hash') != binding.get('artifact') or lab.get('exhaustive') is not False:
+                raise StrataError('full-artifact check cannot claim an exhaustive small model')
+        else:
+            from .lab import validate_lab_receipt
+            validate_lab_receipt(lab)
+            if lab.get('scope') != binding.get('parameters') or lab.get('promise') != binding.get('promise'):
+                raise StrataError('lab parameter or promise scope mismatch')
+
     def verify_built(self, circuit, parameters, adapter):
         forbidden = set(self.config.get('forbid', []))
-        from .kickmix import instructions
-        if any(op in forbidden for _, _, op, _ in instructions(circuit)):
+        if hasattr(self.frontend, 'operations'):
+            operations = self.frontend.operations(circuit)
+        else:
+            from .kickmix import instructions
+            operations = (op for _, _, op, _ in instructions(circuit))
+        if any(op in forbidden for op in operations):
             raise StrataError('forbidden gate')
-        limit = self.config.get('max_qubits')
-        if limit is not None and circuit.num_qubits > limit:
-            raise StrataError('qubit budget exceeded')
+        self.measured(circuit)
         oracle = adapter.oracle(circuit, parameters, self.config.get('domain', {}))
         if oracle.get('passed') is not True:
             raise StrataError('full oracle failed')
@@ -167,35 +358,48 @@ class Task:
         if required and (receipt.get('seeds') != required or oracle.get('seeds') != required):
             raise StrataError('draws differ from precommitted seeds')
         resources = receipt['resources']
-        if 'Q' in resources and resources['Q'] != circuit.num_qubits:
-            raise StrataError('verifier width disagrees with emitted circuit')
-        from .acceptance import check_acceptance
-        check_acceptance(self.config.get('accept', {}), resources)
-        cost = self.formula()(resources)
-        return dict(oracle=oracle, official=receipt, cost=cost)
+        self.check_resources(circuit, resources)
+        priced=self.price_resources(resources,receipt)
+        policy=self.probability_policy()
+        if policy:
+            policy.validate_selection(self.probability_data(oracle))
+            for draw in receipt.get('draws',receipt.get('details',{}).get('draws',[])):
+                self.check_resources(circuit,draw['resources'])
+        return dict(oracle=oracle, official=receipt, **priced,
+                    binding=dict(artifact=hashlib.sha256(self.serialize(circuit)).hexdigest(), parameters=parameters,
+                                 domain=self.config.get('domain', {}), task_hash=self.task_hash(), adapter_hash=adapter_hash(adapter)))
 
     def ingest(self):
         adapter = self.adapter()
         base = self.project.root / self.config['base']
         input_manifest = manifest(base)
-        circuit = self.project.frontend.load(base)
+        circuit = self.frontend.load(base)
         parameters = self.params()
         built, tree = adapter.build(parameters, {})
-        if str(built) != str(circuit):
+        if self.serialize(built) != self.serialize(circuit):
             raise StrataError('generator does not reproduce the supplied base')
         small_c, small_tree = adapter.build(self.params(True), {})
-        lab = exhaustive(small_c, small_tree.contract, adapter.reference, self.params(True))
+        lab = self.run_lab(small_c, small_tree, self.params(True))
         if not lab.passed:
             raise StrataError('base small model fails')
+        lab_record = self.lab_record(lab, small_c, small_tree, self.params(True))
+        self.validate_lab(lab_record)
+        measured_resources = adapter.measure(circuit, parameters, self.config.get('domain', {}))
+        self.check_resources(circuit, measured_resources)
+        measurement_receipt = getattr(adapter, 'measurement_receipt', None)
+        measured_cost = self.price_resources(measured_resources,measurement_receipt)['cost']
         full = self.verify_built(circuit, parameters, adapter)
-        artifact = self.project.store.blob(str(circuit).encode())
-        cert = self.project.store.put('certificate', dict(passed=True, artifact=artifact, lab=asdict(lab),
-                full=full, verifier_hash=full['official']['verifier_hash'], adapter_hash=adapter_hash(adapter),
+        if measured_cost != full['cost']:
+            raise StrataError('build price disagrees with full verifier')
+        artifact = self.project.store.blob(self.serialize(circuit))
+        cert = self.project.store.put('certificate', dict(passed=True, artifact=artifact, lab=lab_record,
+                full=full, build_price=dict(passed=True, artifact=artifact, measured_resources=measured_resources, measured_cost=measured_cost, measurement_receipt=measurement_receipt),
+                verifier_hash=full['official']['verifier_hash'], adapter_hash=adapter_hash(adapter), task_hash=self.task_hash(),
                 failure_model=full['official'].get('failure_model', {'status': 'unspecified'}),
                 binding=dict(task=self.id, tree=digest(tree), parameters=parameters, implementation={}, parent=None)))
         record = dict(task=self.id, parent=None, tree=asdict(tree), architecture=tree.architecture,
                       parameters=parameters, implementation={}, artifact=artifact, certificate=cert, input_manifest=input_manifest,
-                      adapter_hash=adapter_hash(adapter), cost=full['cost'], resources=full['official']['resources'])
+                      adapter_hash=adapter_hash(adapter), task_hash=self.task_hash(), cost=full['cost'], resources=full['official']['resources'])
         verify_manifest(base, input_manifest)
         return self.project.store.put('design', record)
 
@@ -222,29 +426,64 @@ class Design:
         expected_binding=dict(task=d['task'], tree=digest(d['tree']), parameters=d['parameters'], implementation=d['implementation'], parent=d.get('parent'))
         if digest(cert.get('binding'))!=digest(expected_binding):
             raise StrataError('certificate design metadata mismatch')
-        if cert.get('passed') is not True or lab.get('passed') is not True or lab.get('exhaustive') is not True:
-            raise StrataError('certificate lacks passing exhaustive lab')
-        if lab.get('tested')!=lab.get('cases',0)*lab.get('branches',0) or lab.get('tested',0)<=0:
-            raise StrataError('incomplete lab certificate')
+        task = self.project.task(d['task'])
+        if cert.get('passed') is not True or lab.get('passed') is not True:
+            raise StrataError('certificate lacks passing lab')
+        task.validate_lab(lab)
+        if d.get('task_hash') != task.task_hash() or cert.get('task_hash') != d['task_hash']:
+            raise StrataError('task configuration or frontend changed')
+        if d['adapter_hash'] != adapter_hash(task.adapter()):
+            raise StrataError('adapter changed since certification')
+        expected_full = dict(artifact=d['artifact'], parameters=d['parameters'], domain=task.config.get('domain', {}),
+                             task_hash=d['task_hash'], adapter_hash=d['adapter_hash'])
+        if digest(full.get('binding')) != digest(expected_full):
+            raise StrataError('full verifier artifact or domain binding mismatch')
         if full.get('oracle',{}).get('passed') is not True or full.get('official',{}).get('passed') is not True:
             raise StrataError('certificate lacks full verification')
+        if task.probability_policy():
+            task.probability_policy().validate_selection(task.probability_data(full['oracle']))
+        for name,stage in (('oracle','oracle_full'),('official','official_verifier')):
+            inner=full[name]
+            if 'artifact_hash' in inner:
+                expected=dict(artifact_hash=d['artifact'],parameters_hash=digest(d['parameters']),
+                              domain_hash=digest(task.config.get('domain',{})),scope='full_artifact',stage=stage)
+                if any(inner.get(k)!=v for k,v in expected.items()):raise StrataError('inner verifier receipt scope mismatch')
         if cert.get('artifact')!=d['artifact'] or cert.get('adapter_hash')!=d['adapter_hash']:
             raise StrataError('certificate artifact/adapter mismatch')
         if cert.get('verifier_hash')!=full['official'].get('verifier_hash'):
             raise StrataError('verifier binding mismatch')
         if d['cost']!=full.get('cost') or d['resources']!=full['official'].get('resources'):
             raise StrataError('design price does not match certificate')
-        if self.project.task(d['task']).formula()(d['resources']) != d['cost']:
+        repriced=task.price_resources(d['resources'],full['official'])
+        if repriced['cost'] != d['cost'] or repriced['probability']!=full.get('probability'):
             raise StrataError('project cost formula changed since certification')
         if d['architecture']!=self.tree.architecture:
             raise StrataError('architecture fingerprint mismatch')
-        self.project.store.read_blob(d['artifact'])
+        artifact = task.parse_artifact(self.project.store.read_blob(d['artifact']))
+        if hasattr(task.frontend, 'validate_tree'):
+            task.frontend.validate_tree(self.tree)
+        task.check_resources(artifact, d['resources'])
+        price = cert.get('build_price', {})
+        if price.get('passed') is not True or price.get('artifact') != d['artifact'] or price.get('measured_cost') != d['cost']:
+            raise StrataError('certificate lacks a matching measured build price')
+        task.check_resources(artifact, price.get('measured_resources'))
+        if price.get('measurement_receipt') is not None:
+            receipt = price['measurement_receipt']
+            expected = dict(stage='build_price', passed=True, artifact_hash=d['artifact'], parameters_hash=digest(d['parameters']),
+                            domain_hash=digest(task.config.get('domain', {})), scope='full_artifact', resources=price['measured_resources'])
+            if any(receipt.get(key) != value for key, value in expected.items()) or not receipt.get('verifier_hash'):
+                raise StrataError('measurement receipt scope mismatch')
+        if task.price_resources(price['measured_resources'],price.get('measurement_receipt'))['cost'] != price['measured_cost']:
+            raise StrataError('build price receipt is inconsistent')
+        if not task.config.get('scale') and lab['binding']['artifact'] != d['artifact']:
+            raise StrataError('unscaled lab checked a different artifact')
         if d.get('parent'):
             parent=Design(self.project,d['parent']);parent.validate(seen)
             if parent.record['task']!=d['task']:raise StrataError('cross-task ancestry')
             patch=Patch(**d['patch'])
             if not patch.applies(parent.tree):raise StrataError('ancestral patch no longer applies')
-            expected={**parent.record['implementation'],**patch.implementation}
+            adapter=task.adapter()
+            expected=adapter.merge_implementation(parent.record['implementation'],patch.implementation) if hasattr(adapter,'merge_implementation') else {**parent.record['implementation'],**patch.implementation}
             if digest(expected)!=digest(d['implementation']):raise StrataError('patch chain implementation mismatch')
         return True
 
@@ -253,7 +492,9 @@ class Design:
         adapter = task.adapter()
         circuit, _ = adapter.build(self.record['parameters'], self.record['implementation'])
         ledgers = adapter.ledger(circuit, self.tree)
-        return rank_gaps(self.tree, ledgers, adapter.floors(self.tree), task.formula(), self.record['resources'])[:top]
+        rows = rank_gaps(self.tree, ledgers, adapter.floors(self.tree), task.formula(), self.record['resources'])[:top]
+        self.project.store.put('gap_snapshot', dict(design=self.id, task=task.id, gaps=rows))
+        return rows
 
     def price(self, region, resource, delta):
         self.tree.find(region)
@@ -300,9 +541,10 @@ class Line:
         if adapter_hash(adapter) != self.record['adapter_hash']:
             raise StrataError('adapter changed after line opened')
         parent = Design(self.project, self.record['parent'])
+        parent.validate()
         if not self.patch.applies(parent.tree):
             raise StrataError('patch stale')
-        impl = {**parent.record['implementation'], **self.patch.implementation}
+        impl = adapter.merge_implementation(parent.record['implementation'],self.patch.implementation) if hasattr(adapter,'merge_implementation') else {**parent.record['implementation'], **self.patch.implementation}
         return adapter, parent, impl
 
     def validate_edit(self, old_circuit, old_tree, circuit, tree):
@@ -312,6 +554,9 @@ class Line:
             raise StrataError('external register contract changed')
         if (old_tree.contract.reference, old_tree.contract.promise, old_tree.contract.phase, old_tree.contract.failure) != (tree.contract.reference, tree.contract.promise, tree.contract.phase, tree.contract.failure):
             raise StrataError('external specification changed')
+        if hasattr(self.task.frontend, 'validate_edit'):
+            self.task.frontend.validate_edit(old_circuit, old_tree, circuit, tree, self.patch.regions, self.patch.replacement_regions)
+            return
         touched=[old_tree.find(name) for name in self.patch.regions if any(r.id==name for r in old_tree.walk())]
         # For scaled instances some occurrences may not exist. The full build
         # separately checks every occurrence; the root boundary remains mandatory.
@@ -338,7 +583,7 @@ class Line:
         params = self.task.params(True)
         params.update(scale)
         for k, value in params.items():
-            if k not in self.task.config['scale'] or value not in self.task.config['scale'][k]['small']:
+            if k not in self.task.config.get('scale', {}) or value not in self.task.config['scale'][k]['small']:
                 raise StrataError('scale not declared in project')
         circuit, tree = adapter.build(params, impl)
         old, old_tree = adapter.build(params, parent.record['implementation'])
@@ -346,33 +591,35 @@ class Line:
         if (tree.contract.reference, tree.contract.promise, tree.contract.phase, tree.contract.failure) != (old_tree.contract.reference, old_tree.contract.promise, old_tree.contract.phase, old_tree.contract.failure):
             raise StrataError('external specification changed')
         self.validate_edit(old, old_tree, circuit, tree)
-        options=limits or {}
-        if set(options)-{'max_trajectories','timeout'}:raise StrataError('unknown lab limit')
-        result = exhaustive(circuit, tree.contract, adapter.reference, params, **options)
-        event = dict(stage='lab', **asdict(result), implementation=digest(impl))
+        result = self.task.run_lab(circuit, tree, params, limits)
+        event = dict(stage='lab', **self.task.lab_record(result, circuit, tree, params), implementation=digest(impl))
         self.project.store.event(self.id, event)
         return result
 
     def build(self):
         lab = self.result('lab')
+        self.task.validate_lab(lab)
         adapter, parent, impl = self.context()
         if lab['implementation'] != digest(impl):
             raise StrataError('lab describes a different implementation')
         circuit, tree = adapter.build(parent.record['parameters'], impl)
         old_circuit, old_tree = adapter.build(parent.record['parameters'], parent.record['implementation'])
         self.validate_edit(old_circuit, old_tree, circuit, tree)
-        metrics = self.project.frontend.measured(circuit)
+        metrics = self.task.measured(circuit)
         if not hasattr(adapter, 'measure'):
             raise StrataError('build-price gate needs an executed-cost measurement adapter')
         charged = adapter.measure(circuit, parent.record['parameters'], self.task.config.get('domain', {}))
-        measured_cost = self.task.formula()(charged)
+        self.task.check_resources(circuit, charged)
+        measured_cost = self.task.price_resources(charged,getattr(adapter,'measurement_receipt',None))['cost']
         cap = self.task.config.get('max_qubits')
         if cap is not None and metrics['Q'] > cap:
             raise StrataError('build exceeds hard width')
-        artifact = self.project.store.blob(str(circuit).encode())
+        artifact = self.project.store.blob(self.task.serialize(circuit))
+        if not self.task.config.get('scale') and lab['binding']['artifact'] != artifact:
+            raise StrataError('lab checked a different artifact')
         result = dict(stage='build_price', passed=True, artifact=artifact, tree=asdict(tree),
                       metrics=metrics, implementation=impl, parameters=parent.record['parameters'],
-                      price_status='measured build', measured_resources=charged, measured_cost=measured_cost, delta=measured_cost-parent.record['cost'])
+                      price_status='measured build', measurement_receipt=getattr(adapter, 'measurement_receipt', None), measured_resources=charged, measured_cost=measured_cost, delta=measured_cost-parent.record['cost'])
         self.project.store.event(self.id, result)
         return result
 
@@ -381,24 +628,30 @@ class Line:
         adapter, parent, impl = self.context()
         if lab['implementation'] != digest(impl) or digest(build['implementation']) != digest(impl):
             raise StrataError('verification evidence describes another implementation')
-        circuit = self.project.frontend.parse(self.project.store.read_blob(build['artifact']).decode())
+        circuit = self.task.parse_artifact(self.project.store.read_blob(build['artifact']))
+        self.task.validate_lab(lab)
+        rebuilt, rebuilt_tree = adapter.build(build['parameters'], impl)
+        if self.task.serialize(rebuilt) != self.task.serialize(circuit) or digest(rebuilt_tree) != digest(build['tree']):
+            raise StrataError('build output or tree changed before verification')
         checked = self.task.verify_built(circuit, build['parameters'], adapter)
+        if checked['cost'] != build['measured_cost']:
+            raise StrataError('build price disagrees with full verifier')
         cert = self.project.store.put('certificate', dict(passed=True, artifact=build['artifact'], lab=lab,
-                    full=checked, adapter_hash=adapter_hash(adapter), verifier_hash=checked['official']['verifier_hash'],
+                    full=checked, build_price=build, adapter_hash=adapter_hash(adapter), task_hash=self.task.task_hash(), verifier_hash=checked['official']['verifier_hash'],
                     failure_model=checked['official'].get('failure_model', {'status': 'unspecified'}),
                     binding=dict(task=self.task.id, tree=digest(build['tree']), parameters=build['parameters'], implementation=impl, parent=parent.id)))
         tree = region_from_dict(build['tree'])
         record = dict(task=self.task.id, parent=parent.id, patch=asdict(self.patch), depth=self.patch.depth,
                       tree=build['tree'], architecture=tree.architecture, parameters=build['parameters'],
                       implementation=impl, artifact=build['artifact'], certificate=cert,
-                      adapter_hash=adapter_hash(adapter), cost=checked['cost'], resources=checked['official']['resources'])
+                      adapter_hash=adapter_hash(adapter), task_hash=self.task.task_hash(), cost=checked['cost'], resources=checked['official']['resources'])
         design = self.project.store.put('design', record)
         self.project.store.event(self.id, dict(stage='verified', passed=True, design=design, certificate=cert))
         return Design(self.project, design)
 
-    def park(self, reason, reopen, evidence='estimate', scale=None):
+    def park(self, reason, reopen, evidence='estimate', scale=None, evidence_artifact=None):
         for fp in self.patch.contracts:
-            self.project.store.negative(fp, self.patch.move, evidence, reason, reopen, scale)
+            self.project.store.negative(fp, self.patch.move, evidence, reason, reopen, scale, evidence=evidence_artifact)
         self.project.store.event(self.id, dict(stage='parked', passed=False, reason=reason, reopen=reopen))
 
     def status(self):

@@ -40,11 +40,13 @@ def test_store_integrity_negative_scope_and_no_overwrite(tmp_path):
     h=s.blob(b'abc');assert s.read_blob(h)==b'abc'
     (tmp_path/'objects'/h).write_bytes(b'wrong')
     with pytest.raises(StrataError):s.read_blob(h)
+    receipt=s.blob(b'bound measured or exact-small receipt')
     for kind,status in [('estimate','priced'),('build','closed'),('exact_small','closed_at_size')]:
-        h=s.negative('contract','fuse',kind,{'number':12},'new consumer',{'bits':4} if kind=='exact_small' else None)
+        h=s.negative('contract','fuse',kind,{'number':12},'new consumer',{'bits':4} if kind=='exact_small' else None,evidence=receipt)
         assert s.get(h)['status']==status
     assert len(s.tried('contract','fuse'))==3
-    with pytest.raises(StrataError):s.negative('contract','fuse','exact_small',{'pass':False},'more bits')
+    missing=s.negative('contract','fuse','exact_small',{'pass':False},'more bits',evidence=receipt)
+    assert s.get(missing)['status']=='priced'
 
 
 def test_real_structural_pipeline_replay_and_exact_price(project):

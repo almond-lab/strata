@@ -33,7 +33,7 @@ class Store:
         return h
 
     def read_blob(self, h):
-        if len(h) != 64 or any(c not in '0123456789abcdef' for c in h):
+        if not isinstance(h, str) or len(h) != 64 or any(c not in '0123456789abcdef' for c in h):
             raise StrataError('invalid object hash')
         data = (self.path / 'objects' / h).read_bytes()
         if hashlib.sha256(data).hexdigest() != h:
@@ -67,14 +67,28 @@ class Store:
     def events(self, line):
         return [json.loads(x[0]) for x in self.db.execute('SELECT body FROM events WHERE line=? ORDER BY seq', (line,))]
 
-    def negative(self, contract, move, kind, result, reopen, scale=None):
-        if kind not in {'proof', 'exact_small', 'build', 'estimate'}:
+    def negative(self, contract, move, kind, result, reopen, scale=None, *, evidence=None):
+        if not isinstance(kind, str) or kind not in {'proof', 'exact_small', 'build', 'estimate'}:
             raise StrataError('unknown negative evidence kind')
         if not reopen or not result:
             raise StrataError('negative result needs evidence and reopen condition')
-        if kind == 'exact_small' and not scale:
-            raise StrataError('exact search needs size')
+        requested_kind = kind
+        evidence = dict(evidence) if isinstance(evidence, dict) else {'artifact_hash': evidence} if evidence else {}
+        evidence_status = 'not_provided'
+        if kind != 'estimate':
+            try:
+                self.read_blob(evidence.get('artifact_hash'))
+            except (OSError, StrataError):
+                kind = 'estimate'
+                evidence_status = 'missing_or_invalid_artifact'
+            else:
+                evidence_status = 'artifact_hash_verified'
+                if kind == 'exact_small' and not scale:
+                    kind = 'estimate'
+                    evidence_status = 'missing_exact_size'
         return self.put('negative', dict(contract=contract, move=move, evidence_kind=kind,
+                        requested_evidence_kind=requested_kind, evidence=evidence,
+                        evidence_status=evidence_status,
                         result=result, reopen=reopen, scale=scale,
                         status='priced' if kind == 'estimate' else 'closed_at_size' if kind == 'exact_small' else 'closed',
                         full_size_open=kind == 'exact_small'))

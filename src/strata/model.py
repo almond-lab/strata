@@ -7,9 +7,22 @@ import json
 
 
 def canonical(value):
-    if hasattr(value, '__dataclass_fields__'):
-        value = asdict(value)
-    return json.dumps(value, sort_keys=True, separators=(',', ':'), allow_nan=False)
+    def normalize(item):
+        if hasattr(item, '__dataclass_fields__'):
+            item = asdict(item)
+        if isinstance(item, dict):
+            # JSON object keys are strings. Normalize before sorting/hashing so
+            # integer-keyed ledgers survive a JSON round trip (10 sorts before 2).
+            # Mixed key types are ambiguous and must never silently lose values.
+            kinds = {type(key) for key in item}
+            if kinds - {str, int} or len(kinds) > 1:
+                raise StrataError('object keys must be uniformly strings or integers; mixed keys are ambiguous')
+            return {str(key): normalize(val) for key, val in item.items()}
+        if isinstance(item, (tuple, list)):
+            return [normalize(val) for val in item]
+        return item
+
+    return json.dumps(normalize(value), sort_keys=True, separators=(',', ':'), allow_nan=False)
 
 
 def digest(value):

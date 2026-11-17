@@ -7,10 +7,44 @@ from .model import StrataError, digest
 from .project import Design
 
 
+def _wire_list(value):
+    wires = tuple(int(item.strip()) for item in value.split(',')) if value.strip() else ()
+    if any(wire < 0 for wire in wires):
+        raise StrataError('wire indices must be nonnegative')
+    return wires
+
+
+def _memory_status(store, contract, scale):
+    from .memory import apply_memory
+    if contract:
+        return apply_memory(store, contract=contract, scale=scale)
+    contracts = sorted({record['contract'] for _, record in store.all('negative')})
+    items = [item for fingerprint in contracts
+             for item in apply_memory(store, contract=fingerprint, scale=scale)['items']
+             if item['contract'] == fingerprint]
+    return dict(contracts=contracts, scale=scale, items=items,
+                unbound=[dict(handle=handle, identifier=record.get('identifier'), binding_status='unbound')
+                         for handle, record in store.all('unbound_attempt')],
+                counts={name: sum(item['disposition'] == name for item in items)
+                        for name in ('priced', 'closed', 'closed_at_size', 'reopen')})
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description='Strata contract restructuring and evidence')
     parser.add_argument('--project', default='strata.toml')
     sub = parser.add_subparsers(dest='cmd', required=True)
+    p = sub.add_parser('report');p.add_argument('--store', required=True);p.add_argument('--handle');p.add_argument('--format', choices=('json', 'markdown'), default='json')
+    p = sub.add_parser('memory-import');p.add_argument('input');p.add_argument('--store', required=True)
+    p = sub.add_parser('memory-status');p.add_argument('--store', required=True);p.add_argument('--contract');p.add_argument('--scale')
+    for name in ('function-of', 'slack', 'floors'):
+        p = sub.add_parser(name);p.add_argument('input')
+        if name != 'floors':
+            p.add_argument('--at', type=int, required=name == 'function-of')
+            p.add_argument('--clean-inputs', default='')
+        if name == 'function-of':
+            p.add_argument('--wire', type=int, required=True);p.add_argument('--support', required=True)
+        elif name == 'slack':
+            p.add_argument('--wires')
     for name in ('inspect-file', 'optimize', 'discover', 'evaluate-file', 'note'):
         p=sub.add_parser(name);p.add_argument('input');p.add_argument('--out',required=True)
         if name=='note':p.add_argument('--note',required=True)
@@ -38,6 +72,51 @@ def main(argv=None):
         if name=='park':q.add_argument('--reason',required=True);q.add_argument('--reopen',required=True)
     args = parser.parse_args(argv)
     try:
+        if args.cmd in {'report', 'memory-import', 'memory-status'}:
+            from .store import Store
+            store = Store(args.store)
+            try:
+                if args.cmd == 'report':
+                    from .reports import report, markdown_report
+                    result = report(store, handle=args.handle)
+                    if args.format == 'markdown':
+                        print(markdown_report(result))
+                        return 0
+                elif args.cmd == 'memory-import':
+                    from .memory import import_attempts
+                    result = import_attempts(store, args.input)
+                else:
+                    scale = json.loads(args.scale) if args.scale is not None else None
+                    if scale is not None and not isinstance(scale, dict):
+                        raise StrataError('memory scale must be a JSON object')
+                    result = _memory_status(store, args.contract, scale)
+            finally:
+                store.db.close()
+            print(json.dumps(result, indent=2, default=str))
+            return 0
+        if args.cmd in {'function-of', 'slack', 'floors'}:
+            from .frontends import load_circuit
+            from .inference import functions_at, is_function_of, information_slack
+            circuit = load_circuit(args.input)
+            if args.cmd == 'function-of':
+                result = is_function_of(circuit, args.wire, args.at, _wire_list(args.support),
+                                        clean_inputs=_wire_list(args.clean_inputs))
+            elif args.cmd == 'slack':
+                result = information_slack(circuit, args.at,
+                    wires=None if args.wires is None else _wire_list(args.wires),
+                    clean_inputs=_wire_list(args.clean_inputs))
+            else:
+                from .floors import counting_bound
+                inferred = functions_at(circuit)
+                if inferred['status'] == 'exact':
+                    wires = sorted(inferred['functions'])
+                    outputs = [[sorted(term) for term in inferred['functions'][wire]] for wire in wires]
+                    result = dict(status='exact', at=inferred['at'], wires=wires,
+                                  clean_inputs=inferred['clean_inputs'], **counting_bound(outputs))
+                else:
+                    result = inferred
+            print(json.dumps(result, indent=2, default=str))
+            return 0
         if args.cmd in {'inspect-file','optimize','discover','evaluate-file','note'}:
             from .file_workflow import inspect_file, optimize_file
             options=dict(cost=args.cost,max_window=args.max_window,max_variables=args.max_variables,max_terms=args.max_terms)
@@ -73,10 +152,11 @@ def main(argv=None):
             result=dict(architecture_changed=a.tree.architecture!=b.tree.architecture, before=asdict(a.tree), after=asdict(b.tree), cost_delta=b.record['cost']-a.record['cost'])
         elif args.cmd in ['analyze','lift','gaps','price']:
             task=project.task(args.task)
-            circuit=project.frontend.load(project.root/task.config['base'])
-            if args.cmd=='analyze':result=project.frontend.analyze(circuit,project.store.path/'analysis'/args.task)
+            frontend=task.frontend
+            circuit=frontend.load(project.root/task.config['base'])
+            if args.cmd=='analyze':result=frontend.analyze(circuit,project.store.path/'analysis'/args.task)
             elif args.cmd=='lift':
-                tree,coverage=project.frontend.lift(circuit)
+                tree,coverage=frontend.lift(circuit)
                 h=project.store.put('lift',dict(tree=asdict(tree),coverage=coverage,confirmed=args.confirm))
                 result=dict(handle=h,coverage=coverage,confirmed=args.confirm,
                             note='Confirmation records a proposal; only verified adapters create certified designs.')

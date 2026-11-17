@@ -17,6 +17,7 @@ import kickmix as km
 
 from .cost import Formula
 from .kickmix import Kickmix
+from .frontends import load_circuit
 from .model import StrataError, digest
 from .semantic import analyze_window, equivalent_windows, lift_regions, _parse
 from .store import Store
@@ -190,7 +191,7 @@ def _retain(report, original_bytes, candidate_bytes, root):
     report['baseline']['blob'] = store.blob(original_bytes)
     report['candidate']['blob'] = store.blob(candidate_bytes)
     report['code'] = {name:store.blob((Path(__file__).parent / name).read_bytes())
-                      for name in ('semantic.py', 'discovery.py')}
+                      for name in ('semantic.py', 'discovery.py', 'frontends.py')}
     handle = store.put('file_candidate_attempt', report)
     report['record'] = handle
     report['report'] = str(root / f'attempt-{handle}.json')
@@ -215,7 +216,7 @@ def record_research_note(input_path, out, note):
     if not isinstance(note_class, str) or note_class not in NOTE_CLASSES:
         raise StrataError('research notes are observations, hypotheses, blockers, or analysis requests; proof is not a note class')
     source = Path(input_path).resolve()
-    circuit = Kickmix().load(source)
+    circuit = load_circuit(source)
     canonical = str(circuit).encode()
     parent_hash = _hash(canonical)
     if note.get('parent_sha256', parent_hash) != parent_hash:
@@ -267,7 +268,7 @@ def record_research_note(input_path, out, note):
                   reported_note=note, evidence_refs=refs, feedback=feedback,
                   equivalent=None, accepted_gain=None, qualified_gain=False,
                   code={name:store.blob((Path(__file__).parent / name).read_bytes())
-                        for name in ('semantic.py', 'discovery.py')})
+                        for name in ('semantic.py', 'discovery.py', 'frontends.py')})
     handle = store.put('agent_research_note', report)
     report['record'] = handle
     report['report'] = str(root / f'research-note-{handle}.json')
@@ -370,12 +371,12 @@ def evaluate_candidate(original_path, candidate_path, out, *, cost=DEFAULT_COST,
     limits = _bounds(max_window, max_variables, max_terms)
     formula = Formula(cost)
     parent_path, child_path = Path(original_path).resolve(), Path(candidate_path).resolve()
-    original = Kickmix().load(parent_path)
+    original = load_circuit(parent_path)
     root = _safe_output(out, [parent_path, child_path], ['evaluation.json'])
     baseline = _artifact(parent_path, original, formula)
     raw_candidate = child_path.read_bytes()
     try:
-        candidate = Kickmix().load(child_path)
+        candidate = load_circuit(child_path)
     except (ValueError, RuntimeError) as exc:
         report = dict(schema_version='1', kind='agent_candidate_evaluation', status='unknown',
                       parent_sha256=baseline['sha256'], baseline=baseline,
@@ -390,7 +391,7 @@ def evaluate_candidate(original_path, candidate_path, out, *, cost=DEFAULT_COST,
                                   all_inputs_arbitrary=True, phase='unproved', width_preserved=None,
                                   boundaries_preserved=False))
         report['feedback'] = _feedback(report)
-        report['feedback']['next_test'] = 'Correct the native kickmix syntax using the parser error, then resubmit the concrete candidate for measurement and exact equivalence.'
+        report['feedback']['next_test'] = 'Correct the syntax in the selected circuit format using the parser error, then resubmit the concrete candidate for measurement and exact equivalence.'
         return _retain(report, str(original).encode(), raw_candidate, root)
     measured = _artifact(child_path, candidate, formula)
     old, new = str(original).splitlines(), str(candidate).splitlines()
@@ -474,7 +475,7 @@ def discovery_brief(input_path, out, *, cost=DEFAULT_COST, max_window=256,
     inspection = inspect_file(source, root, cost=cost, max_window=max_window,
                               max_variables=max_variables, max_terms=max_terms)
     lifted = json.loads((root / 'semantic-lift.json').read_text())
-    circuit = Kickmix().load(source)
+    circuit = load_circuit(source)
     parent_hash = _hash(str(circuit))
     profile = json.loads((root / 'profile.json').read_text())
     rows = {r['id']:r for r in lifted['regions']}
