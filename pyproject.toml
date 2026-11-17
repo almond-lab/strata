@@ -3,7 +3,7 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 [project]
 name = "strata-restructure"
-version = "0.3.0"
+version = "0.3.1"
 description = "Contract-driven circuit restructuring and reproducible evidence on kickmix"
 readme = "README.md"
 requires-python = ">=3.11"

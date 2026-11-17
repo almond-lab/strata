@@ -4,7 +4,8 @@ Tensor rank prices products of a left-linear and a right-linear form with
 arbitrary XOR fanout. It is not a general AND-circuit or quantum-resource floor.
 Every decomposition is an upper bound until matched by a proved lower bound.
 """
-from itertools import product
+from collections import deque
+from itertools import combinations, product
 from math import prod
 from time import monotonic
 
@@ -247,29 +248,257 @@ def verify_decomposition(tensor,decomposition):
                 product_count=len(decomposition),model=MODEL)
 
 
-def search_decomposition(tensor, *, max_rank=4, timeout=1.0, max_catalog=4096, max_expansions=100000):
-    """Bounded complete rank-one search; return a verified baseline on timeout.
+def extract_decomposition(circuit, tensor, *, clean_inputs=(), max_operations=10000,
+                          max_variables=4096):
+    """Recover CCX products and their final XOR fanout from a native window.
 
-The bounded search enumerates all nonzero factor vectors only when the catalog
-fits. Search failures never turn a found construction into a lower bound.
-"""
+    X/CX/SWAP propagate affine values and product provenance. Every CCX must
+    multiply affine forms from opposite sides of the declared partition.
+    Constants contribute to the affine remainder, not to tensor rank. All
+    physical outputs, preserved inputs and clean restoration are checked.
+    Phase gates (including CCZ), measurements and nonlinear controls are outside
+    this accumulator extractor's scope, even if their final effects cancel.
+    """
+    from .semantic import _lines, _parse
+
+    shape = _validate(tensor)
+    clean = set(_wires(clean_inputs, 'clean inputs'))
+    targets = tensor.get('output_wires')
+    scope = ('phase-free X/CX/SWAP/CCX bilinear accumulators with affine controls '
+             'in the declared partition; excludes CCZ phase tensors, measurement '
+             'instruments, conditional operations and nonlinear controls')
+    if targets is None:
+        raise StrataError('gate decomposition extraction needs physical output wires')
+    targets = _wires(targets, 'output wires')
+    if (len(targets) != shape[2] or set(targets) & set(tensor['left'] + tensor['right'])
+        or clean & set(tensor['left'] + tensor['right'])):
+        raise StrataError('extraction requires disjoint arbitrary input words and output wires')
+    if any(type(n) is not int or n < 1 for n in (max_operations, max_variables)):
+        raise StrataError('invalid decomposition extraction budget')
+    operations = []
+    wires = set(tensor['left'] + tensor['right'] + list(targets)) | clean
+    source = str(circuit) if hasattr(circuit, 'num_qubits') else circuit
+    for index, line in enumerate(_lines(source)):
+        if index >= max_operations:
+            return dict(status='unknown', reason='extraction operation budget', scope=scope)
+        item = _parse(line)
+        wires.update(item['wires'])
+        if len(wires) > max_variables:
+            return dict(status='unknown', reason='extraction variable budget', scope=scope)
+        if item['status'] == 'metadata':
+            continue
+        if (item['status'] != 'supported' or item.get('condition') is not None
+            or item['op'] not in {'X', 'CX', 'SWAP', 'CCX'}):
+            return dict(status='not_applicable', reason='unsupported accumulator operation',
+                        operation=item['op'], at=index, scope=scope)
+        operations.append((index, item))
+    if len(wires) > max_variables:
+        return dict(status='unknown', reason='extraction variable budget', scope=scope)
+    indices = {q: i for i, q in enumerate(sorted(wires))}
+    left_bits = sum(1 << indices[q] for q in tensor['left'])
+    right_bits = sum(1 << indices[q] for q in tensor['right'])
+    # Each value is (linear inputs, constant, bilinear coefficients, gate tokens).
+    initial = {q: (0 if q in clean else 1 << indices[q], 0, 0, 0) for q in wires}
+    state = dict(initial)
+    products = []
+
+    def xor(a, b):
+        return tuple(x ^ y for x, y in zip(a, b))
+
+    for index, item in operations:
+        op, qs = item['op'], item['wires']
+        if op == 'X':
+            state[qs[0]] = xor(state[qs[0]], (0, 1, 0, 0))
+        elif op == 'CX':
+            state[qs[1]] = xor(state[qs[1]], state[qs[0]])
+        elif op == 'SWAP':
+            state[qs[0]], state[qs[1]] = state[qs[1]], state[qs[0]]
+        else:
+            x, y = state[qs[0]], state[qs[1]]
+            if x[2] or y[2]:
+                return dict(status='not_applicable', reason='CCX has nonlinear controls', at=index, scope=scope)
+            if not (x[0] & ~left_bits or y[0] & ~right_bits):
+                pass
+            elif not (y[0] & ~left_bits or x[0] & ~right_bits):
+                x, y = y, x
+            else:
+                return dict(status='not_applicable', reason='CCX controls do not respect the declared bipartition',
+                            at=index, scope=scope)
+            left = sum(1 << i for i, q in enumerate(tensor['left']) if x[0] >> indices[q] & 1)
+            right = sum(1 << j for j, q in enumerate(tensor['right']) if y[0] >> indices[q] & 1)
+            quadratic = _outer(left, right, 1, (shape[0], shape[1], 1))
+            token = 0
+            if quadratic:
+                token = 1 << len(products)
+                products.append(dict(at=index, controls=list(qs[:2]), target=qs[2],
+                                     left_mask=left, right_mask=right))
+            delta = ((x[0] if y[1] else 0) ^ (y[0] if x[1] else 0),
+                     x[1] & y[1], quadratic, token)
+            state[qs[2]] = xor(state[qs[2]], delta)
+
+    expected = dict(initial)
+    for k, q in enumerate(targets):
+        linear = initial[q][0]
+        constant = 0
+        for term in tensor['affine'][k]:
+            if term:
+                linear ^= 1 << indices[term[0]]
+            else:
+                constant ^= 1
+        quadratic = sum(1 << (i * shape[1] + j) for i, j, out in tensor['entries'] if out == k)
+        expected[q] = (linear, constant, quadratic, 0)
+    for q in sorted(wires):
+        if state[q][:3] != expected[q][:3]:
+            return dict(status='not_applicable', reason='circuit boundary does not match the supplied tensor',
+                        wire=q, scope=scope, boundary_verification=dict(passed=False))
+
+    masks = [0] * len(products)
+    for k, q in enumerate(targets):
+        for index in _bits(state[q][3]):
+            masks[index] ^= 1 << k
+    decomposition = [dict(left_mask=row['left_mask'], right_mask=row['right_mask'], output_mask=mask)
+                     for row, mask in zip(products, masks) if mask]
+    proof = verify_decomposition(tensor, decomposition)
+    if not proof['passed']:
+        raise StrataError('internal gate decomposition identity failure')
+    return dict(status='verified', rank=len(decomposition), decomposition=decomposition,
+                verification=proof, scope=scope, tensor_hash=tensor['tensor_hash'],
+                ccx_count=sum(item['op'] == 'CCX' for _, item in operations),
+                products=[dict(row, output_mask=mask) for row, mask in zip(products, masks)],
+                boundary_verification=dict(passed=True, evidence='exact affine and bilinear coefficient equality on every physical wire',
+                                           clean_inputs=sorted(clean), restored_clean_outputs=sorted(clean-set(targets)),
+                                           arbitrary_initial_outputs=[q for q in targets if q not in clean],
+                                           clean_output_accumulators=sorted(clean & set(targets)), phase='+1'))
+
+
+_FACTORS = ('left_mask', 'right_mask', 'output_mask')
+
+
+def _canonical_terms(terms):
+    parity = set()
+    for term in terms:
+        term = tuple(term)
+        if not all(term):
+            continue
+        if term in parity:
+            parity.remove(term)
+        else:
+            parity.add(term)
+    return tuple(sorted(parity))
+
+
+def _dependent_reduction(terms, shape, check_budget):
+    """Remove a product whose two-factor matrix lies in the others' span.
+
+    A GF(2) relation among paired factors lets us XOR the removed product's
+    third vector into each other vector in the relation, preserving the tensor.
+    All three choices of the remaining vector are tried.
+    """
+    for remaining in (2, 1, 0):
+        a, b = [axis for axis in range(3) if axis != remaining]
+        basis = {}
+        for index, term in enumerate(terms):
+            check_budget()
+            value = _outer(term[a], term[b], 1, (shape[a], shape[b], 1))
+            relation = 1 << index
+            while value:
+                check_budget()
+                pivot = value.bit_length() - 1
+                if pivot not in basis:
+                    basis[pivot] = (value, relation)
+                    break
+                vector, combination = basis[pivot]
+                value ^= vector
+                relation ^= combination
+            if not value:
+                changed = [list(t) for t in terms]
+                for other in _bits(relation ^ (1 << index)):
+                    changed[other][remaining] ^= term[remaining]
+                del changed[index]
+                return _canonical_terms(changed)
+    return None
+
+
+def _local_decomposition(tensor, seed, check_budget, max_states, accept, report):
+    """Bounded exact dependency reductions and shared-factor flip-graph moves."""
+    shape = tensor['shape']
+    initial = tuple(tuple(t[name] for name in _FACTORS) for t in seed)
+    current = _canonical_terms(initial)
+    if len(current) < len(initial):
+        accept(current)
+        report['reductions'] += 1
+    queue = deque([current])
+    visited = {current}
+    while queue and report['states_visited'] < max_states:
+        current = queue.popleft()
+        report['states_visited'] += 1
+        while True:
+            reduced = _dependent_reduction(current, shape, check_budget)
+            if reduced is None:
+                break
+            accept(reduced)
+            report['reductions'] += 1
+            current = reduced
+        for i, j in combinations(range(len(current)), 2):
+            check_budget()
+            for shared in range(3):
+                if current[i][shared] != current[j][shared]:
+                    continue
+                other = [axis for axis in range(3) if axis != shared]
+                for a, b in (other, other[::-1]):
+                    check_budget()
+                    changed = [list(t) for t in current]
+                    changed[i][a] ^= current[j][a]
+                    changed[j][b] ^= current[i][b]
+                    flipped = _canonical_terms(changed)
+                    if flipped in visited:
+                        continue
+                    report['flip_moves'] += 1
+                    # Admit at most max_states distinct frontier states, so
+                    # large ranks cannot turn a state limit into unbounded RAM.
+                    if len(visited) >= max_states:
+                        report['status'] = 'state_budget_exhausted'
+                        continue
+                    visited.add(flipped)
+                    queue.append(flipped)
+                    if len(flipped) < len(current):
+                        accept(flipped)
+        if report['status'] != 'state_budget_exhausted':
+            report['status'] = 'searched_neighborhood'
+
+
+def search_decomposition(tensor, *, max_rank=4, timeout=1.0, max_catalog=4096,
+                         max_expansions=100000, seed=None, max_local_states=64):
+    """Verified seed improvement plus bounded complete rank-one search.
+
+    Seeded dependency reductions and shared-factor flips do not enumerate the
+    full catalog. Only fully completed exhaustive rank exclusions strengthen a
+    lower bound; neither a local-search failure nor an interrupted rank does.
+    """
     shape = _validate(tensor)
     if (type(max_rank) is not int or max_rank<0 or type(max_catalog) is not int or max_catalog<1
         or type(max_expansions) is not int or max_expansions<1 or type(timeout) not in (int,float)
-        or not 0<timeout<float('inf')):
+        or not 0<timeout<float('inf') or type(max_local_states) is not int or max_local_states < 0):
         raise StrataError('invalid tensor search budget')
     start = monotonic()
     grouped = {}
     for i,j,k in tensor['entries']: grouped[i,j] = grouped.get((i,j),0) ^ (1<<k)
     baseline = [dict(left_mask=1<<i,right_mask=1<<j,output_mask=mask) for (i,j),mask in sorted(grouped.items())]
+    if seed is not None:
+        seed = [dict(term) for term in seed]
+        if not verify_decomposition(tensor, seed)['passed']:
+            raise StrataError('tensor search seed does not match the supplied tensor')
     bounds = tensor_bounds(tensor,substitution_timeout=min(timeout,.25))
     lower = bounds['value']
-    candidate = baseline
+    candidate = seed if seed is not None and len(seed) <= len(baseline) else baseline
     expansions = 0
     searched = None
-    reason = 'direct coordinate-product construction'
+    reasons = []
     catalog_size = prod((1<<n)-1 for n in shape)
-    optimal = len(candidate)==lower
+    local = dict(status='not_run', initial_rank=None if seed is None else len(seed),
+                 final_rank=None, reductions=0, flip_moves=0, states_visited=0,
+                 exact_verifications=0, max_states=max_local_states,
+                 scope='bounded dependency reductions and shared-factor flips; no rank exclusion')
 
     class BudgetExceeded(Exception): pass
     def check_budget():
@@ -277,7 +506,23 @@ fits. Search failures never turn a found construction into a lower bound.
         expansions += 1
         if expansions>max_expansions or monotonic()-start>timeout: raise BudgetExceeded
 
-    if not optimal and catalog_size<=max_catalog and max_rank>=lower:
+    def accept(terms):
+        nonlocal candidate
+        proposal = [dict(zip(_FACTORS, term)) for term in terms]
+        if not verify_decomposition(tensor, proposal)['passed']:
+            raise StrataError('internal local tensor search identity failure')
+        local['exact_verifications'] += 1
+        if len(proposal) < len(candidate):
+            candidate = proposal
+
+    if seed is not None and max_local_states and len(candidate) > lower:
+        try:
+            _local_decomposition(tensor, seed, check_budget, max_local_states, accept, local)
+        except BudgetExceeded:
+            local['status'] = 'budget_exhausted'
+        local['final_rank'] = len(candidate)
+
+    if len(candidate)>lower and catalog_size<=max_catalog and max_rank>=lower:
         catalog = []
         try:
             for x,y,z in product(*(range(1,1<<n) for n in shape)):
@@ -295,33 +540,39 @@ fits. Search failures never turn a found construction into a lower bound.
                     found=find(residual^catalog[i][0],count-1,i+1)
                     if found is not None:return (i,*found)
                 return None
-            for rank in range(lower,min(max_rank,len(baseline)-1)+1):
+            for rank in range(lower,min(max_rank,len(candidate)-1)+1):
                 found=find(_encoded(tensor),rank,0)
                 if found is not None:
                     candidate=[catalog[i][1] for i in found]
-                    optimal=True
-                    reason='complete search below construction rank within the declared bilinear model'
+                    lower=rank
+                    reasons.append('complete search found a minimum-rank decomposition in the declared bilinear model')
                     break
                 searched=rank
-            if searched is not None and searched>=len(baseline)-1:
-                optimal=True
-                reason='complete search excludes every smaller bilinear decomposition'
         except BudgetExceeded:
-            reason='search budget exhausted; retained verified coordinate construction'
+            reasons.append('search budget exhausted; retained best verified construction')
     elif catalog_size>max_catalog:
-        reason='rank-one factor catalog exceeds budget; retained verified coordinate construction'
-    if len(candidate)==lower:
-        reason='construction matches proved tensor lower bound'
+        reasons.append(f'rank-one factor catalog size {catalog_size} exceeds max_catalog {max_catalog}; retained best verified construction')
+    if searched is not None:
+        lower=max(lower,searched+1)
+        reasons.append(f'complete exhaustive search excluded all ranks through {searched}, including ranks excluded by bounds')
+    optimal=len(candidate)==lower
+    if optimal:
+        reasons.append('construction matches proved tensor lower bound')
+    if not reasons:
+        reasons.append('verified seeded construction' if seed is not None else 'direct coordinate-product construction')
     proof=verify_decomposition(tensor,candidate)
     if not proof['passed']:raise StrataError('internal tensor synthesis identity failure')
     return dict(status='optimal_in_bilinear_model' if optimal else 'construction',
-                evidence_kind='exact_small' if optimal else 'verified_construction',
+                evidence_kind='exact_small' if optimal or searched is not None else 'verified_construction',
                 decomposition=candidate,rank=len(candidate),upper_bound=len(candidate),
-                proven_lower_bound=len(candidate) if optimal else lower,optimal_in_model=optimal,model=MODEL,scope=SCOPE,
+                proven_lower_bound=lower,optimal_in_model=optimal,model=MODEL,scope=SCOPE,
                 tensor_hash=tensor['tensor_hash'],verification=proof,bounds=bounds,
-                search=dict(reason=reason,catalog_size=catalog_size,searched_up_to=searched,excluded_by_bounds_below=lower,
+                lower_bound_evidence=dict(kind='exact_small' if searched is not None else 'proof',
+                                          value=lower,searched_up_to=searched,scope=SCOPE),
+                search=dict(reason='; '.join(reasons),catalog_size=catalog_size,searched_up_to=searched,excluded_by_bounds_below=bounds['value'],
+                            coordinate_rank=len(baseline),seed_rank=None if seed is None else len(seed),local_search=local,
                             max_rank=max_rank,expansions=expansions,seconds=monotonic()-start,
-                            limits=dict(timeout=timeout,max_catalog=max_catalog,max_expansions=max_expansions)))
+                            limits=dict(timeout=timeout,max_catalog=max_catalog,max_expansions=max_expansions,max_local_states=max_local_states)))
 
 
 def lower_decomposition(tensor, decomposition, *, output_wires=None, clean_helpers=None, max_operations=100000):

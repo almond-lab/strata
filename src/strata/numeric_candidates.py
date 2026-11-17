@@ -233,14 +233,17 @@ class NumericScorer:
             finite=(ap['metrics'][metric]-bp['metrics'][metric])/distance
             analytic=float(np.asarray(gradient['gradients'][name])[index])
             valid=ap['eligible'] and bp['eligible']
+            agrees=math.isclose(analytic,finite,abs_tol=atol,rel_tol=rtol)
             rows.append(dict(component=name,index=list(index),analytic=analytic,finite_difference=finite,
-                passed=valid and math.isclose(analytic,finite,abs_tol=atol,rel_tol=rtol),probe_eligible=valid,
+                passed=agrees,derivative_agrees=agrees,probe_eligible=valid,
+                plus_eligible=ap['eligible'],minus_eligible=bp['eligible'],
                 plus_candidate=a.id,minus_candidate=b.id,plus_score=ap['record'],minus_score=bp['record']))
         complete=len(rows)==len(coordinates)
         report=dict(candidate=candidate.id,scorer=self.identity(),metric=metric,rows=rows,
             status='bounded' if not complete else 'consistent_on_probes' if all(r['passed'] for r in rows) else 'inconsistent_on_probes',
             passed=all(r['passed'] for r in rows) if complete else None,evaluations=evaluations,total_coordinates=len(coordinates),
-            step=step,atol=atol,rtol=rtol,evidence_kind='model',scope='local finite-difference consistency only; no global derivative or host acceptance theorem')
+            probes_eligible=all(r['probe_eligible'] for r in rows),
+            step=step,atol=atol,rtol=rtol,evidence_kind='model',scope='local finite-difference consistency only; probe eligibility is reported separately; no global derivative or host acceptance theorem')
         report['record']=self.store.put('numeric_gradient_check',report)
         return report
 

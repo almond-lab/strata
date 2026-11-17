@@ -67,16 +67,15 @@ def _source(path, out, *, writes_candidate=False):
 
 
 def inspect_file(path, out, *, cost='Q*(toffoli+t/4)', max_window=256, max_variables=64, max_terms=4096,
-                 clean_inputs=(),scan_range=None,progress=None,growth_window=8192):
+                 clean_inputs=(),scan_range=None,progress=None,growth_window=None):
     from .semantic import lift_regions
     from .file_profile import profile_regions
     source, root, circuit = _source(path, out)
     if scan_range is not None or source.stat().st_size>=2_000_000:
-        if clean_inputs:raise StrataError('clean file promises require complete bounded inspection; range scan treats boundaries as arbitrary')
         from .streaming import scan_circuit
         start,stop=scan_range if scan_range else (0,None)
         result=scan_circuit(circuit,root/'stream',source=source,start=start,stop=stop,
-                           max_window=max(max_window,growth_window),max_variables=max_variables,max_terms=max_terms,progress=progress)
+                           max_window=max_window if growth_window is None else growth_window,max_variables=max_variables,max_terms=max_terms,progress=progress,clean_inputs=clean_inputs)
         _write_json(root/'result.json',result)
         return result
     lift = lift_regions(circuit, max_window=max_window, max_variables=max_variables, max_terms=max_terms,clean_inputs=clean_inputs)

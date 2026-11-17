@@ -36,6 +36,13 @@ class CommandAdapter:
             from .frontends import frontend_for
             self.frontend = frontend_for(kind)
         spec = config['verifier']
+        if 'receipt_schema' in spec:
+            declaration=spec['receipt_schema']
+            if not isinstance(declaration,dict) or set(declaration)!={'draw_resources'} or not config.get('probability'):
+                raise StrataError('receipt_schema requires draw_resources and a task probability policy')
+            from .probability import ProbabilityPolicy
+            ProbabilityPolicy.from_config(config['probability']).validate_resource_schema(
+                declaration['draw_resources'],config['cost'])
         self.command = spec.get('command')
         self.command = list(self.command) if isinstance(self.command, list) else self.command
         if not isinstance(self.command, list) or not self.command or any(not isinstance(x, str) for x in self.command):

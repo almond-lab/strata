@@ -124,12 +124,18 @@ Read the checkout's `docs/STRUCTURAL-RESEARCH.md` for the current API and limits
    Do not call lack of current synthesis support an impossibility result.
 3. Construct bounded experiments and record their hypotheses. Use
    `strata restructure FILE --out RUN --clean-inputs WIRES` for installed
-   observable-phase, direct-consumer and bilinear constructors. Declare only
+   observable-phase, direct-consumer, bilinear and measured-lookup constructors. Declare only
    clean inputs actually guaranteed by the boundary. Extend the trusted
    `ConstructorRegistry`, generate native candidates, or edit a generator when
    the evidence supports a mechanism the registry cannot express. The user
    supplies the objective and circuit; you supply the design work. Installed
    constructor search is one construction method, not the whole research loop.
+   For HMR-cleaned tables, read `docs/MEASURED-LOOKUPS.md`; preserve phase repairs
+   and distinguish a local zero proof from an assumed workspace lease. For
+   tensor search, start from the circuit's verified decomposition rather than
+   a worse coordinate construction (`docs/TENSOR-SEARCH.md`). Price emitted
+   helpers and cleanup. Expose `--max-product-terms` when that specific budget
+   blocks an otherwise supported construction; increasing it is not a proof.
 4. Run `strata evaluate-file BASE CANDIDATE --out RUN --hypothesis IDEA.json`.
    Inspect measured resources and actual equivalence evidence. Unknown, opaque
    or over-budget checks do not pass. Do not weaken phase, dirty-state, or task
@@ -138,6 +144,10 @@ Read the checkout's `docs/STRUCTURAL-RESEARCH.md` for the current API and limits
    necessary classical bits, must be assigned. Domain equality is a separate
    hashed result, never an all-input proof. Finish the configured host
    verification/cost gates when available; file checks do not run them.
+   Copy both `parent_sha256` and `parent_hash_encoding` from discovery into the
+   hypothesis. Use `--clean-inputs` for an actual zero-input/restoration promise;
+   never inject that promise into an unrelated interior boundary. Local edit
+   windows still require complete phase and control context.
 5. Use the counterexample or precise unsupported obligation to revise the
    construction or open a distinct mechanism. Feed the attempt back into the
    next discovery brief. Retain immutable receipts and artifact hashes.

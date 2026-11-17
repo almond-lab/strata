@@ -71,8 +71,11 @@ def test_cli_clean_inspection_and_discovery_retain_reset_assumption(tmp_path):
     expanded=json.loads(Path(brief['targets'][0]['expand']['path']).read_text())
     assert expanded['region']['semantics']['clean_input_assumptions']==[2]
     assert brief['official_verifier_run'] is False
-    error,_=cli('discover',source,'--out',tmp_path/'bad-range','--clean-inputs','2','--range','0:4',expected=2)
-    assert 'range scan treats boundaries as arbitrary' in error['error']
+    prefix,_=cli('discover',source,'--out',tmp_path/'prefix','--clean-inputs','2','--range','0:4')
+    assert prefix['scan']['coverage']['exact_fraction']==1
+    assert prefix['scan']['groups'][0]['semantics']['clean_input_assumptions']==[0]
+    error,_=cli('discover',source,'--out',tmp_path/'bad-range','--clean-inputs','2','--range','1:4',expected=2)
+    assert 'starting at zero' in error['error']
 
 
 def test_cli_tensor_floor_keeps_general_and_and_bilinear_models_separate(tmp_path):

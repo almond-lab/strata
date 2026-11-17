@@ -124,3 +124,51 @@ def test_streamed_scope_cuts_and_classical_boundary_contracts(tmp_path):
     assert controlled['semantics']['outputs']['0']['monomials']==[[0],['b0']]
     assert controlled['semantics']['classical_inputs']==['b0']
     assert controlled['rewrite_boundary_verified'] is False
+
+
+def _field_constructor_source():
+    from strata.tensor import tensor_from_anf, search_decomposition, lower_decomposition
+    tensor=tensor_from_anf([[[0,2],[1,3]],[[0,3],[1,2],[1,3]]],
+                           [0,1],[2,3],output_wires=[4,5])
+    result=search_decomposition(tensor,max_rank=3)
+    lowered=lower_decomposition(tensor,result['decomposition'])
+    # These names already belong to public registers; constructors must retain
+    # their contents and choose a distinct name for their own boundary metadata.
+    return ('APPEND_TO_REGISTER q0 r0\nREGISTER r0 "strata_boundary"\n'
+            'APPEND_TO_REGISTER q1 r1\nREGISTER r1 "strata_public_boundary"\n'
+            +lowered['candidate'])
+
+
+def test_repeated_direct_consumer_preserves_public_registers_and_nonwinning_beam(tmp_path):
+    from strata.restructure import _direct_consumer
+    source=save(tmp_path,_field_constructor_source())
+    registry=ConstructorRegistry()
+    registry.register('direct_consumer_synthesis',_direct_consumer,'Exact direct consumer synthesis')
+    result=restructure_file(source,tmp_path/'rounds',registry=registry,clean_inputs=[6,7],
+                            cost='toffoli',rounds=2)
+    assert [attempt['round'] for attempt in result['attempts']]==[0,1]
+    assert all(attempt['status']=='verified' for attempt in result['attempts'])
+    assert result['attempts'][0]['cost_delta']>0
+    first=km.Circuit(result['attempts'][0]['construction']['candidate'])
+    second=km.Circuit(result['attempts'][1]['construction']['candidate'])
+    assert str(first)==str(second)
+    assert set(second.register_data)=={'strata_boundary','strata_public_boundary','strata_boundary_1'}
+    assert list(second.register_data['strata_boundary'])==[km.q(0)]
+    assert list(second.register_data['strata_public_boundary'])==[km.q(1)]
+
+
+def test_repeated_guided_tensor_reuses_boundary_metadata_without_stripping_public_registers():
+    from strata.restructure import _guided_tensor
+    from strata.semantic import analyze_window, equivalent_windows
+    circuit=km.Circuit(_field_constructor_source())
+    for _ in range(2):
+        context=dict(clean_inputs=[6,7],max_operations=10000,max_variables=128,max_terms=65536)
+        context['semantics']=analyze_window(str(circuit),**context)
+        proposed=_guided_tensor(circuit,context)
+        assert proposed['status']=='constructed'
+        after=km.Circuit(proposed['candidate'])
+        assert equivalent_windows(str(circuit),str(after),clean_inputs=[6,7])['equivalent']
+        assert set(after.register_data)=={'strata_boundary','strata_public_boundary','strata_public_boundary_1'}
+        assert list(after.register_data['strata_boundary'])==[km.q(0)]
+        assert list(after.register_data['strata_public_boundary'])==[km.q(1)]
+        circuit=after

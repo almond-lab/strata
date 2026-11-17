@@ -12,6 +12,7 @@ from pathlib import Path
 import hashlib
 import json
 import re
+import shlex
 import time
 
 import kickmix as km
@@ -46,7 +47,37 @@ def _phase(circuit, context):
     from .inference import eliminate_clean_phase_workspace
     return eliminate_clean_phase_workspace(circuit, clean_inputs=context['clean_inputs'],
         drop_clean=True, max_operations=context['max_operations'],
-        max_variables=context['max_variables'], max_terms=context['max_terms'])
+        max_variables=context['max_variables'], max_terms=context['max_terms'],
+        max_product_terms=context.get('max_product_terms',65536))
+
+
+def _measured_lookup(circuit, context):
+    from .lookup import resynthesize_measured_lookup
+    return resynthesize_measured_lookup(circuit,clean_inputs=context['clean_inputs'],
+        max_operations=context['max_operations'],max_variables=context['max_variables'],
+        max_terms=context['max_terms'],max_product_terms=context.get('max_product_terms',65536))
+
+
+def _boundary_metadata(circuit, wire=None, name='strata_boundary'):
+    """Preserve public registers and make repeated constructor calls idempotent."""
+    metadata = [line for line in str(circuit).splitlines()
+                if line.split() and line.split()[0] in {'REGISTER', 'APPEND_TO_REGISTER', 'INFO_TAG'}]
+    if wire is None:
+        return metadata
+    names = set()
+    for line in metadata:
+        words = shlex.split(line)
+        if words[0] == 'REGISTER':
+            names.add(words[2])
+        elif words[0] == 'APPEND_TO_REGISTER' and words[1] == f'q{wire}':
+            return metadata
+    base = name
+    suffix = 1
+    while name in names:
+        name = f'{base}_{suffix}'
+        suffix += 1
+    register = circuit.num_registers
+    return metadata + [f'APPEND_TO_REGISTER q{wire} r{register}', f'REGISTER r{register} "{name}"']
 
 
 def _direct_consumer(circuit, context):
@@ -58,17 +89,13 @@ def _direct_consumer(circuit, context):
     if emitted is None:
         return dict(status='unknown', reason=reason)
     # Preserve native physical boundary width and declared register metadata.
-    metadata = [line for line in str(circuit).splitlines()
-                if line.split() and line.split()[0] in {'REGISTER','APPEND_TO_REGISTER','INFO_TAG'}]
-    if circuit.num_qubits:
-        r = circuit.num_registers
-        metadata += [f'APPEND_TO_REGISTER q{circuit.num_qubits-1} r{r}', f'REGISTER r{r} "strata_boundary"']
+    metadata = _boundary_metadata(circuit, circuit.num_qubits - 1 if circuit.num_qubits else None)
     return dict(status='constructed', candidate='\n'.join(metadata+emitted),
                 reason='resynthesize the complete producer-consumer output and phase functions')
 
 
 def _tensor(circuit, context):
-    from .tensor import tensor_from_anf,search_decomposition,lower_decomposition
+    from .tensor import tensor_from_anf,search_decomposition,lower_decomposition,extract_decomposition
     sem=context['semantics']
     if sem['status']!='exact' or sem['phase']['monomials']:
         return dict(status='unknown',reason='requires exact phase-free bilinear accumulator')
@@ -76,12 +103,30 @@ def _tensor(circuit, context):
     if feature is None:return dict(status='not_applicable',reason='no complete bilinear accumulator contract')
     left,right=feature['factor_partition'];targets=feature['targets']
     tensor=tensor_from_anf(feature['deltas'],left,right,output_wires=targets)
-    result=search_decomposition(tensor)
+    extracted=extract_decomposition(circuit,tensor,clean_inputs=context['clean_inputs'],
+                                    max_operations=context['max_operations'],max_variables=context['max_variables'])
+    seed=extracted.get('decomposition')
+    result=search_decomposition(tensor,seed=seed)
+    # A product-count tie cannot justify replacing the native circuit by a
+    # potentially much larger operand/fanout construction. Keep its witness.
+    if seed is not None and result['rank']>=len(seed):
+        return dict(status='constructed',candidate=str(circuit),tensor_search=result,seed_extraction=extracted,
+                    reason='retained the verified gate decomposition; bounded search found no product-count improvement')
+    source_products=sum(line.startswith('CCX ') for line in str(circuit).splitlines())
+    if result['rank']>source_products:
+        return dict(status='not_applicable',reason='verified construction would increase the source product count',
+                    tensor_search=result,seed_extraction=extracted)
     clean=[q for q in context['clean_inputs'] if q not in left+right+targets]
     try:lowered=lower_decomposition(tensor,result['decomposition'],clean_helpers=clean,max_operations=context['max_operations'])
-    except StrataError as exc:return dict(status='unknown',reason=str(exc),tensor_search=result)
-    metadata=[line for line in str(circuit).splitlines() if line.split()[0] in {'REGISTER','APPEND_TO_REGISTER','INFO_TAG'}]
+    except StrataError as exc:
+        if seed is not None:
+            return dict(status='constructed',candidate=str(circuit),reason='retained verified gate decomposition; improved tensor could not be lowered',
+                        lowering_obstruction=str(exc),tensor_search=result,seed_extraction=extracted)
+        return dict(status='unknown',reason=str(exc),tensor_search=result,seed_extraction=extracted)
+    public=set(range(circuit.num_qubits))-set(context['clean_inputs'])
+    metadata=_boundary_metadata(circuit,max(public) if public else None,'strata_public_boundary')
     lowered['candidate']='\n'.join(metadata+[lowered['candidate']]);lowered['tensor_search']=result
+    lowered['seed_extraction']=extracted
     return lowered
 
 
@@ -100,11 +145,8 @@ def _guided_tensor(circuit, context):
     search=search_candidates(tensor,strategy='guided',candidate_budget=1024,
                              materialization_limit=16,native_limit=4,clean_helpers=clean[:2])
     if search.get('best') is None:return dict(status='unknown',reason='no verified construction under bounded guided search',search=search)
-    metadata=[line for line in str(circuit).splitlines() if line.split()[0] in {'REGISTER','APPEND_TO_REGISTER','INFO_TAG'}]
     public=set(range(circuit.num_qubits))-set(context['clean_inputs'])
-    if public:
-        r=circuit.num_registers
-        metadata += [f'APPEND_TO_REGISTER q{max(public)} r{r}',f'REGISTER r{r} "strata_public_boundary"']
+    metadata=_boundary_metadata(circuit,max(public) if public else None,'strata_public_boundary')
     return dict(status='constructed',candidate='\n'.join(metadata+[search['best']['native_text']]),
                 search=search,resource_scope='Complete parent emission and equality are checked again by the construction loop.')
 
@@ -119,6 +161,8 @@ def default_registry():
                       'Search factored multi-output products and emit a complete reversible accumulator using declared clean helpers.')
     registry.register('guided_bilinear_candidate_search',_guided_tensor,
                       'Use the recovered tensor and residual constraints to propose factorizations, then native-batch and exactly check finalists.')
+    registry.register('measured_lookup_resynthesis',_measured_lookup,
+                      'Factor supported lookup accumulators while preserving HMR measurements, dirty outputs and exact phase repairs.')
     return registry
 
 
@@ -181,11 +225,8 @@ def _template_constructor(template):
         if any(token not in inverse for token in re.findall(r'\bq\d+\b',template['replacement'])):
             return dict(status='unknown',reason='learned replacement references an undeclared template wire')
         target=re.sub(r'\bq\d+\b', lambda m:inverse[m.group()],template['replacement'])
-        metadata=[line for line in source_lines if line.split()[0] in {'REGISTER','APPEND_TO_REGISTER','INFO_TAG'}]
         public=set(range(circuit.num_qubits))-set(context['clean_inputs'])
-        if public:
-            r=circuit.num_registers
-            metadata += [f'APPEND_TO_REGISTER q{max(public)} r{r}',f'REGISTER r{r} "strata_public_boundary"']
+        metadata=_boundary_metadata(circuit,max(public) if public else None,'strata_public_boundary')
         return dict(status='constructed',candidate='\n'.join(metadata+[target]),learned_preconditions_checked=True)
     return propose
 
@@ -209,13 +250,13 @@ def _validate_archive(memory):
 def restructure_file(path, out, *, clean_inputs=(), cost='Q*(toffoli+t/4)',
                      registry=None, rounds=2, beam=4, max_candidates=24,
                      max_operations=10000, max_variables=128, max_terms=65536,
-                     archive=None):
+                     max_product_terms=65536, archive=None):
     """Construct and verify complete-boundary candidates; preserve every outcome.
 
     The connected skill invents further mechanisms when bounded constructors
     lack a witness. This command invokes no remote AI or untrusted code.
     """
-    if min(rounds,beam,max_candidates,max_operations,max_variables,max_terms)<=0:
+    if min(rounds,beam,max_candidates,max_operations,max_variables,max_terms,max_product_terms)<=0:
         raise StrataError('restructure budgets must be positive')
     source=Path(path).resolve();root=Path(out).resolve();root.mkdir(parents=True,exist_ok=True)
     if source in {root/'restructure.json',root/'best.kmx'}:
@@ -230,7 +271,8 @@ def restructure_file(path, out, *, clean_inputs=(), cost='Q*(toffoli+t/4)',
     clean=tuple(sorted(set(clean_inputs)))
     if any(type(q)is not int or not 0<=q<circuit.num_qubits for q in clean):
         raise StrataError('clean inputs must be physical wires of the supplied circuit')
-    formula=Formula(cost);frontend=Kickmix();limits=dict(max_operations=max_operations,max_variables=max_variables,max_terms=max_terms)
+    formula=Formula(cost);frontend=Kickmix();limits=dict(max_operations=max_operations,max_variables=max_variables,
+                                                       max_terms=max_terms,max_product_terms=max_product_terms)
     registry=registry or default_registry()
     memory_path=Path(archive).resolve() if archive else root/'mechanisms.json'
     memory=json.loads(memory_path.read_text()) if memory_path.exists() else dict(version=1,templates=[],statistics={})
@@ -302,7 +344,7 @@ def restructure_file(path, out, *, clean_inputs=(), cost='Q*(toffoli+t/4)',
         result['parent_sha256']=baseline['id']
         result['artifacts']={s['id']:store.blob(Path(s['path']).read_bytes()) for s in states}
         result['code']={name:store.blob((Path(__file__).parent/name).read_bytes())
-                        for name in ('restructure.py','semantic.py','factored.py','inference.py','tensor.py','candidate_search.py','domains.py')}
+                        for name in ('restructure.py','semantic.py','factored.py','inference.py','tensor.py','candidate_search.py','domains.py','lookup.py')}
         result['mechanism_archive_blob']=store.blob(memory_path.read_bytes())
         result['record']=store.put('restructure_run',result)
     finally:

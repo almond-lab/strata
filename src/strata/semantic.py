@@ -478,6 +478,55 @@ def equivalent_windows(original, candidate, **limits):
     return result
 
 
+def _advance_zero_facts(item, zeros, depth=0, at=None):
+    """Conservative zero facts transported from an explicit boundary promise.
+
+    Facts survive reads and no-op controls, and unconditional HMR proves its
+    target zero. A reset never creates a fact: dirty resets remain obligations.
+    Unknown instructions invalidate facts rather than being treated as no-ops.
+    This bounded abstract interpretation is not a prefix equivalence proof.
+    """
+    if item['status'] == 'metadata':
+        return
+    if item['status'] != 'supported':
+        zeros.clear()
+        return
+    op, qs = item['op'], item['wires']
+    conditional = bool(depth or item.get('condition'))
+    if op == 'HMR' and not conditional:
+        zeros[qs[0]] = dict(kind="unconditional_hmr", origin_at=at, origin_wire=qs[0])
+    elif op == 'X':
+        zeros.pop(qs[0], None)
+    elif op in {'CX', 'CCX'} and not any(q in zeros for q in qs[:-1]):
+        zeros.pop(qs[-1], None)
+    elif op == 'SWAP' and not conditional:
+        a, b = qs
+        za, zb = zeros.get(a), zeros.get(b)
+        zeros.pop(a, None); zeros.pop(b, None)
+        if za is not None: zeros[b] = dict(za, last_swap_at=at)
+        if zb is not None: zeros[a] = dict(zb, last_swap_at=at)
+    elif op in {'SWAP', 'CSWAP'} and not (op == 'CSWAP' and qs[0] in zeros):
+        if not all(q in zeros for q in qs[-2:]):
+            for q in qs[-2:]: zeros.pop(q, None)
+
+
+def _zeros_after(chunk, initial):
+    zeros, depth = dict(initial), 0
+    for index, _, item in chunk:
+        _advance_zero_facts(item, zeros, depth, index)
+        if item['op'] == 'PUSH_CONDITION': depth += 1
+        elif item['op'] == 'POP_CONDITION': depth = max(0, depth - 1)
+    return zeros
+
+
+def _trim_zero_facts(zeros, limit):
+    """Evict facts conservatively so prefix tracking has a declared bound."""
+    dropped = max(0, len(zeros) - limit)
+    for _ in range(dropped):
+        zeros.pop(next(iter(zeros)))
+    return dropped
+
+
 def lift_regions(circuit, *, max_ops=None, max_window=128, max_variables=32,
                  max_terms=4096, max_product_terms=65536, clean_inputs=()):
     """Discover exact compound regions across native text or a loaded circuit.
@@ -487,8 +536,10 @@ def lift_regions(circuit, *, max_ops=None, max_window=128, max_variables=32,
     by default.  Regions are disjoint bounded windows; unknown spans and scoped
     condition bodies stay explicit.  Coverage of recognized compound structure
     is separate from exact primitive coverage and from unscanned instructions.
-    Explicit clean inputs apply only to a complete, single-window artifact.
-    A budget cut never reapplies those promises at an interior boundary.
+    Explicit clean inputs initialize conservative zero facts at artifact start.
+    Later windows retain only transported zero facts; all other boundary values
+    are arbitrary. A budget cut never reapplies promises to written scratch or
+    invents condition snapshots.
     """
     _limits(max_window=max_window, max_variables=max_variables,
             max_terms=max_terms, max_product_terms=max_product_terms)
@@ -504,26 +555,42 @@ def lift_regions(circuit, *, max_ops=None, max_window=128, max_variables=32,
     regions, unknown, metadata, pending = [], [], [], []
     pending_wires, census = set(), Counter()
     pending_context = False
-    poisoned_depth = 0
     overflow = None
+    budget_cuts = Counter()
+    known_zero = {q: dict(kind="declared_artifact_input", origin_at=0, origin_wire=q) for q in clean_inputs}
+    max_zero_facts = max(max_variables, max_window)
+    zero_fact_evictions = _trim_zero_facts(known_zero, max_zero_facts)
+    pending_zero_inputs = dict(known_zero)
     scanned = total = depth = exact_ops = structural_ops = exact_paid = structural_paid = 0
     total_ops = paid = 0
     budgets = dict(max_variables=max_variables, max_terms=max_terms,
-                   max_operations=max_window, max_product_terms=max_product_terms,
-                   clean_inputs=clean_inputs)
+                   max_operations=max_window, max_product_terms=max_product_terms)
 
-    def flush_chunk(chunk, boundary_basis='bounded_native_operation_window'):
+    def flush_chunk(chunk, boundary_basis='bounded_native_operation_window', zero_inputs=None):
         nonlocal exact_ops, structural_ops, exact_paid, structural_paid
         if not chunk:
             return
-        result = analyze_window([line for _, line, _ in chunk], **budgets)
-        contextual = bool(clean_inputs) or any(item.get('condition') or item['op'] in {'HMR', 'PUSH_CONDITION', 'POP_CONDITION'}
+        zero_inputs = pending_zero_inputs if zero_inputs is None else zero_inputs
+        touched = {q for _, _, item in chunk for q in item['wires']}
+        promised = sorted(touched & set(zero_inputs))
+        result = analyze_window([line for _, line, _ in chunk], clean_inputs=promised, **budgets)
+        contextual = bool(promised) or any(item.get('condition') or item['op'] in {'HMR', 'PUSH_CONDITION', 'POP_CONDITION'}
                          or item['op'].startswith('BIT_') for _, _, item in chunk)
-        if result['status'] == 'bounded' and len(chunk) > 1 and not contextual:
-            midpoint = len(chunk) // 2
-            flush_chunk(chunk[:midpoint], 'semantic_budget_split')
-            flush_chunk(chunk[midpoint:], 'semantic_budget_split')
-            return
+        if result['status'] == 'bounded' and len(chunk) > 1:
+            # Independent local contracts may start at any closed scope. HMR
+            # outcomes from earlier windows become arbitrary classical inputs;
+            # no cross-window phase cancellation or provenance is claimed.
+            level, cuts = 0, []
+            for i, (_, _, item) in enumerate(chunk[:-1], 1):
+                if item['op'] == 'PUSH_CONDITION': level += 1
+                elif item['op'] == 'POP_CONDITION': level = max(0, level - 1)
+                if not level: cuts.append(i)
+            if cuts:
+                midpoint = min(cuts, key=lambda i: abs(i - len(chunk) / 2))
+                budget_cuts[result['reason']] += 1
+                flush_chunk(chunk[:midpoint], 'semantic_budget_split', zero_inputs)
+                flush_chunk(chunk[midpoint:], 'semantic_budget_split', _zeros_after(chunk[:midpoint], zero_inputs))
+                return
         start, stop = chunk[0][0], chunk[-1][0] + 1
         if result['status'] != 'exact':
             unknown.append(dict(start=start, stop=stop, reason=result.get('reason'),
@@ -544,12 +611,14 @@ def lift_regions(circuit, *, max_ops=None, max_window=128, max_variables=32,
             else:
                 merged.append((lo, hi))
         if merged and merged != [(0, len(chunk))] and not contextual:
-            cursor = 0
+            cursor, current_zeros = 0, dict(zero_inputs)
             for lo, hi in merged:
-                flush_chunk(chunk[cursor:lo], 'between_restoration_episodes')
-                flush_chunk(chunk[lo:hi], 'restoration_candidate_boundary')
+                flush_chunk(chunk[cursor:lo], 'between_restoration_episodes', current_zeros)
+                current_zeros = _zeros_after(chunk[cursor:lo], current_zeros)
+                flush_chunk(chunk[lo:hi], 'restoration_candidate_boundary', current_zeros)
+                current_zeros = _zeros_after(chunk[lo:hi], current_zeros)
                 cursor = hi
-            flush_chunk(chunk[cursor:], 'between_restoration_episodes')
+            flush_chunk(chunk[cursor:], 'between_restoration_episodes', current_zeros)
             return
         if merged:
             boundary_basis = 'restored_intermediate_episode'
@@ -566,6 +635,8 @@ def lift_regions(circuit, *, max_ops=None, max_window=128, max_variables=32,
         regions.append(dict(id=f'semantic-{start}-{stop}', start=start, stop=stop,
                             status='exact', kind=result['kind'], structural=structural,
                             boundary_basis=boundary_basis,
+                            boundary_zero_evidence={str(q): zero_inputs[q] for q in promised},
+                            boundary_zero_reason='conservative transport; R never creates a zero fact',
                             boundary_width=result['boundary_width'], semantics=result,
                             inputs=result['inputs'], outputs=result['outputs'],
                             phase=result['phase'], evidence=result['evidence'],
@@ -576,6 +647,24 @@ def lift_regions(circuit, *, max_ops=None, max_window=128, max_variables=32,
     def flush():
         nonlocal pending_context
         flush_chunk(pending)
+        pending.clear()
+        pending_wires.clear()
+        pending_context = False
+
+    def open_scope_overflow(reason, status='bounded'):
+        """Retain only the unknown scope extent, resuming after its closing POP."""
+        nonlocal overflow, pending_context
+        level, last_safe = 0, 0
+        for i, (_, _, row) in enumerate(pending, 1):
+            if row['op'] == 'PUSH_CONDITION': level += 1
+            elif row['op'] == 'POP_CONDITION': level = max(0, level - 1)
+            if not level: last_safe = i
+        flush_chunk(pending[:last_safe])
+        scope = pending[last_safe:]
+        if scope:
+            overflow = dict(start=scope[0][0], stop=scope[-1][0]+1, status=status,
+                            reason=reason, operation_count=sum(row['status']!='metadata' for _,_,row in scope))
+            unknown.append(overflow)
         pending.clear()
         pending_wires.clear()
         pending_context = False
@@ -594,68 +683,52 @@ def lift_regions(circuit, *, max_ops=None, max_window=128, max_variables=32,
             if item['status'] != 'metadata':
                 total_ops += 1
                 paid += int(op in PAID)
-            if op == 'PUSH_CONDITION':
-                depth += 1
-            if overflow is not None:
-                # Do not retain an unbounded contextual run just to label it
-                # unknown. A later unsupported boundary may start a fresh local
-                # contract; global input promises never restart after a cut.
-                if not clean_inputs and item['status'] == 'opaque' and not depth:
-                    overflow = None
-                else:
-                    overflow['stop'] = index + 1
-                    overflow['operation_count'] += item['status'] != 'metadata'
-                    if item['status'] == 'metadata':
-                        metadata.append(dict(at=index, operation=op))
-                    if op == 'POP_CONDITION' and depth:
-                        depth -= 1
-                    continue
-            if clean_inputs:
-                if item['status'] == 'metadata':
-                    metadata.append(dict(at=index, operation=op))
-                pending.append((index, line, item))
-                if len(pending) > max_window:
-                    overflow = dict(start=0, stop=index + 1, status='bounded',
-                                    reason='clean_inputs_require_complete_single_window',
-                                    limit=max_window,
-                                    operation_count=sum(row['status'] != 'metadata' for _, _, row in pending))
-                    unknown.append(overflow)
-                    pending.clear()
-                continue
-            if item['status'] == 'metadata':
+            else:
                 metadata.append(dict(at=index, operation=op))
-                if pending_context:
+            variables = set(item['wires']) | set(item.get('bits', ()))
+            if item.get('condition'): variables.add(item['condition'])
+            if op == 'HMR': variables.add(f'measurement:{index}')
+            reason = ('operation_budget' if len(pending) >= max_window else
+                      'variable_budget' if len(pending_wires | variables) > max_variables else None)
+            if pending and reason and overflow is None:
+                budget_cuts[reason] += 1
+                if depth:
+                    open_scope_overflow(reason)
+                else:
+                    flush()
+            if overflow is not None:
+                overflow['stop'] = index + 1
+                overflow['operation_count'] += item['status'] != 'metadata'
+            elif item['status'] == 'metadata':
+                if pending_context or (clean_inputs and (not pending or pending[0][0] == 0) and index < max_window):
+                    if not pending: pending_zero_inputs = dict(known_zero)
                     pending.append((index, line, item))
                 else:
                     flush()
-            elif item['status'] != 'supported' or poisoned_depth:
-                flush()
-                unknown.append(dict(start=index, stop=index + 1, status='opaque',
-                                    reason='classical_condition_context_unavailable' if poisoned_depth else item['reason'],
-                                    instruction=line.rstrip(), operation_count=1))
-                poisoned_depth = depth
-            else:
-                qs = set(item['wires'])
-                context = bool(item.get('condition') or op in {'HMR', 'PUSH_CONDITION', 'POP_CONDITION'}
-                               or op.startswith('BIT_'))
-                if pending and not pending_context and not context and (len(pending) >= max_window or len(pending_wires | qs) > max_variables):
+            elif item['status'] != 'supported':
+                if depth:
+                    open_scope_overflow(item['reason'], status='opaque')
+                    if overflow is not None:
+                        overflow['stop'] = index + 1
+                        overflow['operation_count'] += 1
+                else:
                     flush()
-                pending_context |= context
+                if overflow is None:
+                    unknown.append(dict(start=index, stop=index + 1, status='opaque',
+                                        reason=item['reason'], instruction=line.rstrip(), operation_count=1))
+            else:
+                if not pending: pending_zero_inputs = dict(known_zero)
+                pending_context |= bool(item.get('condition') or op in {'HMR', 'PUSH_CONDITION', 'POP_CONDITION'}
+                                        or op.startswith('BIT_'))
                 pending.append((index, line, item))
-                pending_wires.update(qs)
-            if op == 'POP_CONDITION' and depth:
-                depth -= 1
-                if poisoned_depth:
-                    poisoned_depth = depth
-            if pending_context and len(pending) > max_window:
-                flush()
-                overflow = unknown[-1]
-    if clean_inputs and total > scanned and pending:
-        unknown.append(dict(start=0, stop=scanned, status='bounded',
-                            reason='clean_inputs_require_complete_single_window',
-                            operation_count=total_ops))
-    else:
-        flush()
+                pending_wires.update(variables)
+            _advance_zero_facts(item, known_zero, depth, index)
+            zero_fact_evictions += _trim_zero_facts(known_zero, max_zero_facts)
+            if op == 'PUSH_CONDITION': depth += 1
+            elif op == 'POP_CONDITION': depth = max(0, depth - 1)
+            if overflow is not None and not depth:
+                overflow = None
+    flush()
     if total > scanned:
         unknown.append(dict(start=scanned, stop=total, status='unscanned', reason='scan_budget'))
     return dict(version='1', regions=regions, unknown=unknown, metadata=metadata,
@@ -668,6 +741,8 @@ def lift_regions(circuit, *, max_ops=None, max_window=128, max_variables=32,
                               structural_operations=structural_ops,
                               compound_algebra_operations=structural_ops,
                               unknown_operations=total_ops-exact_ops,
+                              budget_cuts=sum(budget_cuts.values()), budget_cut_reasons=dict(budget_cuts),
+                              zero_fact_evictions=zero_fact_evictions,
                               exact_fraction=exact_ops / total_ops if total_ops else 0.0,
                               structural_fraction=structural_ops / total_ops if total_ops else 0.0,
                               compound_algebra_fraction=structural_ops / total_ops if total_ops else 0.0,
@@ -679,9 +754,9 @@ def lift_regions(circuit, *, max_ops=None, max_window=128, max_variables=32,
                               compound_algebra_paid_fraction=structural_paid / paid if paid else 0.0,
                               high_level_stage_coverage=None,
                               meaning='structural/compound_algebra count exact multi-operation algebra; source-language arithmetic stages remain unidentified'),
-                assumptions=(f'explicit zero artifact-boundary wires: {clean_inputs}; complete single-window scope only'
-                             if clean_inputs else 'all window boundary wires arbitrary; no inferred clean ancillas or source-language intent'),
+                assumptions=(f'explicit zero artifact-boundary wires: {clean_inputs}; later zero facts require conservative transport or unconditional HMR; other boundary values arbitrary'),
                 evidence='exact sparse Boolean ANF and sign phase on each reported exact window',
                 limits=dict(max_ops=max_ops, max_window=max_window, max_variables=max_variables,
                             max_terms=max_terms, max_product_terms=max_product_terms,
+                            max_boundary_zero_facts=max_zero_facts,
                             clean_inputs=clean_inputs))

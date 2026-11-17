@@ -73,7 +73,16 @@ def circuit_floors(circuit, *, from_at=0, at=None, clean_inputs=(), domain=None,
                  max_product_terms=max_product_terms,max_assignments=max_assignments)
     inferred=functions_at(circuit,at,from_at=from_at,clean_inputs=clean_inputs,domain=domain,**budgets)
     if inferred['status']!='exact':return inferred
-    if inferred.get('measurement_variables') or inferred.get('classical_inputs') or inferred.get('is_permutation')is False:
+    from .domains import window_lines
+    from .semantic import analyze_window
+    lines,_=window_lines(circuit,from_at,inferred['at'],max_lines=max_operations)
+    sem=analyze_window(lines,clean_inputs=clean_inputs,max_operations=max_operations,
+                       max_variables=max_variables,max_terms=max_terms,max_product_terms=max_product_terms)
+    # Exact R instructions have a zero-value proof, so they are identities on
+    # this promised domain. They need no measurement/channel gate pricing.
+    identity_resets = sem['status']=='exact' and bool(sem.get('effects',{}).get('reset_proofs'))
+    if (inferred.get('measurement_variables') or inferred.get('classical_inputs') or
+            (inferred.get('is_permutation')is False and not identity_resets)):
         return dict(status='unknown',reason='Boolean gate floor does not price measurement or classical channels',from_at=from_at,at=inferred['at'])
     wires=inferred['touched_wires']
     if domain is not None:
@@ -92,11 +101,6 @@ def circuit_floors(circuit, *, from_at=0, at=None, clean_inputs=(), domain=None,
     outputs=[[sorted(term) for term in inferred['functions'][q]] for q in wires]
     report=dict(status='exact',at=inferred['at'],from_at=from_at,wires=wires,
                 clean_inputs=sorted(clean_inputs),**counting_bound(outputs))
-    from .domains import window_lines
-    from .semantic import analyze_window
-    lines,_=window_lines(circuit,from_at,inferred['at'],max_lines=max_operations)
-    sem=analyze_window(lines,clean_inputs=clean_inputs,max_operations=max_operations,
-                       max_variables=max_variables,max_terms=max_terms,max_product_terms=max_product_terms)
     from .tensor import tensor_from_anf,tensor_bounds,quadratic_bounds
     if sem['status']=='exact':
         for feature in sem['features']:

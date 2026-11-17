@@ -9,12 +9,15 @@ and the historical discovery benchmarks remain incomplete.
 
 The [product specification](docs/SPECIFICATION.md) is preserved verbatim.
 The [acceptance ledger](docs/ACCEPTANCE.md) separates implemented APIs from
-unmet research milestones. See [v0.3 issue coverage](docs/V0.3-ISSUES.md) and
+unmet research milestones. See [v0.3.1 fixes](docs/V0.3.1-FIXES.md),
+[v0.3 issue coverage](docs/V0.3-ISSUES.md) and
 [release changes](CHANGELOG.md).
 
 ## Documentation
 
+- [v0.4 plan](docs/V0.4-PLAN.md): proposed execution workflow for existing scripts, bounded sweeps, a shared experiment board and checked artifacts; not shipped v0.4 functionality.
 - [v0.3 workflow and examples](docs/V0.3-GUIDE.md): the Strata–agent loop, construction search, finite domains and bounded scans.
+- [Measured lookups](docs/MEASURED-LOOKUPS.md), [kernel recovery](docs/KERNEL-RECOVERY.md), and [seeded tensor search](docs/TENSOR-SEARCH.md): clean resets, HMR-preserving table construction, paid skeletons and real-size decomposition seeds.
 - [v0.3 research limits](docs/V0.3-RESEARCH-LIMITS.md): verified capabilities versus remaining research.
 - [Candidate benchmarks](docs/V0.3-CANDIDATE-BENCHMARK.md): million-scale native execution and analysis-guided versus unguided proposals, with separate counts and scope.
 - [Numeric candidates and pipelines](docs/V0.3-NUMERIC-CANDIDATES.md): common array format, calibrated scoring, gradients and reusable fitting/rounding stages.

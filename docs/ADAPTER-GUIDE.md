@@ -217,6 +217,73 @@ as `measurement_receipt`. The project stores and rechecks the policy and
 per-draw pricing on certification/replay; changed policy configuration
 invalidates the saved task binding.
 
+Count-aware receipts use the exact resource names `fail_count` and `shots`.
+If either is supplied, both are required: `fail_count` is an integer in
+`[0, shots]`, and `shots` is a positive integer. The configured
+`failure_resource` must equal the computed empirical ratio `fail_count / shots`;
+do not round a small positive rate down to zero. A field named `failures` does
+not substitute for `fail_count`. Counts and per-draw resources are available to
+the configured penalty expression.
+
+A verifier-supplied upper confidence bound belongs in a separate resource such
+as `eps_plus`, with matching metadata in that draw's `confidence_bounds`.
+It does not replace the empirical rate. For example:
+
+```json
+{
+  "seed": 17,
+  "resources": {
+    "Q": 2, "toffoli": 10,
+    "fail_count": 0, "shots": 1000, "fail_rate": 0.0,
+    "eps_plus": 0.1
+  },
+  "confidence_bounds": {
+    "eps_plus": {
+      "kind": "upper", "method": "verifier-owned binomial bound",
+      "log2_delta": -128, "fail_count": 0, "shots": 1000
+    }
+  }
+}
+```
+
+The verifier computes the bound; Strata validates and retains its declared
+value, method, matching counts, and confidence metadata without recomputing a
+statistical certificate. The value must be at least the empirical rate.
+Confidence may be supplied as `confidence` with `0 < confidence < 1`, as
+`delta` with `0 < delta < 1`, or as a finite negative `log2_delta`. They mean
+confidence `1 - delta`, with `delta = 2**log2_delta`. Use `log2_delta = -128`
+to express `1 - 2**-128` without subtracting it from one in floating point;
+`confidence = 1.0` is invalid. If multiple representations are supplied they
+must agree. A penalty can use `eps_plus` explicitly, while the policy's
+`max_failure` continues to constrain the empirical failure statistic.
+
+An optional declaration checks resource names when a configuration-only
+adapter is initialized, before launching the verifier:
+
+```toml
+[task.verifier.receipt_schema]
+draw_resources = ["Q", "toffoli", "fail_rate", "fail_count", "shots", "eps_plus"]
+```
+
+The required names derive from the task objective, configured penalty, and
+`failure_resource`; declaring either count resource requires its pair. This is
+a schema preflight, not a verifier run or a validation of future values,
+confidence metadata, units, or acceptance. Check the same declaration offline:
+
+```python
+from strata.probability import ProbabilityPolicy
+
+policy = ProbabilityPolicy((17, 29), penalty="1+eps_plus+fail_count/shots")
+objective = "Q*toffoli*R(fail_rate)"  # illustrative; supply the host's objective
+schema = policy.receipt_schema(objective)
+policy.validate_resource_schema(
+    ["Q", "toffoli", "fail_rate", "fail_count", "shots", "eps_plus"], objective,
+)
+assert schema["required_draw_resources"] == [
+    "Q", "eps_plus", "fail_count", "fail_rate", "shots", "toffoli",
+]
+```
+
 ## Floors, queries and research memory
 
 For source-less files, `inspect_file` and `optimize_file` retain

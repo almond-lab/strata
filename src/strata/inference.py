@@ -1,5 +1,6 @@
 """Exact, bounded value queries and executable information-compression witnesses."""
 from itertools import combinations
+from math import isfinite
 from time import monotonic
 from .model import StrataError, digest
 from .semantic import analyze_window
@@ -14,11 +15,13 @@ def _poly(row):
     return {frozenset(t) for t in row['monomials']}
 
 
-def _multiply(a, b, limit):
+def _multiply(a, b, limit, check_budget=None):
     if len(a) * len(b) > limit:
         raise StrataError('functional query product budget exceeded')
     result = set()
     for x in a:
+        if check_budget is not None:
+            check_budget()
         for y in b:
             term = x | y
             if term in result:
@@ -107,27 +110,44 @@ def is_function_of(circuit, wire, at, support, *, degree=2, max_forms=4096,
     if len(set(support)) != len(support) or wire in support:
         raise StrataError('support must be distinct and exclude target')
     _wires(circuit, (wire, *support), 'query wires')
-    if type(degree) is not int or not 0 <= degree <= 3 or type(max_forms) is not int or max_forms < 1 or timeout <= 0:
+    if (type(degree) is not int or not 0 <= degree <= 3 or type(max_forms) is not int or max_forms < 1
+            or type(timeout) not in (int, float) or not isfinite(timeout) or timeout <= 0):
         raise StrataError('invalid functional-search budget')
     start = monotonic()
     family = dict(kind='Boolean polynomial in current support values', max_degree=degree, support=list(support))
     result = functions_at(circuit, at, from_at=from_at, domain=domain, clean_inputs=clean_inputs, **budgets)
+    semantics_seconds = monotonic() - start
     if result['status'] != 'exact':
-        return dict(result, searched_family=family)
+        return dict(result, searched_family=family, budget_phase='window_semantics',
+                    timings=dict(window_semantics_seconds=semantics_seconds, search_seconds=0.0))
+    start = monotonic()
+    answer = _function_search(result, wire, support, family=family, degree=degree, max_forms=max_forms,
+                              timeout=timeout, start=start, from_at=from_at, domain=domain, budgets=budgets)
+    answer['timings'] = dict(window_semantics_seconds=semantics_seconds, search_seconds=monotonic() - start)
+    answer['search_limits'] = dict(timeout_seconds=timeout, max_forms=max_forms, degree=degree)
+    return answer
+
+
+def _function_search(result, wire, support, *, family, degree, max_forms, timeout, start, from_at, domain, budgets):
+    def check_budget():
+        if monotonic() - start > timeout:
+            raise StrataError('functional search timeout')
     finite = result.get('finite_values')
     target = ({i for i, row in enumerate(finite) if row[wire]} if finite is not None else result['functions'][wire])
     columns, forms = [], []
     try:
         for size in range(degree + 1):
             for form in combinations(support, size):
-                if len(forms) >= max_forms or monotonic() - start > timeout:
-                    return dict(status='unknown', reason='functional search budget', searched_family=family, forms=len(forms))
+                check_budget()
+                if len(forms) >= max_forms:
+                    return dict(status='unknown', reason='functional search form budget', budget_phase='functional_search',
+                                searched_family=family, forms=len(forms))
                 if finite is not None:
                     poly = {i for i, row in enumerate(finite) if all(row[q] for q in form)}
                 else:
                     poly = {frozenset()}
                     for q in form:
-                        poly = _multiply(poly, result['functions'][q], budgets.get('max_terms', 65536))
+                        poly = _multiply(poly, result['functions'][q], budgets.get('max_terms', 65536), check_budget)
                 columns.append(poly)
                 forms.append(form)
         basis = {}
@@ -135,6 +155,7 @@ def is_function_of(circuit, wire, at, support, *, degree=2, max_forms=4096,
         def reduce(poly, coeff):
             poly = set(poly)
             while poly:
+                check_budget()
                 pivot = max(poly, key=pivot_key)
                 if pivot not in basis:
                     break
@@ -143,8 +164,7 @@ def is_function_of(circuit, wire, at, support, *, degree=2, max_forms=4096,
                 coeff ^= mask
             return poly, coeff
         for index, poly in enumerate(columns):
-            if monotonic() - start > timeout:
-                return dict(status='unknown', reason='linear solve budget', searched_family=family)
+            check_budget()
             row, mask = reduce(poly, 1 << index)
             if row:
                 basis[max(row, key=pivot_key)] = row, mask
@@ -156,69 +176,96 @@ def is_function_of(circuit, wire, at, support, *, degree=2, max_forms=4096,
         if domain is not None:
             evidence.update(domain_hash=result['domain_hash'], assignment_count=result['assignment_count'])
         if remainder:
+            check_budget()
             return dict(status='no', searched_family=family, evidence=evidence,
                         reason='target is outside the exact span of the searched family')
         selected = [list(form) for i, form in enumerate(forms) if solution >> i & 1]
         check = set()
         for i, poly in enumerate(columns):
+            check_budget()
             if solution >> i & 1:
                 check ^= poly
         if check != target:
             raise StrataError('functional witness failed replay')
+        check_budget()
         return dict(status='yes', wire=wire, at=result['at'], from_at=from_at,
                     form=dict(monomials=selected, expression=' ^ '.join('*'.join(f'q{q}' for q in t) or '1' for t in selected) or '0'),
                     searched_family=family, evidence=evidence,
                     witness_hash=digest(dict(wire=wire, form=selected, scope=evidence)))
     except StrataError as exc:
-        return dict(status='unknown', reason=str(exc), searched_family=family)
+        return dict(status='unknown', reason=str(exc), budget_phase='functional_search',
+                    searched_family=family, forms=len(forms))
 
 
-def _patterns(result, selected, max_inputs):
+def _patterns(result, selected, max_inputs, check_budget=None):
     if type(max_inputs) is not int or max_inputs < 0:
         raise StrataError('max_inputs must be a nonnegative integer')
     if 'finite_values' in result:
-        return {tuple(row[q] for q in selected) for row in result['finite_values']}
+        patterns = set()
+        for row in result['finite_values']:
+            if check_budget is not None:
+                check_budget()
+            patterns.add(tuple(row[q] for q in selected))
+        return patterns
     funcs = [result['functions'][q] for q in selected]
     inputs = sorted({q for poly in funcs for term in poly for q in term}, key=lambda x: (type(x).__name__, str(x)))
     if len(inputs) > max_inputs:
         raise StrataError('distinct-state enumeration budget')
     patterns = set()
     for assignment in range(1 << len(inputs)):
+        if check_budget is not None:
+            check_budget()
         on = {q for i, q in enumerate(inputs) if assignment >> i & 1}
         patterns.add(tuple(sum(term <= on for term in poly) % 2 for poly in funcs))
     return patterns
 
 
 def information_slack(circuit, at=None, *, from_at=0, wires=None, clean_inputs=(),
-                      domain=None, max_inputs=16, **budgets):
+                      domain=None, max_inputs=16, timeout=5, **budgets):
     """Exact joint information bound; the default set is touched window wires."""
-    try:
-        lines, at = window_lines(circuit, from_at, at, max_lines=budgets.get('max_operations', 10000))
-    except WindowLimit as exc:
-        return dict(status='unknown', reason=str(exc), from_at=from_at, at=at)
-    selected = _wires(circuit, touched_wires(lines) if wires is None else wires, 'slack wire set')
+    if type(timeout) not in (int, float) or not isfinite(timeout) or timeout <= 0:
+        raise StrataError('invalid slack search timeout')
+    start = monotonic()
     result = functions_at(circuit, at, from_at=from_at, clean_inputs=clean_inputs, domain=domain, **budgets)
+    semantics_seconds = monotonic() - start
     if result['status'] != 'exact':
-        return result
+        return dict(result, budget_phase='window_semantics',
+                    timings=dict(window_semantics_seconds=semantics_seconds, search_seconds=0.0))
+    selected = _wires(circuit, result['touched_wires'] if wires is None else wires, 'slack wire set')
     if type(max_inputs) is not int or max_inputs < 0:
         raise StrataError('max_inputs must be a nonnegative integer')
+    start = monotonic()
+    def check_budget():
+        if monotonic() - start > timeout:
+            raise StrataError('slack search timeout')
+    try:
+        answer = _slack_search(result, selected, max_inputs, domain, from_at, check_budget)
+        check_budget()
+    except StrataError as exc:
+        answer = dict(status='unknown', reason=str(exc), budget_phase='slack_search', from_at=from_at, at=result['at'])
+    answer['timings'] = dict(window_semantics_seconds=semantics_seconds, search_seconds=monotonic() - start)
+    answer['search_limits'] = dict(timeout_seconds=timeout, max_inputs=max_inputs)
+    return answer
+
+
+def _slack_search(result, selected, max_inputs, domain, from_at, check_budget):
+    at = result['at']
     funcs = [result.get('functions', {}).get(q, set()) for q in selected]
     if domain is None and all(len(term) <= 1 for poly in funcs for term in poly):
         basis = {}
         key = lambda x: (type(x).__name__, str(x))
         for poly in funcs:
+            check_budget()
             row = {next(iter(term)) for term in poly if term}
             while row and max(row, key=key) in basis:
+                check_budget()
                 row ^= basis[max(row, key=key)]
             if row:
                 basis[max(row, key=key)] = row
         bits = len(basis)
         kind, distinct = 'exact_affine_rank', 1 << bits
     else:
-        try:
-            patterns = _patterns(result, selected, max_inputs)
-        except StrataError as exc:
-            return dict(status='unknown', reason=str(exc), from_at=from_at, at=at)
+        patterns = _patterns(result, selected, max_inputs, check_budget)
         distinct = len(patterns)
         bits, kind = (distinct - 1).bit_length(), 'exact_finite' if domain is not None else 'exact_full'
     answer = dict(status='exact', kind=kind, from_at=from_at, at=at, wires=selected,
@@ -508,16 +555,27 @@ def eliminate_clean_phase_workspace(circuit, *, clean_inputs=(), drop_clean=Fals
     retained = public if drop_clean else list(range(circuit.num_qubits))
     metadata = []
     used_registers = set()
+    used_names = set()
+    registered_wires = set()
     for line in str(circuit).splitlines():
         words = shlex.split(line, comments=True)
         if words and words[0] in {'REGISTER', 'APPEND_TO_REGISTER', 'INFO_TAG'}:
             used_registers.update(int(w[1:]) for w in words if w.startswith('r') and w[1:].isdigit())
             if words[0] == 'APPEND_TO_REGISTER' and drop_clean and any(w == f'q{q}' for q in clean for w in words):
                 continue
+            if words[0] == 'REGISTER' and len(words) > 2:
+                used_names.add(words[2])
+            if words[0] == 'APPEND_TO_REGISTER':
+                registered_wires.update(int(w[1:]) for w in words if w.startswith('q') and w[1:].isdigit())
             metadata.append(line)
     boundary_id = max(used_registers, default=-1) + 1
-    if retained:
-        metadata += [f'APPEND_TO_REGISTER q{max(retained)} r{boundary_id}', f'REGISTER r{boundary_id} "strata_boundary"']
+    if retained and max(retained) not in registered_wires:
+        name = 'strata_boundary'
+        suffix = 0
+        while name in used_names:
+            suffix += 1
+            name = f'strata_boundary_{suffix}'
+        metadata += [f'APPEND_TO_REGISTER q{max(retained)} r{boundary_id}', f'REGISTER r{boundary_id} "{name}"']
     emitted = metadata + emitted
     candidate = km.Circuit('\n'.join(emitted))
     verification = functions_at(candidate, clean_inputs=clean & set(range(candidate.num_qubits)), max_variables=max_variables, max_terms=max_terms,

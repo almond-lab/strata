@@ -154,8 +154,9 @@ def test_bounded_or_broken_scope_is_never_reinterpreted_as_unconditional():
     assert complete['coverage']['exact_operations'] == 5
     assert complete['regions'][0]['outputs']['0']['monomials'] == [[], [0]]
     bounded = lift_regions(text, max_window=2)
-    assert bounded['regions'] == []
+    assert [(r['start'],r['stop']) for r in bounded['regions']] == [(0,1)]
     assert bounded['unknown'][0]['reason'] == 'operation_budget'
+    assert (bounded['unknown'][0]['start'],bounded['unknown'][0]['stop']) == (1,5)
     broken = lift_regions('PUSH_CONDITION if b0\nZ_POW q0 0.5\nX q0\nPOP_CONDITION\nX q1')
     assert [(r['start'], r['stop']) for r in broken['regions']] == [(4, 5)]
 
@@ -188,16 +189,22 @@ def test_clean_artifact_promises_are_never_reapplied_at_window_cuts():
     assert result['limits']['clean_inputs'] == [0]
     for limits in ({'max_window': 2}, {'max_ops': 2}):
         bounded = lift_regions(text, clean_inputs=[0], **limits)
-        assert bounded['regions'] == []
-        assert bounded['unknown'][0]['reason'] == 'clean_inputs_require_complete_single_window'
+        assert [(r['start'],r['stop']) for r in bounded['regions']] == [(0,2)]
+        assert bounded['regions'][0]['semantics']['clean_input_assumptions'] == [0]
+        assert bounded['unknown'][0]['reason'] == ('scan_budget' if 'max_ops' in limits else 'reset_not_proven_zero')
     # A dirty reset at an interior metadata cut must not inherit the input promise.
     dirty = lift_regions('R q0\nX q0\nINFO_TAG "cut"\nR q0', clean_inputs=[0])
     assert dirty['regions'] == []
     assert dirty['unknown'][0]['reason'] == 'reset_not_proven_zero'
 
 
-def test_contextual_overflow_is_one_unknown_span_and_never_resumes_unconditionally():
+def test_contextual_cuts_resume_with_arbitrary_classical_inputs():
     report = lift_regions('HMR q0 b0\n' + 'X q0 if b0\n' * 10000, max_window=8)
-    assert report['regions'] == []
-    assert report['unknown'] == [dict(start=0, stop=10001, status='bounded',
-                                      reason='operation_budget', operation_count=10001)]
+    assert report['unknown'] == []
+    assert report['coverage']['exact_operations'] == 10001
+    assert report['coverage']['budget_cuts'] == 1250
+    assert report['regions'][0]['semantics']['measurement_variables'] == ['m0']
+    for region in report['regions'][1:]:
+        assert region['semantics']['measurement_variables'] == []
+        assert region['semantics']['classical_inputs'] == ['b0']
+    assert report['regions'][-1]['outputs']['0']['monomials'] == [[0],['b0']]

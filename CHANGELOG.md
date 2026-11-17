@@ -1,5 +1,26 @@
 # Change log
 
+## 0.3.1 — 2026-11-17
+
+Fixes thirteen v0.3 reports #36–47 and #51: clean-reset consistency, bounded
+segmentation and paid-skeleton retrieval, file hash/clean-contract handling,
+search budgets, constructor metadata, seeded tensor search and retained rank
+exclusions, numeric diagnostics, extreme-confidence metadata, and change-local
+candidate proofs that avoid lifting the entire unchanged circuit.
+
+Adds a measurement-aware lookup constructor for supported quadratic and cubic table
+arithmetic. It preserves ordered HMR events and their phase repairs and checks
+the complete boundary; larger unsupported synthesis families remain explicit.
+
+See [the patch issue map](docs/V0.3.1-FIXES.md) and
+[measurement-based lookups](docs/MEASURED-LOOKUPS.md). The independent research
+run's deeper capability gaps are tracked separately in #48–50.
+
+Validation: **583 tests passed**, plus three real offline sandbox checks.
+The real 128-qubit loader has 100% bounded local exact coverage with all 80
+resets justified; its new cubic plans are more expensive, so the original is
+retained. See [scope and evidence](docs/V0.3.1-VALIDATION.json).
+
 ## 0.3.0 — 2026-11-17
 
 This release adds generic candidate construction and a more informative

@@ -7,6 +7,7 @@ they are not lower bounds on an unmodelled nonlinear numerical pipeline.
 from __future__ import annotations
 
 from fractions import Fraction
+from decimal import Decimal
 from itertools import product
 from math import prod
 import json
@@ -230,8 +231,22 @@ def evaluate_stop_rules(observations,declaration,*,store):
 
 def _fraction(value):
     if isinstance(value,bool):raise StrataError('rational model coefficients must be numeric')
-    try:return value if isinstance(value,Fraction) else Fraction(str(value))
-    except (ValueError,ZeroDivisionError) as exc:raise StrataError('invalid rational model coefficient') from exc
+    try:return value if isinstance(value,Fraction) else Fraction(value) if type(value)is int else Fraction(str(value))
+    except (ValueError,ZeroDivisionError) as exc:
+        # Re-read our own large exact strings without a process-wide override.
+        if isinstance(value,str) and re.fullmatch(r'\s*[+-]?[0-9]+(?:/[0-9]+)?\s*',value):
+            numerator,_,denominator=value.strip().partition('/')
+            try:return Fraction(int(Decimal(numerator)),int(Decimal(denominator or '1')))
+            except (ValueError,ZeroDivisionError):pass
+        raise StrataError('invalid rational model coefficient') from exc
+
+
+def _rational_text(value):
+    """Format allowed exact coefficients without changing Python's digit limit."""
+    try:return str(value)
+    except ValueError:
+        numerator=format(Decimal(value.numerator),'f')
+        return numerator if value.denominator==1 else numerator+'/'+format(Decimal(value.denominator),'f')
 
 
 def _quadratic_inputs(hessian,target,continuous,offset):
@@ -251,8 +266,20 @@ def quadratic_analysis(hessian,*,target=None,steps=None,continuous=(),offset=0,p
     H,t,c,base=_quadratic_inputs(hessian,target,continuous,offset);n=len(H);q=[i for i in range(n) if i not in c]
     matrix=np.array(H,dtype=float);eigen=np.linalg.eigvalsh(matrix);scale=max(1.,float(np.linalg.norm(matrix,2)))
     if eigen[0]<-1e-10*scale:raise StrataError('quadratic matrix is not numerically positive semidefinite')
-    step=np.ones(n) if steps is None else np.array([_finite(x,'grid step') for x in steps])
-    if len(step)!=n or np.any(step<=0):raise StrataError('grid steps must be positive and match dimension')
+    step=np.zeros(n)
+    supplied=[1.]*len(q) if steps is None else list(steps)
+    if len(supplied)==n:
+        # Continuous coordinates have no quantization grid. Their slots may
+        # contain None/zero; normalize them away from the model identity.
+        for i in c:
+            if supplied[i] is not None and _finite(supplied[i],'continuous step')<0:
+                raise StrataError('continuous grid placeholders must be nonnegative or None')
+        supplied=[supplied[i] for i in q]
+    elif len(supplied)!=len(q):
+        raise StrataError('grid steps must match dimension or quantized coordinates')
+    for i,value in zip(q,supplied):
+        step[i]=_finite(value,'grid step')
+        if step[i]<=0:raise StrataError('quantized grid steps must be positive')
     names=[str(i) for i in range(n)] if parameter_names is None else list(parameter_names)
     if len(names)!=n or any(not isinstance(name,str) for name in names):raise StrataError('parameter names must match dimension')
     block=matrix[np.ix_(q,q)];compensator=np.zeros((len(c),len(q)))
@@ -274,7 +301,7 @@ def quadratic_analysis(hessian,*,target=None,steps=None,continuous=(),offset=0,p
             if matrix[i,j]:coupling.append(dict(left=i,right=j,value=float(matrix[i,j]),
                 normalized=float(matrix[i,j]/np.sqrt(matrix[i,i]*matrix[j,j])) if matrix[i,i]>0 and matrix[j,j]>0 else None))
     coupling.sort(key=lambda row:-abs(row['value']))
-    model=dict(hessian=[[str(v) for v in row] for row in H],target=[str(v) for v in t],continuous=c,offset=str(base),
+    model=dict(hessian=[[_rational_text(v) for v in row] for row in H],target=[_rational_text(v) for v in t],continuous=c,offset=_rational_text(base),
                steps=step.tolist(),parameter_names=names)
     return dict(kind='model',evidence_kind='model',model_kind='numerical_quadratic_model',model_hash=digest(model),source_hash=digest(model),
         formula='offset + (x-target)^T H (x-target)',dimension=n,quantized_indices=q,continuous_indices=c,
@@ -337,8 +364,8 @@ def exact_grid_floor(hessian,*,target,grids,continuous=(),offset=0,max_states=65
         normalized[index]=sorted(set(_fraction(v) for v in values))
     if set(normalized)!=set(q):raise StrataError('every noncontinuous coordinate needs a finite grid')
     count=prod(len(normalized[i]) for i in q)
-    model=dict(hessian=[[str(v) for v in row] for row in H],target=[str(v) for v in t],continuous=c,offset=str(base),
-               grids={str(i):[str(v) for v in normalized[i]] for i in q})
+    model=dict(hessian=[[_rational_text(v) for v in row] for row in H],target=[_rational_text(v) for v in t],continuous=c,offset=_rational_text(base),
+               grids={str(i):[_rational_text(v) for v in normalized[i]] for i in q})
     provenance=dict(kind='model',model_hash=digest(model),source_hash=digest(model),model=model,
         scope='minimum of the supplied rational PSD quadratic on these finite grids with unrestricted continuous compensation; not a nonlinear pipeline floor',
         formula='offset + (x-target)^T H (x-target)',grid_states=count,
@@ -379,9 +406,13 @@ def exact_grid_floor(hessian,*,target,grids,continuous=(),offset=0,max_states=65
             for k,i in enumerate(c):point[i]=t[i]-sum(Y[k][j]*delta[j] for j in range(len(q)))
             if not within_budget(point):return fallback('rational minimizer coefficient budget')
             witness=point
-    try:approximation=float(best)
-    except OverflowError:approximation=None
+    def float_summary(value):
+        try:
+            result=float(value)
+            return result if np.isfinite(result) else None
+        except OverflowError:return None
     return dict(provenance,status='exact',evidence_kind='model',model_kind='exact_small_rational_model',certified=True,certificate_scope='supplied finite rational model only',
-        minimum=str(best),minimum_float=approximation,minimizer=[str(v) for v in witness],rational_psd_rank=rank,
-        schur_matrix=[[str(v) for v in row] for row in S],enumerated_states=count,
+        minimum=_rational_text(best),minimum_float=float_summary(best),minimizer=[_rational_text(v) for v in witness],
+        minimizer_float=[float_summary(v) for v in witness],float_summary_scope='rounded display only; exact rational strings are authoritative',rational_psd_rank=rank,
+        schur_matrix=[[_rational_text(v) for v in row] for row in S],enumerated_states=count,
         method='exact rational PSD elimination, exact continuous stationary solve, exhaustive finite grid enumeration')

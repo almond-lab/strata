@@ -58,9 +58,22 @@ connected AI.
 ## Evaluate an invented construction
 
 The AI writes `candidate.kmx` or `candidate.kmb` and a hypothesis JSON record.
-The record can contain `parent_sha256`, `mechanism`, `rationale`, and any
-supporting observations. A supplied parent hash must match the source being
-evaluated.
+The record can contain `parent_sha256`, `parent_hash_encoding`, `mechanism`,
+`rationale`, and supporting observations. Copy both parent fields from the
+discovery brief: `source_bytes` identifies the exact input file, while
+`canonical_text` identifies its canonical native text. A separately supplied
+`source_sha256` also requires the exact source bytes to match. Source-byte
+bindings are checked with a streaming hash before native loading or alignment;
+canonical bindings require loading only the parent before the comparison.
+Legacy unlabelled `parent_sha256` values can match either encoding, with the
+matched encoding recorded in `hypothesis_binding`.
+
+Successful evaluation receipts retain the existing canonical `baseline.sha256`
+and `candidate.sha256` artifact identities and their separate `source_sha256`
+values. A changed file at the same path does not satisfy a byte binding. A parent
+mismatch produces an unmeasured `file_candidate_preflight` record with unknown
+canonical IDs where parsing was skipped, no artifact snapshots, and no accepted
+gain; it does not enter the history of evaluated candidates.
 
 ```bash
 strata evaluate-file input.kmb candidate.kmx \
@@ -73,13 +86,64 @@ intervals in canonical source instructions, for example `[{"start": 0,
 "stop": 12}]`. These are edit constraints. The proof may need a wider complete
 episode.
 
-Evaluation aligns the canonical instruction streams, widens changes to complete
-recovered source functions, and merges adjacent affected functions when needed.
+Evaluation aligns the canonical instruction streams and recovers exact functions
+only around changed spans. It first checks each minimal edited span, then grows
+unsuccessful neighborhoods and joins nearby compensating edits within the proof
+budget. It does not lift the complete source file to find those boundaries.
 Untouched slices must match exactly. Each changed interval must preserve every
 arbitrary boundary wire and exact sign phase. Apparent helper wires remain
 arbitrary dirty inputs; source files do not imply a zero-initialization promise.
 Physical width, metadata boundaries, opaque operations, and classical condition
 scopes are preserved.
+
+`--max-window` bounds the source and candidate instructions in each local
+comparison; `--max-variables` and `--max-terms` bound its symbolic semantics.
+`--max-proof-attempts` (default 64) bounds the total neighborhood attempts.
+The `recovery` receipt records each attempted source/candidate interval, its
+result and reason, the limits, the number of semantic comparisons, and the
+budget or artifact boundary that stopped growth. A failed small comparison can
+be followed by a successful wider one. An unfinished sequence remains
+`unknown`; its earlier failed trial is not promoted to a complete rejection.
+
+Local windows must start and end outside inherited `PUSH_CONDITION` scopes on
+both tapes. The evaluator grows to include the enclosing scope when the budget
+permits; otherwise it returns unknown. It never executes a conditional body as
+an unconditional standalone fragment. Measurement-event provenance and exact
+sign-phase obligations remain part of every semantic comparison.
+
+This locality improvement applies to symbolic proof recovery. Native parsing,
+canonical text materialization/alignment, resource measurement, and retained
+artifact snapshots still process complete files and may require substantial
+memory. A lightweight prefix scan also recovers condition depths; its scanned
+line counts are reported separately. Tests exercise a 200,002-instruction
+dense fixture with a two-instruction edit; no 51-million-instruction runtime or
+memory result is claimed. Labelled source-hash mismatches still stop before
+native parsing as described above.
+
+For a candidate that relies on zero-initialized workspace, declare the physical
+wires explicitly:
+
+```bash
+strata evaluate-file input.kmb candidate.kmx --out work/discovery \
+  --clean-inputs 2,4 --max-window 4096 --max-variables 128
+```
+
+These wires start at zero and **both artifacts must restore them to zero**.
+All other inputs remain arbitrary; every output, classical state, measurement
+provenance and sign phase still has to match. `contract` and `contract_hash`
+bind the artifacts, zero-input and zero-output obligations, width, phase and any
+finite domain. The receipt marks `all_inputs_arbitrary: false` and gives the
+promise scope. A successful clean check uses the usual `verified_improvement`
+or `verified_no_gain` status, qualified by that scope.
+
+A file-level clean promise is proved over the complete artifact within the
+stated budgets. It is never reapplied at an interior region boundary: that wire
+may hold a live intermediate there. A whole-artifact proof that exceeds the
+budget stays `unknown`, even for an identical candidate whose restoration has
+not been proved. `--regions` can still constrain edits, but does not narrow this
+clean proof. With `--domain`, every finite row must also set the declared clean
+inputs to zero, and restoration is checked on every promised row and formal
+measurement outcome. That result remains a finite-domain result.
 
 The proof gate uses canonical Boolean functions and phase, independently of the
 built-in optimizer's supported constructions. A boundary mismatch yields a
@@ -107,7 +171,8 @@ first-class record containing:
 | Next test and reopening condition | A concrete response to the observed result |
 | Unresolved obligations | Missing proof, host-domain acceptance, or high-level interpretation |
 
-`verified_improvement` means exact file equivalence and a lower static objective.
+`verified_improvement` means exact equivalence in the recorded boundary scope
+and a lower static objective.
 `verified_no_gain` retains equivalent constructions with equal or greater cost.
 `rejected` records a boundary-function mismatch. `unknown` records the missing
 evidence. Resource savings for rejected candidates remain diagnostic figures.

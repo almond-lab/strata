@@ -3,6 +3,7 @@ import json
 import sys
 from dataclasses import asdict
 from pathlib import Path
+from time import monotonic
 from . import open as open_project
 from .model import StrataError, digest
 from .project import Design
@@ -48,22 +49,29 @@ def main(argv=None):
         p.add_argument('--max-terms',type=int,default=65536)
         p.add_argument('--max-product-terms',type=int,default=1048576)
         p.add_argument('--max-assignments',type=int,default=65536)
+        if name in {'function-of', 'slack'}:
+            p.add_argument('--timeout', type=float, default=5,
+                           help='search seconds after window semantics are available')
         if name == 'function-of':
             p.add_argument('--wire', type=int, required=True);p.add_argument('--support', required=True)
+            p.add_argument('--degree', type=int, default=2);p.add_argument('--max-forms', type=int, default=4096)
         elif name == 'slack':
             p.add_argument('--wires')
+            p.add_argument('--max-inputs', type=int, default=16)
     for name in ('inspect-file', 'optimize', 'discover', 'evaluate-file', 'note'):
         p=sub.add_parser(name);p.add_argument('input');p.add_argument('--out',required=True)
         if name=='note':p.add_argument('--note',required=True)
         if name=='evaluate-file':
             p.add_argument('candidate');p.add_argument('--hypothesis');p.add_argument('--regions')
             p.add_argument('--domain')
-        if name in {'inspect-file','discover','optimize'}:p.add_argument('--clean-inputs',default='')
+            p.add_argument('--max-proof-attempts',type=int,default=64)
+        if name in {'inspect-file','discover','optimize','evaluate-file'}:p.add_argument('--clean-inputs',default='')
         if name in {'discover','inspect-file'}:
             p.add_argument('--range',dest='scan_range')
-            p.add_argument('--growth-window',type=int,default=8192)
+            p.add_argument('--growth-window',type=int,default=None,
+                           help='streaming window cap; defaults to explicit --max-window, otherwise 8192')
             p.add_argument('--quiet-progress',action='store_true')
-        p.add_argument('--max-window',type=int,default=256)
+        p.add_argument('--max-window',type=int,default=None if name in {'discover','inspect-file'} else 256)
         p.add_argument('--max-variables',type=int,default=64)
         p.add_argument('--max-terms',type=int,default=4096)
         p.add_argument('--cost',default='Q*(toffoli+t/4)')
@@ -74,6 +82,7 @@ def main(argv=None):
     p.add_argument('--max-candidates',type=int,default=24);p.add_argument('--archive')
     p.add_argument('--max-operations',type=int,default=10000);p.add_argument('--max-variables',type=int,default=128)
     p.add_argument('--max-terms',type=int,default=65536)
+    p.add_argument('--max-product-terms',type=int,default=65536)
     for name in ('numeric-budget','numeric-forecast','numeric-floor','numeric-bets'):
         p=sub.add_parser(name);p.add_argument('input');p.add_argument('--out',required=True);p.add_argument('--store')
     p=sub.add_parser('numeric-job');p.add_argument('job');p.add_argument('--store',required=True)
@@ -157,39 +166,47 @@ def main(argv=None):
         if args.cmd in {'function-of', 'slack', 'floors'}:
             from .frontends import load_circuit
             from .inference import functions_at, is_function_of, information_slack
+            load_started = monotonic()
             circuit = load_circuit(args.input)
+            load_seconds = monotonic() - load_started
+            query_started = monotonic()
             options=dict(from_at=args.from_at,clean_inputs=_wire_list(args.clean_inputs),domain=args.domain,
                          max_operations=args.max_operations,max_variables=args.max_variables,max_terms=args.max_terms,
                          max_product_terms=args.max_product_terms,max_assignments=args.max_assignments)
             if args.cmd == 'function-of':
                 result = is_function_of(circuit, args.wire, args.at, _wire_list(args.support),
-                                        **options)
+                                        timeout=args.timeout, degree=args.degree, max_forms=args.max_forms, **options)
             elif args.cmd == 'slack':
                 result = information_slack(circuit, args.at,
                     wires=None if args.wires is None else _wire_list(args.wires),
-                    **options)
+                    timeout=args.timeout, max_inputs=args.max_inputs, **options)
             else:
                 from .floors import circuit_floors
                 result=circuit_floors(circuit,at=args.at,**options)
+            result.setdefault('timings', {}).update(load_seconds=load_seconds, query_seconds=monotonic()-query_started)
             print(json.dumps(result, indent=2, default=str))
             return 0
         if args.cmd=='restructure':
             from .restructure import restructure_file
             result=restructure_file(args.input,args.out,clean_inputs=_wire_list(args.clean_inputs),cost=args.cost,
                 rounds=args.rounds,beam=args.beam,max_candidates=args.max_candidates,archive=args.archive,
-                max_operations=args.max_operations,max_variables=args.max_variables,max_terms=args.max_terms)
+                max_operations=args.max_operations,max_variables=args.max_variables,max_terms=args.max_terms,
+                max_product_terms=args.max_product_terms)
             print(json.dumps(result,indent=2,default=str));return 0
         if args.cmd in {'inspect-file','optimize','discover','evaluate-file','note'}:
             from .file_workflow import inspect_file, optimize_file
-            options=dict(cost=args.cost,max_window=args.max_window,max_variables=args.max_variables,max_terms=args.max_terms)
-            if args.cmd in {'inspect-file','discover','optimize'}:options['clean_inputs']=_wire_list(args.clean_inputs)
+            options=dict(cost=args.cost,max_window=256 if args.max_window is None else args.max_window,
+                         max_variables=args.max_variables,max_terms=args.max_terms)
+            if args.cmd in {'inspect-file','discover','optimize','evaluate-file'}:options['clean_inputs']=_wire_list(args.clean_inputs)
             if args.cmd in {'discover','inspect-file'}:
                 scan_range=None
                 if args.scan_range:
                     parts=args.scan_range.split(':')
                     if len(parts)!=2:raise StrataError('range must be START:STOP')
                     scan_range=(int(parts[0]),int(parts[1]))
-                options.update(scan_range=scan_range,growth_window=args.growth_window,
+                growth_window = (args.growth_window if args.growth_window is not None
+                                 else args.max_window if args.max_window is not None else 8192)
+                options.update(scan_range=scan_range,growth_window=growth_window,
                     progress=None if args.quiet_progress else lambda row:print(json.dumps(row),file=sys.stderr,flush=True))
             if args.cmd=='optimize':result=optimize_file(args.input,args.out,max_candidates=args.max_candidates,**options)
             elif args.cmd=='discover':
@@ -199,7 +216,8 @@ def main(argv=None):
                 from .discovery import evaluate_candidate
                 hypothesis=json.loads(Path(args.hypothesis).read_text()) if args.hypothesis else None
                 regions=json.loads(Path(args.regions).read_text()) if args.regions else None
-                result=evaluate_candidate(args.input,args.candidate,args.out,hypothesis=hypothesis,regions=regions,domain=args.domain,**options)
+                result=evaluate_candidate(args.input,args.candidate,args.out,hypothesis=hypothesis,regions=regions,
+                                          domain=args.domain,max_proof_attempts=args.max_proof_attempts,**options)
             elif args.cmd=='note':
                 from .discovery import record_research_note
                 result=record_research_note(args.input,args.out,json.loads(Path(args.note).read_text()))

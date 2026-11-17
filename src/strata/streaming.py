@@ -89,28 +89,135 @@ def _periodic_parts(lines):
     return [lines]
 
 
+SKELETON_OPS = {'CCX', 'CCZ', 'CSWAP', 'HMR'}
+
+
+def _skeleton_parts(lines, *, max_candidates=128):
+    """Bounded repeated paid-anchor runs, allowing unmatched heads and tails.
+
+    Small relabel-invariant anchor n-grams seed adjacent-repeat checks. The
+    complete anchor topology is compared before a split; linear instructions
+    are deliberately outside that equality. Disconnected paid wire sets offer
+    an additional natural boundary. These are retrieval observations only.
+    """
+    anchors = [(i, line) for i, line in enumerate(lines)
+               if line.split() and line.split()[0] in SKELETON_OPS]
+    if len(anchors) < 2:
+        return [lines]
+    anchor_lines = [line for _, line in anchors]
+    candidates, checks = [], 0
+    # Bound both seed storage and expensive whole-run equality checks by the
+    # current window. A pathological repetitive input cannot grow a global
+    # in-memory occurrence index.
+    for seed in (3, 4, 8):
+        previous = {}
+        skip_until = 0
+        for b in range(len(anchors) - seed + 1):
+            if b < skip_until:
+                continue
+            key = canonical_kernel(anchor_lines[b:b + seed])[0]
+            recent = previous.setdefault(key, [])
+            for a in reversed(recent):
+                period = b - a
+                if period < seed or b + period > len(anchors):
+                    continue
+                checks += 1
+                if checks > max_candidates:
+                    break
+                pattern = canonical_kernel(anchor_lines[a:b])[0]
+                if canonical_kernel(anchor_lines[b:b + period])[0] != pattern:
+                    continue
+                end = b + period
+                while end + period <= len(anchors) and canonical_kernel(anchor_lines[end:end + period])[0] == pattern:
+                    end += period
+                candidates.append((a, end, period))
+                skip_until = end
+                break
+            recent.append(b)
+            # Keep distant representatives as well as recent matches: nearby
+            # uniform CCX shapes must not hide a longer cell's recurrence.
+            if len(recent) > 8:
+                del recent[2]
+            if checks > max_candidates:
+                break
+        if checks > max_candidates:
+            break
+    covered, selected = set(), []
+    for a, end, period in sorted(candidates, key=lambda r: (-(r[1] - r[0]), -r[2], r[0])):
+        if any(i in covered for i in range(a, end)):
+            continue
+        covered.update(range(a, end))
+        selected.append((a, end, period))
+    cuts = {0, len(lines)}
+    for a, end, period in selected:
+        # Cut just before each paid anchor; adjacent linear gates remain in
+        # the preceding occurrence and get their own layer fingerprint.
+        cuts.update(anchors[i][0] for i in range(a, end, period))
+        if end < len(anchors): cuts.add(anchors[end][0])
+    if not selected:
+        neighborhood = set()
+        for i, line in anchors:
+            wires = set(re.findall(r'\bq\d+\b', line))
+            if neighborhood and not neighborhood & wires:
+                cuts.add(i)
+                neighborhood.clear()
+            neighborhood.update(wires)
+    positions = sorted(cuts)
+    return [lines[a:b] for a, b in zip(positions, positions[1:]) if a < b]
+
+
+def paid_skeleton(lines):
+    """Separate topology and positioned non-skeleton layers, never semantics."""
+    anchors = [line for line in lines if line.split() and line.split()[0] in SKELETON_OPS]
+    text, mapping = canonical_kernel(anchors)
+    counts = {kind: sum(token.startswith(kind) for token in mapping) for kind in ('q', 'b')}
+    def replace(match):
+        token = match.group()
+        if token not in mapping:
+            kind = token[0]
+            mapping[token] = kind + str(counts[kind])
+            counts[kind] += 1
+        return mapping[token]
+    layers, position = [], 0
+    for line in lines:
+        if line.split() and line.split()[0] in SKELETON_OPS:
+            position += 1
+        else:
+            layers.append((position, re.sub(r'\b[qb]\d+\b', replace, line.strip())))
+    return text, hashlib.sha256(json.dumps(layers).encode()).hexdigest(), mapping
+
+
 def scan_circuit(circuit, out, *, source=None, start=0, stop=None,
                  max_window=8192, max_variables=128, max_terms=4096,
-                 max_groups=16, progress=None, progress_every=100000):
+                 max_groups=16, progress=None, progress_every=100000, clean_inputs=()):
     """Native census + disk-backed bounded semantic index of [start,stop).
 
     Budget cuts in an open classical scope are opaque, never reinterpreted as
     unconditional gates. Each group is analyzed once; capped top-group summaries
     reference every occurrence in the index. Static counts are not mean costs.
     """
-    from .semantic import analyze_window, _parse
+    from .semantic import analyze_window, _parse, _advance_zero_facts, _zeros_after, _trim_zero_facts
     if not isinstance(start, int) or start < 0 or (stop is not None and (not isinstance(stop, int) or stop <= start)):
         raise StrataError('range must be a nonempty nonnegative half-open interval')
     if min(max_window, max_variables, max_terms, max_groups, progress_every) <= 0:
         raise StrataError('scan budgets must be positive')
+    clean_inputs = tuple(sorted(set(clean_inputs)))
+    if any(type(q) is not int or q < 0 for q in clean_inputs):
+        raise StrataError('clean_inputs must contain nonnegative physical wire IDs')
+    if clean_inputs and start:
+        raise StrataError('artifact clean inputs apply only to scans starting at zero')
     root = Path(out).resolve()
     root.mkdir(parents=True, exist_ok=True)
     dbpath = root / 'kernels.sqlite'
     db = sqlite3.connect(dbpath)
     db.executescript('DROP TABLE IF EXISTS kernels; DROP TABLE IF EXISTS occurrences; '
         'CREATE TABLE kernels (fingerprint TEXT PRIMARY KEY, operations INT, paid REAL, count INT, semantics TEXT, native TEXT, boundary TEXT); '
-        'CREATE TABLE occurrences (fingerprint TEXT, start INT, stop INT, mapping TEXT); '
-        'CREATE INDEX occurrence_group ON occurrences(fingerprint);')
+        'CREATE TABLE occurrences (fingerprint TEXT, start INT, stop INT, mapping TEXT, zero_evidence TEXT); '
+        'CREATE INDEX occurrence_group ON occurrences(fingerprint); '
+        'DROP TABLE IF EXISTS skeletons; DROP TABLE IF EXISTS skeleton_occurrences; '
+        'CREATE TABLE skeletons (fingerprint TEXT PRIMARY KEY, native TEXT, paid INT, anchors INT, count INT); '
+        'CREATE TABLE skeleton_occurrences (fingerprint TEXT, start INT, stop INT, linear_hash TEXT, syntax_hash TEXT, mapping TEXT, boundary TEXT); '
+        'CREATE INDEX skeleton_group ON skeleton_occurrences(fingerprint);')
     begun = time.monotonic()
     census = Counter()
     buffer = []
@@ -119,8 +226,16 @@ def scan_circuit(circuit, out, *, source=None, start=0, stop=None,
     tainted = False
     scanned = 0
     occurrences = 0
+    coverage = Counter(exact_instructions=0, unknown_instructions=0, exact_paid_operations=0,
+                       skeleton_indexed_paid_operations=0, skeleton_indexed_instructions=0,
+                       budget_cuts=0)
+    known_zero = {q: dict(kind='declared_artifact_input', origin_at=0, origin_wire=q) for q in clean_inputs}
+    max_zero_facts = max(max_variables, max_window)
+    coverage['zero_fact_evictions'] = _trim_zero_facts(known_zero, max_zero_facts)
+    buffer_zero_inputs = dict(known_zero)
     canonical_hash = hashlib.sha256()
     last_index = 0
+    stopped_before_eof = False
     def notify(done=False):
         if progress:
             progress(dict(stage='scan_complete' if done else 'scan', scanned_operations=scanned,
@@ -132,24 +247,57 @@ def scan_circuit(circuit, out, *, source=None, start=0, stop=None,
         if not buffer:
             return
         offset = buffer_start
+        zero_inputs = dict(buffer_zero_inputs)
         parts = [buffer] if tainted else _periodic_parts(buffer)
         for part in parts:
             text, mapping = canonical_kernel(part)
-            key = hashlib.sha256((('opaque-context\n' if tainted else '') + text).encode()).hexdigest()
+            promised = sorted(int(mapping[f'q{q}'][1:]) for q in zero_inputs if f'q{q}' in mapping)
+            zero_evidence = {mapping[f'q{q}']: proof for q, proof in zero_inputs.items() if f'q{q}' in mapping}
+            key = hashlib.sha256((('opaque-context\n' if tainted else '') +
+                                  (f'clean:{promised}\n' if promised else '') + text).encode()).hexdigest()
             old = db.execute('SELECT count FROM kernels WHERE fingerprint=?', (key,)).fetchone()
             if old:
                 db.execute('UPDATE kernels SET count=count+1 WHERE fingerprint=?', (key,))
             else:
                 sem = (dict(status='unknown', reason='context_scope_crosses_analysis_boundary') if tainted
                        else analyze_window(text.splitlines(), max_operations=max_window,
-                                           max_variables=max_variables, max_terms=max_terms))
+                                           max_variables=max_variables, max_terms=max_terms,
+                                           clean_inputs=promised))
                 paid = sum(line.split()[0] in {'CCX', 'CCZ', 'CSWAP'} for line in part if line.split())
                 db.execute('INSERT INTO kernels VALUES (?,?,?,?,?,?,?)',
                            (key, len(part), paid, 1, json.dumps(sem), text, boundary))
-            db.execute('INSERT INTO occurrences VALUES (?,?,?,?)',
-                       (key, offset, offset + len(part), json.dumps(mapping)))
+            db.execute('INSERT INTO occurrences VALUES (?,?,?,?,?)',
+                       (key, offset, offset + len(part), json.dumps(mapping), json.dumps(zero_evidence)))
+            zero_inputs = _zeros_after([(offset+j, line, _parse(line)) for j,line in enumerate(part)], zero_inputs)
             offset += len(part)
             occurrences += 1
+            # Reusing syntax evidence is valid only under the same canonical
+            # boundary promise, which is included in the group fingerprint.
+            if old:
+                sem = json.loads(db.execute('SELECT semantics FROM kernels WHERE fingerprint=?', (key,)).fetchone()[0])
+            coverage['exact_instructions' if sem['status'] == 'exact' else 'unknown_instructions'] += len(part)
+            if sem['status'] == 'exact':
+                coverage['exact_paid_operations'] += sum(line.split()[0] in {'CCX','CCZ','CSWAP'} for line in part if line.split())
+        offset = buffer_start
+        # A balanced condition scope stays together; cutting it into anchors
+        # would lose the cell boundary already supplied by its syntax.
+        scope = any(line.startswith('PUSH_CONDITION') for line in buffer)
+        skeleton_parts = [buffer] if scope or tainted else _skeleton_parts(buffer)
+        for part in skeleton_parts:
+            native, linear_hash, mapping = paid_skeleton(part)
+            if native:
+                key = hashlib.sha256(native.encode()).hexdigest()
+                syntax_hash = hashlib.sha256(canonical_kernel(part)[0].encode()).hexdigest()
+                paid = sum(line.split()[0] in {'CCX','CCZ','CSWAP'} for line in part if line.split())
+                db.execute('INSERT INTO skeletons VALUES (?,?,?,?,1) ON CONFLICT(fingerprint) DO UPDATE SET count=count+1',
+                           (key, native, paid, len(native.splitlines())))
+                db.execute('INSERT INTO skeleton_occurrences VALUES (?,?,?,?,?,?,?)',
+                           (key, offset, offset+len(part), linear_hash, syntax_hash, json.dumps(mapping), boundary))
+                coverage['skeleton_indexed_paid_operations'] += paid
+                coverage['skeleton_indexed_instructions'] += len(part)
+            offset += len(part)
+        if boundary.startswith('budget_cut'):
+            coverage['budget_cuts'] += 1
         buffer = []
         if occurrences % 256 == 0:
             db.commit()
@@ -160,6 +308,7 @@ def scan_circuit(circuit, out, *, source=None, start=0, stop=None,
                 last_index = i + 1
                 canonical_hash.update(raw.encode())
                 if stop is not None and i >= stop:
+                    stopped_before_eof = True
                     break
                 line = raw.rstrip('\r\n')
                 op = line.split(' ', 1)[0]
@@ -170,9 +319,12 @@ def scan_circuit(circuit, out, *, source=None, start=0, stop=None,
                 if not buffer:
                     buffer_start = i
                     tainted = depth != 0
+                    buffer_zero_inputs = dict(known_zero)
                 scanned += 1
                 census[op] += 1
                 parsed = _parse(line)
+                _advance_zero_facts(parsed, known_zero, depth, i)
+                coverage['zero_fact_evictions'] += _trim_zero_facts(known_zero, max_zero_facts)
                 if parsed['status'] != 'supported' and depth == 0:
                     flush('natural_opaque_or_metadata_cut')
                     buffer_start = i
@@ -196,15 +348,40 @@ def scan_circuit(circuit, out, *, source=None, start=0, stop=None,
         rows = db.execute('SELECT fingerprint,operations,paid,count,semantics,boundary FROM kernels ORDER BY paid*count DESC,operations*count DESC LIMIT ?', (max_groups,)).fetchall()
         groups = []
         for key, operations, paid, count, semantics, boundary in rows:
-            sample = [dict(start=a, stop=b, wire_mapping=json.loads(m)) for a,b,m in db.execute(
-                'SELECT start,stop,mapping FROM occurrences WHERE fingerprint=? LIMIT 8', (key,))]
+            sample = [dict(start=a, stop=b, wire_mapping=json.loads(m), boundary_zero_evidence=json.loads(z)) for a,b,m,z in db.execute(
+                'SELECT start,stop,mapping,zero_evidence FROM occurrences WHERE fingerprint=? LIMIT 8', (key,))]
             groups.append(dict(fingerprint=key, operations_per_occurrence=operations,
                                static_toffoli_per_occurrence=paid, occurrences=count,
                                aggregate_static_toffoli=paid*count,
                                semantics=json.loads(semantics), examples=sample, boundary=boundary,
-                               contract_scope='arbitrary quantum and classical window boundary; earlier values and measurement provenance are not inferred',
+                               contract_scope='boundary zeros require per-occurrence transport from declared artifact inputs or unconditional HMR; other boundary values are arbitrary; measurement phase provenance is not inferred',
                                occurrence_index=str(dbpath), rewrite_boundary_verified=False))
         group_count = db.execute('SELECT count(*) FROM kernels').fetchone()[0]
+        skeletons = []
+        for key, paid, anchors, count in db.execute(
+                'SELECT fingerprint,paid,anchors,count FROM skeletons ORDER BY paid*count DESC,anchors*count DESC LIMIT ?', (max_groups,)):
+            variants, minimum, maximum = db.execute(
+                'SELECT count(DISTINCT linear_hash),min(stop-start),max(stop-start) FROM skeleton_occurrences WHERE fingerprint=?', (key,)).fetchone()
+            samples = [dict(start=a, stop=b, linear_layer_sha256=h, syntax_sha256=s,
+                            wire_mapping=json.loads(m), boundary=boundary)
+                       for a,b,h,s,m,boundary in db.execute(
+                           'SELECT start,stop,linear_hash,syntax_hash,mapping,boundary FROM skeleton_occurrences WHERE fingerprint=? LIMIT 8', (key,))]
+            skeletons.append(dict(fingerprint=key, grouping='paid_skeleton_modulo_linear_layers',
+                                  occurrences=count, anchors_per_occurrence=anchors,
+                                  static_toffoli_per_occurrence=paid, aggregate_static_toffoli=paid*count,
+                                  linear_layer_variants=variants, operations_per_occurrence=dict(min=minimum,max=maximum),
+                                  examples=samples, occurrence_index=str(dbpath),
+                                  semantics=dict(status='observation',reason='paid_topology_equality_does_not_imply_functional_equivalence'),
+                                  rewrite_boundary_verified=False))
+        repeated_paid = db.execute('SELECT coalesce(sum(paid*count),0) FROM skeletons WHERE count>1').fetchone()[0]
+        paid_total = sum(census[op] for op in ('CCX','CCZ','CSWAP'))
+        coverage.update(paid_operations=paid_total, repeated_skeleton_paid_operations=repeated_paid)
+        coverage_report = dict(coverage, scope='selected range; local window contracts',
+                               exact_fraction=coverage['exact_instructions']/scanned if scanned else 0.0,
+                               exact_paid_fraction=coverage['exact_paid_operations']/paid_total if paid_total else 0.0,
+                               repeated_skeleton_paid_fraction=repeated_paid/paid_total if paid_total else 0.0,
+                               skeleton_indexed_paid_fraction=coverage['skeleton_indexed_paid_operations']/paid_total if paid_total else 0.0,
+                               skeleton_coverage_is_semantic_proof=False)
         elapsed = time.monotonic() - begun
         stats = circuit.operation_statistics()
         report = dict(schema_version='3', kind='bounded_streaming_analysis',
@@ -212,15 +389,21 @@ def scan_circuit(circuit, out, *, source=None, start=0, stop=None,
                       source_sha256=file_hash(source) if source else None,
                       range=dict(start=start, stop=min(stop, last_index) if stop else last_index),
                       scanned_operations=scanned, full_file_operations=len(circuit),
+                      scanned_instructions=scanned, full_scan=start==0 and not stopped_before_eof,
                       full_file_resources=dict(Q=circuit.num_qubits, toffoli=stats.num_toffoli_like,
                           t=stats.num_t_like, rotations=stats['Z_POW'], instructions=len(circuit), accounting='static_emitted'),
                       census=dict(census), groups=groups, group_count=group_count,
+                      paid_skeletons=skeletons, skeleton_group_count=db.execute('SELECT count(*) FROM skeletons').fetchone()[0],
+                      coverage=coverage_report, clean_input_assumptions=list(clean_inputs),
                       occurrences=occurrences, index=str(dbpath),
                       seconds=elapsed, seconds_per_million_operations=elapsed*1e6/scanned if scanned else None,
                       peak_rss_bytes=resource.getrusage(resource.RUSAGE_SELF).ru_maxrss*1024,
                       memory_model='one native circuit plus bounded Python window and disk-backed evidence; native parse and text spool precede scan',
-                      limits=dict(max_window=max_window,max_variables=max_variables,max_terms=max_terms,max_summary_groups=max_groups),
-                      limitations=['Group equality is wire-relabelled syntax; arithmetic intent and rewrite boundaries require proof.',
+                      limits=dict(max_window=max_window,max_variables=max_variables,max_terms=max_terms,max_summary_groups=max_groups,
+                                  max_anchor_repeat_candidates_per_window=128,max_boundary_zero_facts=max_zero_facts),
+                      limitations=['Syntax groups and paid-skeleton groups are distinct observations; neither proves arithmetic intent or a replacement boundary.',
+                                   'Paid skeletons omit linear layers, whose positioned syntax hashes are retained separately; equal skeletons can implement different functions.',
+                                   'Bounded anchor-repeat search can miss repeats spanning windows or beyond its candidate budget; reported coverage is measured, not a completeness claim.',
                                    'Scope-cut segments remain unknown. Static Toffoli counts do not estimate conditional mean cost.',
                                    'Full native circuit storage and SDK conversion are not constant-memory streaming binary decoding.'])
         (root/'scan.json').write_text(json.dumps(report, indent=2) + '\n')
