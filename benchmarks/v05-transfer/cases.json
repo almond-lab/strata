@@ -1,0 +1,22 @@
+[
+  ["inverse-normalization", "invsqrt.kmb", 14, 36],
+  ["inverse-root", "invsqrt.kmb", 612, 634],
+  ["inverse-coefficient", "invsqrt.kmb", 3003, 3017],
+  ["inverse-carry", "invsqrt.kmb", 4426, 4444],
+  ["inverse-endpoint-switch", "invsqrt.kmb", 7712, 7730],
+  ["inverse-fractional-endpoint", "invsqrt.kmb", 7735, 7748],
+  ["inverse-return", "invsqrt.kmb", 9227, 9246],
+  ["decoder-measured-flag", "dqi.kmb", 20251193, 20251234],
+  ["decoder-bilinear", "dqi.kmb", 20251318, 20251351],
+  ["decoder-complete-scan", "dqi.kmb", 24000380, 24000643],
+  ["decoder-scan-conjunctions", "dqi.kmb", 25014372, 25014382],
+  ["decoder-scan-repayment", "dqi.kmb", 26022444, 26022464],
+  ["decoder-scan-mark", "dqi.kmb", 28515897, 28515912],
+  ["loader-0-address-bank", "dfthcsos/angle_k_0.kmb", 5, 23],
+  ["loader-0-word", "dfthcsos/angle_k_0.kmb", 4002, 4029],
+  ["loader-1-address-products", "dfthcsos/angle_k_1.kmb", 103, 127],
+  ["loader-1-word", "dfthcsos/angle_k_1.kmb", 4100, 4349],
+  ["loader-3-word", "dfthcsos/angle_k_3.kmb", 4042, 4065],
+  ["loader-7-dirty-word", "dfthcsos/angle_k_7.kmb", 4154, 4385],
+  ["loader-14-high-address", "dfthcsos/angle_k_14.kmb", 4075, 4107]
+]

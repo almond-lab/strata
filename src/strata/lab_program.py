@@ -6,7 +6,8 @@ phase; outcome-controlled Z/CZ/CCZ/NEG contributes an affine Boolean expression.
 Thus phase is p0 + sum(m[j] * f[j]) modulo two, with any fractional native
 rotation confined to p0. Zero and unit assignments determine p0 and every
 coefficient. Nonlinear control or outcome-dependent basis changes decline
-this theorem and use full enumeration, subject to the ordinary budget.
+this theorem. The lab uses full enumeration when affordable, otherwise bounded
+symbolic execution proves the complete outcome-dependent trajectory.
 """
 from dataclasses import dataclass
 from functools import lru_cache

@@ -1,0 +1,4450 @@
+{
+  "manifest": {
+    "label": "wide-discovery-development",
+    "suite": "frozen",
+    "fixture_binding": {
+      "path": "fixtures.json",
+      "sha256": "e1e62cff96a1a7a01dbe6193176840967dd876ac497da3bff69469de8900be03"
+    },
+    "objective": "Q*toffoli",
+    "budgets": {
+      "rounds": 1,
+      "beam": 4,
+      "max_candidates": 12,
+      "max_operations": 200,
+      "max_variables": 32,
+      "max_terms": 65536,
+      "max_product_terms": 65536
+    },
+    "search_mode": "native_deep_only",
+    "no_custom_constructor": true,
+    "no_supplied_cut_or_replacement": true,
+    "fresh_archive_per_fixture": true,
+    "source_package": "/tmp/strata-yield-snapshot-first-installed/strata",
+    "source_code": {
+      "files": {
+        "__init__.py": "d8daf0b8fc5265804d5729e50d9a1b6e5cdeb45341ae1edabb9ac06f307dbbf5",
+        "__main__.py": "57224c899e9a2b143b8a69a2c2724b8b18e12a8f988e6e8620930ff979ff5331",
+        "acceptance.py": "c3fdf22443d066dd50244807c5058b19e94fb91cff7b7bf22374d20f55fdea43",
+        "accounting.py": "aa9d40906d762085df2c437416e890ef975ca73ad2dedfc6b83d2076d921646b",
+        "algebraic_synthesis.py": "ee064df22e2ff616ee143310242693872ca63df59eb087c6123ce3b1d41ace2b",
+        "architecture_portfolio.py": "08059ef18b42f2dbd652bb45be827303a9c35cb873036e7366be8b02b970031e",
+        "artifacts.py": "d8f56ca3b645f54fd2256d0726d72a4e6f294044f885bdbaca5cdf53bf3a96f5",
+        "blocks.py": "6d10e59eab00bd31afed519135371a4ce360d875e321be4a04839ee3c0787697",
+        "boolean_synthesis.py": "8c182cdb6bfb0ba7edf657ff0b57c106861fb3ef4995dd802bc7874bd20fbe84",
+        "boundary_observations.py": "a64e4a38c23e96978abc7db44cdd6d88e367ec399700dfde5ef836c328de30e0",
+        "bundle.py": "887cf68778bb8044bd88b1ff7361f5e0323c4624a88bf11e5a3fb0ab130e2cb8",
+        "callbacks.py": "bc7a94aa801bbb88f04722beb23a5bc7da63a861405fc18ddcd27a6ec70670db",
+        "candidate_search.py": "ba2989d7554b38329721e908b5cc3e0912742cd36d8340eab4bc5ba191e93571",
+        "circuit_tape.py": "f4accf25d6108dc2004418b6efb5a48121b8574311888fdaa18c7d3f67830d13",
+        "cli.py": "626fd0cf231e7e46bd7c679811e80a5fe37e1d13b3a2d9f2dc815c2e5cfaed60",
+        "component_lab.py": "49336e17d4ce8be6f5c10e0eafbfd520df01d471c79dab2f4a6960dd625ba4cb",
+        "cost.py": "56aa40d278a5146ba8567c1a2e15e751addf3844726dc7b589279d9c29f0c1d9",
+        "declarative.py": "ee9329012564e53acfe86332ad8970844caac1fa279bcb52987243520e41d2ec",
+        "demo.py": "b7ef2818401bd9d1b4809408e2bc334e39aef9bf5173e6a1db5a3a7867530dbd",
+        "discovery.py": "718e58631656278b0bb804714555c3f82322a8076971c3501dcb8f2efbac9dd1",
+        "discovery_yield.py": "2166307fc6608d1a3c622412d020b5168f77cc9ea82662f00958437e31845c91",
+        "domains.py": "9ef115db06b9f53246ea325dbc77bed5da5851172a2a02a47725d4995fb5f210",
+        "engine.py": "62e6747e8093711caedf0c84dea87fb83f5d16fba3e21304648434d7e7b66304",
+        "episode_search.py": "c92dfb041b1443fd3f62b31281ce51815ac8426fb2079d3e99d143638f9c64ee",
+        "experiment_board.py": "b4689d6b74cc987a28d56f0cc711b7c72375036e360121a5d6c5a38275fbf7d5",
+        "experiment_cli.py": "837cb837345ab962363e21338880924677c19cb19601506bae0c701aa5e0a547",
+        "experiment_comparisons.py": "77d7924a0952c1d0aa45e68c5871393873274a83019169fe34ac078641aedc77",
+        "experiment_observations.py": "8121eaaca318fe986e1491f50c56ef23b5544a2b3fb40a900d8b64e7a86cae4e",
+        "experiment_policy.py": "768d348f6efc224e5d71f5d3f2cd492b53e9bbc2327a55960f7aaabbee57232b",
+        "experiment_reports.py": "5b8d1fbe4b4bccbfe2c1aaa1cffdf55a32e9f027a831683812fff028dda4bea6",
+        "experiments.py": "c6c869341502dce8161a8aa878284a79bf52524ac3b0061de0ba8e95ecbf3611",
+        "factored.py": "baf6d482f51a8a1d1216c23cbfbafc84e1d10ec0246968ddd07eabf8e4f24cef",
+        "factored_semantic.py": "2b15259324c607b7b7721e93f0c736beb2d2b3164c10cc942fbba972d248928e",
+        "file_optimizer.py": "73e600c2518f5e7120b28f7fcf266738befb61febd4a7c3611e4702cd1619928",
+        "file_profile.py": "730fc9cf207ca1b6e27ffd9bca096fe950a896417d9f4fb13ac5e64b49f6a4ed",
+        "file_workflow.py": "d913ad06fed97695c20fce21c468e8357874590995bbd9bfae556284e796c5d9",
+        "floors.py": "8b65f9da7e69683dff9706b637e93dd407ef8ad9280b7be69e655016ec0908b9",
+        "frontends.py": "0fcb46fabc26b3fff9a46ff06252096539cc6c38895eda15debc58166815f29d",
+        "functional_decomposition.py": "3ac2fa42332571036ad0f5e2fcb4f47bacc0650860aeb37dc433f6179d5d36bb",
+        "inference.py": "df9d82725e23a2c0398394b323827d08b7fe9a20b247506f15af5253c4158bd8",
+        "kickmix.py": "26e104d3d58a2c8f18c4261451ba663d0719bac1f6a6b860abfa3f865410b9c0",
+        "lab.py": "b142069d1b5bc16c60a2866e69acc69f1e1a22461e97c1336ebcf3178f10fd8c",
+        "lab_program.py": "77d8882e13306b9981f6d9842b1ae591dccf02236b29eae97608c32fb114f7ea",
+        "lab_symbolic.py": "90d6d055327e8b254f2c7167e6d278818f844f251821897ea4ccd4b324c0b01e",
+        "lookup.py": "6d17a8a83facd2746a9bac8763a8b241e5ebc70055b499509159ebf1ff5831d3",
+        "measured_boolean_synthesis.py": "ec90f2bd3b5482adea52c3c6fa0e7001779fde8c71d95d1e800464248a8ec481",
+        "measurement_equivalence.py": "5496609020f3d10d2173530d6117e25cf999e03b1601f5c06aeb2389179e431d",
+        "memory.py": "80ac287b4041d06fc59ecf3825255a439d1a713aa17c7f6d5a1f6dd2b3e2d057",
+        "mixed_observable.py": "3f01dd0b5851f100959081facda093d05d4a4778dd400dc4d70666ca3c5aeb7c",
+        "model.py": "168b2e3baab4cce4b353f26d286fd1227242031719e64c84988e0ec3cd657e63",
+        "numeric.py": "44e3dc8de973757dc5e89fff95922743d760e8f59fdf1ed20aff87858c03f12e",
+        "numeric_candidates.py": "723c3999074e1818df08e8ddbf020c336cf3ce0b03b5270cf62fd00497feb14f",
+        "numeric_jobs.py": "40c557ed08766fd5b1808da3ea732459f42e08c2b3f8e3090587bd2485ab990a",
+        "numeric_models.py": "48c24833a292fd804d21c708b760d4775cb3d7f9abc2e7cf038df1fce3acef2b",
+        "observable_search.py": "6068a9e4f3b74560b0aa48330e07a76b51f63631e41517b9f57432d1a0fc0157",
+        "output_basis_search.py": "b3d85aed440c666563a8f4204a215eaac63fedcf84a08984f0c06d6cfe492ef6",
+        "pebbling.py": "83477bd2c037a3ed5d8b216296a8d2f046ce86a10cfa4f00c1052a712a200cda",
+        "probability.py": "cb91fde7925824d1db47e74af05f173c1e506d022d09d27c45d36b2311183974",
+        "project.py": "70dbf11ae6e5cd444dad90a2b437e5619254a1d6ed21dc48eac3b03f8f97894c",
+        "protocols.py": "ec95195a8639433b89670f5d2cc8810dbae6ffe02241f4ed5e1295940fd68645",
+        "queries.py": "bc52925aacda9439648f62ed7fdf6ea0d36c59419561a5dc55126ee8068b704a",
+        "region_evidence.py": "0253cca7f1130b758230c4d5502af9c63ad406e5236d075bb0a22188e2133eb1",
+        "reports.py": "6652b2df08c7e16ae19a4e61d2095027ee1f4251d9f8f9268ed190659a749ceb",
+        "representation_synthesis.py": "653611da9848b07f6d5b51926be4e5e35eaf77648955492bef8227104a33cfa2",
+        "research.py": "fe98677869015f3ee65a131c4d2335cd5259830ba9c64b93c8115a99c4568907",
+        "research_ladder.py": "be55a1b37932851531269d1cfdb59b0639c04108129a964dd515f3e4b616ef03",
+        "restructure.py": "38866e16240772d5200a1fbb10b63f9cbfd521f69e61974678a8dbc8935b41ab",
+        "sandbox.py": "e207fd596c6536c02f58f3f138cd54c9f4028ab1ec3e4d47913d02e80f0c7055",
+        "scheduled_boolean_synthesis.py": "3abb6226e4e8fafc7b2a4f3b1f0317e2b1b1748f94662a2903e6749898ee8c81",
+        "screening_evidence.py": "4bd944fe62ac6087b0bb53a1346826c4a4738751c384a509607c44601c4e1860",
+        "search_screen.py": "d76985eb3a4dca31c259d1335003aef6e636a61be13c96e3d6d14c5379d7d085",
+        "search_worker.py": "821a2c77496f270aa6cf0136e8213a87de16c20a11e3eacfee418ceecae2c600",
+        "semantic.py": "d6718172c962dc76026f6cc54b6daabe604bed94fe3505f4d3ebc61017127f4c",
+        "store.py": "4c2065b8c97bbc6b8546415dac993de09fc1197ae9c5776008054669839a73d5",
+        "streaming.py": "a1b0ee25124d13d415d7490360dae8e646e306030568152b4b8854ed444621fa",
+        "supervision.py": "ae18e406adaa42a6bbae3a7d83b27ac77bf4a8a79be0482e563cb6f58b6f8e9e",
+        "symbolic_boolean_graph.py": "2444035bad82ff88babdda542473d25c3286772c6d01078aedd3f91fa20b4c72",
+        "tensor.py": "6833d1b939cc9d07109d8c6caabd2c3344e7bf1e10f2708d025c3e31b1e9ec17",
+        "trace.py": "f03820931815be5ed6c4a66a7bbe8e263742b14cccb89170f48ae7d54c2f1e3d"
+      },
+      "sha256": "06bb4e4b1df4faae2344d28996e4d8a04e8c98f47b027677a833496c60ebb01a"
+    },
+    "runner_sha256": "392297039d567aabace30409bb61c5cc2ae194ebb172e88526dc933df96edf77",
+    "runtime": {
+      "python": "3.14.8 (main, Oct  1 2026, 20:09:47) [GCC 15.3.0]",
+      "platform": "Linux-7.3.0-1003-gcp-x86_64-with-glibc2.44",
+      "kickmix": "1.0.0",
+      "numpy": "2.5.5"
+    },
+    "provenance": "independent-agent generated fixtures frozen before their first search; targeted acceptance, not a blind historical benchmark",
+    "equal_cpu_time_claim": false
+  },
+  "source_binding_verified_unchanged": true,
+  "results": [
+    {
+      "name": "distributed_twolevel",
+      "family": "nested_distributed_products",
+      "source_sha256": "36da7b6c8300539f6ec48a8053f806595011389761b22da6f17b1288c6441134",
+      "discovery_status": "verified_improvement",
+      "selected_candidate": "9e728addb1110cd426999dba1ad9bdd5afa43faa86d0cf3e4e3230b19bb37ca5",
+      "selected_mechanism": "measurement_debt_lowering",
+      "complete_symbolic_boundary_proof": true,
+      "private_measurement_bits": [
+        0
+      ],
+      "independent_native_equal": true,
+      "native_check": {
+        "scope": "all_public_inputs",
+        "cases": 64,
+        "phase": "exact native Fraction modulo two",
+        "measurement_coverage": "one native draw per checked input; all-outcome evidence is the complete symbolic boundary proof"
+      },
+      "before": {
+        "Q": 10,
+        "toffoli": 8,
+        "t": 0,
+        "rotations": 0,
+        "instructions": 12,
+        "accounting": "static_emitted",
+        "reaction_depth": 2
+      },
+      "after": {
+        "Q": 7,
+        "toffoli": 2,
+        "t": 0,
+        "rotations": 0,
+        "instructions": 9,
+        "accounting": "static_emitted",
+        "reaction_depth": 2
+      },
+      "before_cost": 80.0,
+      "after_cost": 14.0,
+      "physical_clean_wires_retired": [
+        7,
+        8,
+        9
+      ],
+      "deep_bank_retirement": true,
+      "discovery_wall_seconds": 1.8419904159381986,
+      "engine_search_seconds": 1.7623518500477076,
+      "native_check_seconds": 0.001484801061451435,
+      "attempt_count": 10,
+      "mechanisms": [
+        {
+          "mechanism": "architecture_portfolio",
+          "status": "verified",
+          "reason": null,
+          "cost_delta": -59.0,
+          "check_status": "equivalent",
+          "equivalent": true,
+          "structural_witness": {
+            "joint_architecture_change": false,
+            "input_basis_changed": false,
+            "output_basis_changed": false,
+            "complete_joint_output_synthesis": true,
+            "both_adapter_pairs_charged": true,
+            "formulation_hash": "535e34ac0c27c7a78e44b57fd5734ad60450904e6e11a8a7e2c06871dc770cc7",
+            "graph_hash": "1f2ea77985dfb0de9aeeb724ede50c1f09af5c9e73b9bc781cc66ce04c65dc53",
+            "verified_identity_comparator_cost": 21.0,
+            "identity_comparison_available": true,
+            "measured_joint_interaction_gain": false,
+            "interaction_scope": "only the measured axis finalists; not exhaustive separate-axis optima"
+          },
+          "exact_search": null,
+          "bounded_search": {
+            "proposed_attempts": 1614,
+            "unique_formulations": 1024,
+            "unique_representations": 248,
+            "unique_product_graphs": 457,
+            "independently_replayed": 1024,
+            "not_lowerable": 7,
+            "selected_finalists": 24,
+            "lowered": 24,
+            "verified": 24,
+            "native_improvements": 23,
+            "categories": {
+              "identity": 3,
+              "input_only": 360,
+              "output_only": 15,
+              "joint": 646
+            },
+            "generation_seconds": 1.2762681858148426,
+            "seconds": 1.341638769954443,
+            "factor_steps": 126874,
+            "stopped_reason": "architecture_hypothesis_budget",
+            "representation_mode": "joint",
+            "limits": {
+              "max_hypotheses": 1024,
+              "max_representations": 1024,
+              "max_factor_orders": 8,
+              "max_representation_depth": 4,
+              "frontier_width": 64,
+              "max_finalists": 24,
+              "max_work_steps": 10000000,
+              "max_factor_nodes": 4096,
+              "max_operations": 200,
+              "max_variables": 32,
+              "max_terms": 65536,
+              "max_product_terms": 65536,
+              "timeout": 2.5
+            },
+            "native_evaluations_in_wide_stage": 0,
+            "optimality": "not claimed; bounded joint linear representations, polynomial factorizations and diverse finalists"
+          }
+        },
+        {
+          "mechanism": "joint_boundary_synthesis",
+          "status": "verified",
+          "reason": null,
+          "cost_delta": -59.0,
+          "check_status": "equivalent",
+          "equivalent": true,
+          "structural_witness": {
+            "source_nonlinear_dataflow_depth": 2,
+            "materialized_clean_wires": [
+              6,
+              7,
+              8,
+              9
+            ],
+            "depth_scope": "syntactic dependency depth including restoration; not a circuit-depth minimum",
+            "retired_scratch_wires": [
+              7,
+              8,
+              9
+            ],
+            "retained_product_wires": [
+              6
+            ],
+            "final_products_materialized": false,
+            "boundary_outputs_synthesized_jointly": [
+              4,
+              5
+            ],
+            "removed_materialization_bank": true
+          },
+          "exact_search": {
+            "kind": "exact_small",
+            "resource": "and_count",
+            "value": 2,
+            "reason": "minimum in complete care-set XOR/AND search",
+            "scope": {
+              "inputs": 4,
+              "outputs": 2,
+              "assignments": 16,
+              "domain": "full Boolean cube"
+            },
+            "model": "free XOR/NOT/constants; two-input AND straight-line circuits restricted to promised rows",
+            "proven_lower_bound": 2,
+            "searched_up_to": 2,
+            "states": 311,
+            "expansions": 6731,
+            "seconds": 0.07891071494668722,
+            "witness": [
+              {
+                "left": 65280,
+                "right": 15420,
+                "product": 15360,
+                "left_coefficients": 2,
+                "right_coefficients": 12
+              },
+              {
+                "left": 43690,
+                "right": 15360,
+                "product": 10240,
+                "left_coefficients": 16,
+                "right_coefficients": 32
+              }
+            ],
+            "contract_hash": "02cfaa9f2257feeea0a8a96149402d5df1bd103c67312499e2eb78bf4000d4fc",
+            "output_coefficients": [
+              64,
+              32
+            ],
+            "witness_encoding": "bit 0 is constant 1, then boundary inputs, then preceding AND results",
+            "anf_contract_hash": "cabc1800e23e7ca2c9a5e167692f3e4ea95d3fc653a4acde421ef94f932296f0"
+          },
+          "bounded_search": null
+        },
+        {
+          "mechanism": "joint_storage_recomputation",
+          "status": "verified",
+          "reason": null,
+          "cost_delta": -59.0,
+          "check_status": "equivalent",
+          "equivalent": true,
+          "structural_witness": {
+            "source_nonlinear_dataflow_depth": 2,
+            "materialized_clean_wires": [
+              6,
+              7,
+              8,
+              9
+            ],
+            "depth_scope": "syntactic dependency depth including restoration; not a circuit-depth minimum",
+            "retired_scratch_wires": [
+              7,
+              8,
+              9
+            ],
+            "retained_product_wires": [
+              6
+            ],
+            "final_products_materialized": false,
+            "boundary_outputs_synthesized_jointly": [
+              4,
+              5
+            ],
+            "removed_materialization_bank": true,
+            "schedule_recomputations": 0
+          },
+          "exact_search": null,
+          "bounded_search": null
+        },
+        {
+          "mechanism": "algebraic_boundary_synthesis",
+          "status": "verified",
+          "reason": null,
+          "cost_delta": -59.0,
+          "check_status": "equivalent",
+          "equivalent": true,
+          "structural_witness": {
+            "source_nonlinear_dataflow_depth": 2,
+            "materialized_clean_wires": [
+              6,
+              7,
+              8,
+              9
+            ],
+            "depth_scope": "syntactic dependency depth including restoration; not a circuit-depth minimum",
+            "retired_scratch_wires": [
+              7,
+              8,
+              9
+            ],
+            "retained_product_wires": [
+              6
+            ],
+            "boundary_outputs_synthesized_jointly": [
+              4,
+              5
+            ],
+            "final_products_materialized": false,
+            "removed_materialization_bank": true
+          },
+          "exact_search": null,
+          "bounded_search": {
+            "attempts": [
+              {
+                "order": [
+                  0,
+                  1,
+                  2,
+                  3
+                ],
+                "status": "verified",
+                "candidate_hash": "98120d002647a9bd81c57940303af410ab6da34223dc8f5ba5b1903267d9a7bc",
+                "cost": 28.0,
+                "resources": {
+                  "Q": 7,
+                  "toffoli": 4,
+                  "t": 0,
+                  "rotations": 0,
+                  "instructions": 10,
+                  "accounting": "static_emitted",
+                  "reaction_depth": 2
+                },
+                "product_nodes": 3,
+                "materialized_products": 1
+              },
+              {
+                "order": [
+                  3,
+                  2,
+                  1,
+                  0
+                ],
+                "status": "verified",
+                "candidate_hash": "5613f4370b83518b1a719bf6b4b453e197407694e8347a2d0afe1ac10a7b6573",
+                "cost": 21.0,
+                "resources": {
+                  "Q": 7,
+                  "toffoli": 3,
+                  "t": 0,
+                  "rotations": 0,
+                  "instructions": 8,
+                  "accounting": "static_emitted",
+                  "reaction_depth": 2
+                },
+                "product_nodes": 2,
+                "materialized_products": 1
+              },
+              {
+                "order": [
+                  0,
+                  3,
+                  1,
+                  2
+                ],
+                "status": "verified",
+                "candidate_hash": "31b45b26982178f5ae58e2d2b4ddd216990799d97eaab581542355a5c9b71b07",
+                "cost": 28.0,
+                "resources": {
+                  "Q": 7,
+                  "toffoli": 4,
+                  "t": 0,
+                  "rotations": 0,
+                  "instructions": 10,
+                  "accounting": "static_emitted",
+                  "reaction_depth": 2
+                },
+                "product_nodes": 3,
+                "materialized_products": 1
+              },
+              {
+                "order": [
+                  1,
+                  2,
+                  3,
+                  0
+                ],
+                "status": "verified",
+                "candidate_hash": "4cd00b43df458e9f081fb8b3366e0f86a6cd55e73ce2eed8954780b70259dc41",
+                "cost": 28.0,
+                "resources": {
+                  "Q": 7,
+                  "toffoli": 4,
+                  "t": 0,
+                  "rotations": 0,
+                  "instructions": 8,
+                  "accounting": "static_emitted",
+                  "reaction_depth": 2
+                },
+                "product_nodes": 3,
+                "materialized_products": 1
+              },
+              {
+                "order": [
+                  2,
+                  3,
+                  0,
+                  1
+                ],
+                "status": "verified",
+                "candidate_hash": "4cd00b43df458e9f081fb8b3366e0f86a6cd55e73ce2eed8954780b70259dc41",
+                "cost": 28.0,
+                "resources": {
+                  "Q": 7,
+                  "toffoli": 4,
+                  "t": 0,
+                  "rotations": 0,
+                  "instructions": 8,
+                  "accounting": "static_emitted",
+                  "reaction_depth": 2
+                },
+                "product_nodes": 3,
+                "materialized_products": 1
+              },
+              {
+                "order": [
+                  3,
+                  0,
+                  1,
+                  2
+                ],
+                "status": "verified",
+                "candidate_hash": "33807b447f4ffe37f42c8bcfed7675e0e3606f8a6bf49543a30f3c4f9b012664",
+                "cost": 21.0,
+                "resources": {
+                  "Q": 7,
+                  "toffoli": 3,
+                  "t": 0,
+                  "rotations": 0,
+                  "instructions": 8,
+                  "accounting": "static_emitted",
+                  "reaction_depth": 2
+                },
+                "product_nodes": 2,
+                "materialized_products": 1
+              }
+            ],
+            "stopped_reason": null,
+            "factor_steps": 324,
+            "limits": {
+              "max_orders": 8,
+              "max_factor_nodes": 4096,
+              "max_factor_steps": 1000000,
+              "timeout": 3.0,
+              "max_operations": 200,
+              "max_variables": 32,
+              "max_terms": 65536,
+              "max_product_terms": 65536
+            },
+            "seconds": 0.014231137931346893,
+            "optimality": "not claimed; bounded algebraic constructions"
+          }
+        },
+        {
+          "mechanism": "affine_representation_search",
+          "status": "verified",
+          "reason": null,
+          "cost_delta": -59.0,
+          "check_status": "equivalent",
+          "equivalent": true,
+          "structural_witness": {
+            "source_nonlinear_dataflow_depth": 2,
+            "materialized_clean_wires": [
+              6,
+              7,
+              8,
+              9
+            ],
+            "depth_scope": "syntactic dependency depth including restoration; not a circuit-depth minimum",
+            "retired_scratch_wires": [
+              7,
+              8,
+              9
+            ],
+            "retained_product_wires": [
+              6
+            ],
+            "boundary_outputs_synthesized_jointly": [
+              4,
+              5
+            ],
+            "final_products_materialized": false,
+            "removed_materialization_bank": true
+          },
+          "exact_search": null,
+          "bounded_search": {
+            "candidate_steps": 358,
+            "considered_encodings": 60,
+            "stopped_reason": null,
+            "attempted": 16,
+            "verified": 16,
+            "limits": {
+              "max_encodings": 16,
+              "beam_width": 4,
+              "max_encoding_depth": 2,
+              "max_representation_steps": 1000000,
+              "max_orders": 2,
+              "max_factor_nodes": 4096,
+              "max_factor_steps": 1000000,
+              "max_operations": 200,
+              "max_variables": 32,
+              "max_terms": 65536,
+              "max_product_terms": 65536,
+              "timeout": 5.0
+            },
+            "seconds": 0.17729594698175788,
+            "optimality": "not claimed; bounded affine encodings and algebraic orders"
+          }
+        },
+        {
+          "mechanism": "measurement_debt_lowering",
+          "status": "verified",
+          "reason": null,
+          "cost_delta": -66.0,
+          "check_status": "equivalent",
+          "equivalent": true,
+          "structural_witness": {
+            "source_nonlinear_dataflow_depth": 2,
+            "materialized_clean_wires": [
+              6,
+              7,
+              8,
+              9
+            ],
+            "depth_scope": "syntactic dependency depth including restoration; not a circuit-depth minimum",
+            "retired_scratch_wires": [
+              7,
+              8,
+              9
+            ],
+            "retained_product_wires": [
+              6
+            ],
+            "final_products_materialized": false,
+            "boundary_outputs_synthesized_jointly": [
+              4,
+              5
+            ],
+            "removed_materialization_bank": true,
+            "measured_cleanup_nodes": 1,
+            "schedule_recomputations": 0
+          },
+          "exact_search": null,
+          "bounded_search": null
+        },
+        {
+          "mechanism": "consumer_functional_decomposition",
+          "status": "verified",
+          "reason": null,
+          "cost_delta": -59.0,
+          "check_status": "equivalent",
+          "equivalent": true,
+          "structural_witness": {
+            "discovered_consumer_class_bit": true,
+            "bound_inputs": [
+              0,
+              1,
+              2
+            ],
+            "classes_by_assignment": [
+              0,
+              0,
+              0,
+              1,
+              0,
+              1,
+              0,
+              0
+            ],
+            "residual_class_count": 2,
+            "selector_anf": [
+              [
+                0,
+                1
+              ],
+              [
+                0,
+                2
+              ]
+            ],
+            "consumer_targets": [
+              4,
+              5
+            ],
+            "compared_all_remaining_inputs_symbolically": true
+          },
+          "exact_search": null,
+          "bounded_search": {
+            "partitions_tested": 10,
+            "rejected_by_three_distinct_cofactors": 8,
+            "full_partition_checks": 2,
+            "two_class_nonlinear_maps": 1,
+            "verified_lowerings": 1,
+            "step_count": 405,
+            "stop_reason": null,
+            "max_partitions": 96
+          }
+        },
+        {
+          "mechanism": "output_basis_search",
+          "status": "verified",
+          "reason": null,
+          "cost_delta": -59.0,
+          "check_status": "equivalent",
+          "equivalent": true,
+          "structural_witness": {
+            "paid_output_basis_change": false,
+            "output_basis_changed": false,
+            "encoded_output_targets": [
+              4,
+              5
+            ],
+            "original_output_deltas": {
+              "4": [
+                [
+                  0,
+                  1,
+                  3
+                ],
+                [
+                  0,
+                  2,
+                  3
+                ]
+              ],
+              "5": [
+                [
+                  0,
+                  1
+                ],
+                [
+                  0,
+                  2
+                ]
+              ]
+            },
+            "encoded_output_deltas": {
+              "4": [
+                [
+                  0,
+                  1,
+                  3
+                ],
+                [
+                  0,
+                  2,
+                  3
+                ]
+              ],
+              "5": [
+                [
+                  0,
+                  1
+                ],
+                [
+                  0,
+                  2
+                ]
+              ]
+            },
+            "synthesized_joint_outputs": [
+              4,
+              5
+            ],
+            "materialized_products": 1,
+            "basis_conversions_emitted": true,
+            "input_basis_changed": false,
+            "unencoded_comparator_cost": 21.0,
+            "unencoded_comparison_complete": true,
+            "same_factor_order_limit": 8,
+            "baseline_materialized_products": 1
+          },
+          "exact_search": null,
+          "bounded_search": {
+            "candidate_steps": 26,
+            "considered_bases": 1,
+            "stopped_reason": null,
+            "attempted": 1,
+            "verified": 1,
+            "limits": {
+              "max_encodings": 16,
+              "beam_width": 4,
+              "max_encoding_depth": 2,
+              "max_representation_steps": 1000000,
+              "max_orders": 8,
+              "max_factor_nodes": 4096,
+              "max_factor_steps": 1000000,
+              "max_operations": 200,
+              "max_variables": 32,
+              "max_terms": 65536,
+              "max_product_terms": 65536,
+              "timeout": 5.0
+            },
+            "seconds": 0.020236765034496784,
+            "analysis_operation_limit": 204,
+            "optimality": "not claimed; output bases change bounded factoring, not unrestricted multiplicative complexity"
+          }
+        },
+        {
+          "mechanism": "factored_observable_search",
+          "status": "not_constructed",
+          "reason": "exact zero boundary sign",
+          "cost_delta": null,
+          "check_status": null,
+          "equivalent": null,
+          "structural_witness": null,
+          "exact_search": null,
+          "bounded_search": null
+        },
+        {
+          "mechanism": "mixed_observable_search",
+          "status": "not_constructed",
+          "reason": "requires both an observable sign and changed output values",
+          "cost_delta": null,
+          "check_status": null,
+          "equivalent": null,
+          "structural_witness": null,
+          "exact_search": null,
+          "bounded_search": null
+        }
+      ],
+      "receipt": "distributed_twolevel/restructure.json"
+    },
+    {
+      "name": "shared_factor_outputs",
+      "family": "linear_consumer_of_nonlinear_vector",
+      "source_sha256": "dce16e06ebf787067436b72c2bb4dd6bf19fa00f0e3471fea34c193e6484ed7f",
+      "discovery_status": "verified_improvement",
+      "selected_candidate": "bdaad3edf1a2b06686a967c0f7448716c8631eb1a1f0637425909a6fa97dbc36",
+      "selected_mechanism": "measurement_debt_lowering",
+      "complete_symbolic_boundary_proof": true,
+      "private_measurement_bits": [
+        0
+      ],
+      "independent_native_equal": true,
+      "native_check": {
+        "scope": "all_public_inputs",
+        "cases": 64,
+        "phase": "exact native Fraction modulo two",
+        "measurement_coverage": "one native draw per checked input; all-outcome evidence is the complete symbolic boundary proof"
+      },
+      "before": {
+        "Q": 10,
+        "toffoli": 8,
+        "t": 0,
+        "rotations": 0,
+        "instructions": 10,
+        "accounting": "static_emitted",
+        "reaction_depth": 2
+      },
+      "after": {
+        "Q": 7,
+        "toffoli": 3,
+        "t": 0,
+        "rotations": 0,
+        "instructions": 5,
+        "accounting": "static_emitted",
+        "reaction_depth": 2
+      },
+      "before_cost": 80.0,
+      "after_cost": 21.0,
+      "physical_clean_wires_retired": [
+        7,
+        8,
+        9
+      ],
+      "deep_bank_retirement": true,
+      "discovery_wall_seconds": 2.703746291110292,
+      "engine_search_seconds": 2.6187384659424424,
+      "native_check_seconds": 0.0014248669613152742,
+      "attempt_count": 10,
+      "mechanisms": [
+        {
+          "mechanism": "architecture_portfolio",
+          "status": "verified",
+          "reason": null,
+          "cost_delta": -52.0,
+          "check_status": "equivalent",
+          "equivalent": true,
+          "structural_witness": {
+            "joint_architecture_change": false,
+            "input_basis_changed": false,
+            "output_basis_changed": false,
+            "complete_joint_output_synthesis": true,
+            "both_adapter_pairs_charged": true,
+            "formulation_hash": "4737e05847482882b61d3181e50b259268199a7da23483eb431adfaa5fc2e7a5",
+            "graph_hash": "b3c8110d8e3850003440833ba0ecd83d336eeb16a7fc469cf2d345362a47e40e",
+            "verified_identity_comparator_cost": 28.0,
+            "identity_comparison_available": true,
+            "measured_joint_interaction_gain": false,
+            "interaction_scope": "only the measured axis finalists; not exhaustive separate-axis optima"
+          },
+          "exact_search": null,
+          "bounded_search": {
+            "proposed_attempts": 1420,
+            "unique_formulations": 1024,
+            "unique_representations": 210,
+            "unique_product_graphs": 759,
+            "independently_replayed": 1024,
+            "not_lowerable": 1,
+            "selected_finalists": 24,
+            "lowered": 24,
+            "verified": 24,
+            "native_improvements": 23,
+            "categories": {
+              "identity": 4,
+              "input_only": 340,
+              "output_only": 20,
+              "joint": 660
+            },
+            "generation_seconds": 1.1629990618675947,
+            "seconds": 1.232278591953218,
+            "factor_steps": 104930,
+            "stopped_reason": "architecture_hypothesis_budget",
+            "representation_mode": "joint",
+            "limits": {
+              "max_hypotheses": 1024,
+              "max_representations": 1024,
+              "max_factor_orders": 8,
+              "max_representation_depth": 4,
+              "frontier_width": 64,
+              "max_finalists": 24,
+              "max_work_steps": 10000000,
+              "max_factor_nodes": 4096,
+              "max_operations": 200,
+              "max_variables": 32,
+              "max_terms": 65536,
+              "max_product_terms": 65536,
+              "timeout": 2.5
+            },
+            "native_evaluations_in_wide_stage": 0,
+            "optimality": "not claimed; bounded joint linear representations, polynomial factorizations and diverse finalists"
+          }
+        },
+        {
+          "mechanism": "joint_boundary_synthesis",
+          "status": "not_constructed",
+          "reason": "joint XOR/AND search did not establish a minimum",
+          "cost_delta": null,
+          "check_status": null,
+          "equivalent": null,
+          "structural_witness": null,
+          "exact_search": {
+            "kind": "unknown",
+            "resource": "and_count",
+            "value": null,
+            "reason": "search budget exhausted; no minimum claimed",
+            "scope": {
+              "inputs": 4,
+              "outputs": 2,
+              "assignments": 16,
+              "domain": "full Boolean cube"
+            },
+            "model": "free XOR/NOT/constants; two-input AND straight-line circuits restricted to promised rows",
+            "proven_lower_bound": 3,
+            "searched_up_to": 2,
+            "states": 2683,
+            "expansions": 81899,
+            "seconds": 1.0000208199489862,
+            "witness": null,
+            "contract_hash": "507f44a33449fb8a2d9194a81df2f6eb733e9c8135c301439764b167931ece2c",
+            "anf_contract_hash": "4027ca852c30e2de0fd4c2c2e7163f2cfe848e01083a739cd7d9a5aaa3690104"
+          },
+          "bounded_search": null
+        },
+        {
+          "mechanism": "joint_storage_recomputation",
+          "status": "not_constructed",
+          "reason": "no synthesized joint function DAG to schedule",
+          "cost_delta": null,
+          "check_status": null,
+          "equivalent": null,
+          "structural_witness": null,
+          "exact_search": null,
+          "bounded_search": null
+        },
+        {
+          "mechanism": "algebraic_boundary_synthesis",
+          "status": "verified",
+          "reason": null,
+          "cost_delta": -52.0,
+          "check_status": "equivalent",
+          "equivalent": true,
+          "structural_witness": {
+            "source_nonlinear_dataflow_depth": 2,
+            "materialized_clean_wires": [
+              6,
+              7,
+              8,
+              9
+            ],
+            "depth_scope": "syntactic dependency depth including restoration; not a circuit-depth minimum",
+            "retired_scratch_wires": [
+              7,
+              8,
+              9
+            ],
+            "retained_product_wires": [
+              6
+            ],
+            "boundary_outputs_synthesized_jointly": [
+              4,
+              5
+            ],
+            "final_products_materialized": false,
+            "removed_materialization_bank": true
+          },
+          "exact_search": null,
+          "bounded_search": {
+            "attempts": [
+              {
+                "order": [
+                  0,
+                  3,
+                  1,
+                  2
+                ],
+                "status": "verified",
+                "candidate_hash": "45baa856b1b09eb1dadde3841c4451079653331de3155ff3a3be25614d1bd13d",
+                "cost": 48.0,
+                "resources": {
+                  "Q": 8,
+                  "toffoli": 6,
+                  "t": 0,
+                  "rotations": 0,
+                  "instructions": 6,
+                  "accounting": "static_emitted",
+                  "reaction_depth": 2
+                },
+                "product_nodes": 4,
+                "materialized_products": 2
+              },
+              {
+                "order": [
+                  2,
+                  1,
+                  3,
+                  0
+                ],
+                "status": "verified",
+                "candidate_hash": "a91295a05d20cfc4d2f8497a81bd4251043feb011390bf44b6cf719632d85f53",
+                "cost": 28.0,
+                "resources": {
+                  "Q": 7,
+                  "toffoli": 4,
+                  "t": 0,
+                  "rotations": 0,
+                  "instructions": 4,
+                  "accounting": "static_emitted",
+                  "reaction_depth": 2
+                },
+                "product_nodes": 3,
+                "materialized_products": 1
+              },
+              {
+                "order": [
+                  0,
+                  1,
+                  2,
+                  3
+                ],
+                "status": "verified",
+                "candidate_hash": "c1a5ff386150752d417fccdb1743c29857b08c9b23799c755d0daa8b59a8e0b7",
+                "cost": 48.0,
+                "resources": {
+                  "Q": 8,
+                  "toffoli": 6,
+                  "t": 0,
+                  "rotations": 0,
+                  "instructions": 6,
+                  "accounting": "static_emitted",
+                  "reaction_depth": 2
+                },
+                "product_nodes": 4,
+                "materialized_products": 2
+              },
+              {
+                "order": [
+                  3,
+                  2,
+                  1,
+                  0
+                ],
+                "status": "verified",
+                "candidate_hash": "673795908aab7415ef2af33d4b647cbecefeeb4847872ef0e72af33b272eec34",
+                "cost": 48.0,
+                "resources": {
+                  "Q": 8,
+                  "toffoli": 6,
+                  "t": 0,
+                  "rotations": 0,
+                  "instructions": 6,
+                  "accounting": "static_emitted",
+                  "reaction_depth": 2
+                },
+                "product_nodes": 4,
+                "materialized_products": 2
+              },
+              {
+                "order": [
+                  3,
+                  1,
+                  2,
+                  0
+                ],
+                "status": "verified",
+                "candidate_hash": "9e55deb6118d98d288ee72f2e39286aecb3f2ce3f8877e7347529678397e00e4",
+                "cost": 48.0,
+                "resources": {
+                  "Q": 8,
+                  "toffoli": 6,
+                  "t": 0,
+                  "rotations": 0,
+                  "instructions": 6,
+                  "accounting": "static_emitted",
+                  "reaction_depth": 2
+                },
+                "product_nodes": 4,
+                "materialized_products": 2
+              },
+              {
+                "order": [
+                  1,
+                  2,
+                  0,
+                  3
+                ],
+                "status": "verified",
+                "candidate_hash": "0e2d4e39208d7d970d54dfc0d45f5abab9337dd4b434e22925ae981ee2d79656",
+                "cost": 28.0,
+                "resources": {
+                  "Q": 7,
+                  "toffoli": 4,
+                  "t": 0,
+                  "rotations": 0,
+                  "instructions": 4,
+                  "accounting": "static_emitted",
+                  "reaction_depth": 2
+                },
+                "product_nodes": 3,
+                "materialized_products": 1
+              },
+              {
+                "order": [
+                  2,
+                  0,
+                  3,
+                  1
+                ],
+                "status": "verified",
+                "candidate_hash": "3ca25e8501ae24b6e0858ae1562a8c12d64f4a9ff0d45c6b0081ffc82fa1e3d1",
+                "cost": 48.0,
+                "resources": {
+                  "Q": 8,
+                  "toffoli": 6,
+                  "t": 0,
+                  "rotations": 0,
+                  "instructions": 6,
+                  "accounting": "static_emitted",
+                  "reaction_depth": 2
+                },
+                "product_nodes": 4,
+                "materialized_products": 2
+              }
+            ],
+            "stopped_reason": null,
+            "factor_steps": 354,
+            "limits": {
+              "max_orders": 8,
+              "max_factor_nodes": 4096,
+              "max_factor_steps": 1000000,
+              "timeout": 3.0,
+              "max_operations": 200,
+              "max_variables": 32,
+              "max_terms": 65536,
+              "max_product_terms": 65536
+            },
+            "seconds": 0.02509164996445179,
+            "optimality": "not claimed; bounded algebraic constructions"
+          }
+        },
+        {
+          "mechanism": "affine_representation_search",
+          "status": "verified",
+          "reason": null,
+          "cost_delta": -52.0,
+          "check_status": "equivalent",
+          "equivalent": true,
+          "structural_witness": {
+            "source_nonlinear_dataflow_depth": 2,
+            "materialized_clean_wires": [
+              6,
+              7,
+              8,
+              9
+            ],
+            "depth_scope": "syntactic dependency depth including restoration; not a circuit-depth minimum",
+            "retired_scratch_wires": [
+              7,
+              8,
+              9
+            ],
+            "retained_product_wires": [
+              6
+            ],
+            "boundary_outputs_synthesized_jointly": [
+              4,
+              5
+            ],
+            "final_products_materialized": false,
+            "removed_materialization_bank": true
+          },
+          "exact_search": null,
+          "bounded_search": {
+            "candidate_steps": 304,
+            "considered_encodings": 74,
+            "stopped_reason": null,
+            "attempted": 16,
+            "verified": 16,
+            "limits": {
+              "max_encodings": 16,
+              "beam_width": 4,
+              "max_encoding_depth": 2,
+              "max_representation_steps": 1000000,
+              "max_orders": 2,
+              "max_factor_nodes": 4096,
+              "max_factor_steps": 1000000,
+              "max_operations": 200,
+              "max_variables": 32,
+              "max_terms": 65536,
+              "max_product_terms": 65536,
+              "timeout": 5.0
+            },
+            "seconds": 0.18120828992687166,
+            "optimality": "not claimed; bounded affine encodings and algebraic orders"
+          }
+        },
+        {
+          "mechanism": "measurement_debt_lowering",
+          "status": "verified",
+          "reason": null,
+          "cost_delta": -59.0,
+          "check_status": "equivalent",
+          "equivalent": true,
+          "structural_witness": {
+            "source_nonlinear_dataflow_depth": 2,
+            "materialized_clean_wires": [
+              6,
+              7,
+              8,
+              9
+            ],
+            "depth_scope": "syntactic dependency depth including restoration; not a circuit-depth minimum",
+            "retired_scratch_wires": [
+              7,
+              8,
+              9
+            ],
+            "retained_product_wires": [
+              6
+            ],
+            "boundary_outputs_synthesized_jointly": [
+              4,
+              5
+            ],
+            "final_products_materialized": false,
+            "removed_materialization_bank": true,
+            "measured_cleanup_nodes": 1,
+            "schedule_recomputations": 0
+          },
+          "exact_search": null,
+          "bounded_search": null
+        },
+        {
+          "mechanism": "consumer_functional_decomposition",
+          "status": "not_constructed",
+          "reason": "no verified nonlinear two-class lowering among tested partitions",
+          "cost_delta": null,
+          "check_status": null,
+          "equivalent": null,
+          "structural_witness": null,
+          "exact_search": null,
+          "bounded_search": {
+            "partitions_tested": 10,
+            "rejected_by_three_distinct_cofactors": 9,
+            "full_partition_checks": 1,
+            "two_class_nonlinear_maps": 0,
+            "verified_lowerings": 0,
+            "step_count": 320,
+            "stop_reason": null,
+            "max_partitions": 96
+          }
+        },
+        {
+          "mechanism": "output_basis_search",
+          "status": "verified",
+          "reason": null,
+          "cost_delta": -52.0,
+          "check_status": "equivalent",
+          "equivalent": true,
+          "structural_witness": {
+            "paid_output_basis_change": false,
+            "output_basis_changed": false,
+            "encoded_output_targets": [
+              4,
+              5
+            ],
+            "original_output_deltas": {
+              "4": [
+                [
+                  0,
+                  1,
+                  3
+                ]
+              ],
+              "5": [
+                [
+                  0,
+                  2,
+                  3
+                ]
+              ]
+            },
+            "encoded_output_deltas": {
+              "4": [
+                [
+                  0,
+                  1,
+                  3
+                ]
+              ],
+              "5": [
+                [
+                  0,
+                  2,
+                  3
+                ]
+              ]
+            },
+            "synthesized_joint_outputs": [
+              4,
+              5
+            ],
+            "materialized_products": 1,
+            "basis_conversions_emitted": true,
+            "input_basis_changed": false,
+            "unencoded_comparator_cost": 28.0,
+            "unencoded_comparison_complete": true,
+            "same_factor_order_limit": 8,
+            "baseline_materialized_products": 1
+          },
+          "exact_search": null,
+          "bounded_search": {
+            "candidate_steps": 84,
+            "considered_bases": 5,
+            "stopped_reason": null,
+            "attempted": 5,
+            "verified": 5,
+            "limits": {
+              "max_encodings": 16,
+              "beam_width": 4,
+              "max_encoding_depth": 2,
+              "max_representation_steps": 1000000,
+              "max_orders": 8,
+              "max_factor_nodes": 4096,
+              "max_factor_steps": 1000000,
+              "max_operations": 200,
+              "max_variables": 32,
+              "max_terms": 65536,
+              "max_product_terms": 65536,
+              "timeout": 5.0
+            },
+            "seconds": 0.11271847505122423,
+            "analysis_operation_limit": 204,
+            "optimality": "not claimed; output bases change bounded factoring, not unrestricted multiplicative complexity"
+          }
+        },
+        {
+          "mechanism": "factored_observable_search",
+          "status": "not_constructed",
+          "reason": "exact zero boundary sign",
+          "cost_delta": null,
+          "check_status": null,
+          "equivalent": null,
+          "structural_witness": null,
+          "exact_search": null,
+          "bounded_search": null
+        },
+        {
+          "mechanism": "mixed_observable_search",
+          "status": "not_constructed",
+          "reason": "requires both an observable sign and changed output values",
+          "cost_delta": null,
+          "check_status": null,
+          "equivalent": null,
+          "structural_witness": null,
+          "exact_search": null,
+          "bounded_search": null
+        }
+      ],
+      "receipt": "shared_factor_outputs/restructure.json"
+    },
+    {
+      "name": "mixed_basis_twolevel",
+      "family": "nested_distributed_products",
+      "source_sha256": "734a4137b56aee6af651e0e640951fa7bd6e471bc53549384ed475a4ee80a371",
+      "discovery_status": "verified_improvement",
+      "selected_candidate": "9d1c58e5fe90592a6407b251374ab18bed082f9afaf93089f86dae458d61e612",
+      "selected_mechanism": "measurement_debt_lowering",
+      "complete_symbolic_boundary_proof": true,
+      "private_measurement_bits": [
+        0
+      ],
+      "independent_native_equal": true,
+      "native_check": {
+        "scope": "all_public_inputs",
+        "cases": 64,
+        "phase": "exact native Fraction modulo two",
+        "measurement_coverage": "one native draw per checked input; all-outcome evidence is the complete symbolic boundary proof"
+      },
+      "before": {
+        "Q": 10,
+        "toffoli": 8,
+        "t": 0,
+        "rotations": 0,
+        "instructions": 20,
+        "accounting": "static_emitted",
+        "reaction_depth": 2
+      },
+      "after": {
+        "Q": 7,
+        "toffoli": 2,
+        "t": 0,
+        "rotations": 0,
+        "instructions": 10,
+        "accounting": "static_emitted",
+        "reaction_depth": 2
+      },
+      "before_cost": 80.0,
+      "after_cost": 14.0,
+      "physical_clean_wires_retired": [
+        7,
+        8,
+        9
+      ],
+      "deep_bank_retirement": true,
+      "discovery_wall_seconds": 2.0249196118675172,
+      "engine_search_seconds": 1.9274682919494808,
+      "native_check_seconds": 0.0014397529885172844,
+      "attempt_count": 10,
+      "mechanisms": [
+        {
+          "mechanism": "architecture_portfolio",
+          "status": "verified",
+          "reason": null,
+          "cost_delta": -59.0,
+          "check_status": "equivalent",
+          "equivalent": true,
+          "structural_witness": {
+            "joint_architecture_change": false,
+            "input_basis_changed": false,
+            "output_basis_changed": false,
+            "complete_joint_output_synthesis": true,
+            "both_adapter_pairs_charged": true,
+            "formulation_hash": "c800602ac757c1ef63f7fded1637ec1ca071881255136df13a03488e4aa23084",
+            "graph_hash": "1e81a61214c4ad1794aba9f27c769a0fdbd979501c9627c62922e14b44009b41",
+            "verified_identity_comparator_cost": 21.0,
+            "identity_comparison_available": true,
+            "measured_joint_interaction_gain": false,
+            "interaction_scope": "only the measured axis finalists; not exhaustive separate-axis optima"
+          },
+          "exact_search": null,
+          "bounded_search": {
+            "proposed_attempts": 1598,
+            "unique_formulations": 1014,
+            "unique_representations": 338,
+            "unique_product_graphs": 270,
+            "independently_replayed": 1014,
+            "not_lowerable": 0,
+            "selected_finalists": 24,
+            "lowered": 24,
+            "verified": 24,
+            "native_improvements": 24,
+            "categories": {
+              "identity": 3,
+              "input_only": 363,
+              "output_only": 15,
+              "joint": 633
+            },
+            "generation_seconds": 1.3914729680400342,
+            "seconds": 1.4654050099197775,
+            "factor_steps": 93764,
+            "stopped_reason": null,
+            "representation_mode": "joint",
+            "limits": {
+              "max_hypotheses": 1024,
+              "max_representations": 1024,
+              "max_factor_orders": 8,
+              "max_representation_depth": 4,
+              "frontier_width": 64,
+              "max_finalists": 24,
+              "max_work_steps": 10000000,
+              "max_factor_nodes": 4096,
+              "max_operations": 200,
+              "max_variables": 32,
+              "max_terms": 65536,
+              "max_product_terms": 65536,
+              "timeout": 2.5
+            },
+            "native_evaluations_in_wide_stage": 0,
+            "optimality": "not claimed; bounded joint linear representations, polynomial factorizations and diverse finalists"
+          }
+        },
+        {
+          "mechanism": "joint_boundary_synthesis",
+          "status": "verified",
+          "reason": null,
+          "cost_delta": -59.0,
+          "check_status": "equivalent",
+          "equivalent": true,
+          "structural_witness": {
+            "source_nonlinear_dataflow_depth": 2,
+            "materialized_clean_wires": [
+              6,
+              7,
+              8,
+              9
+            ],
+            "depth_scope": "syntactic dependency depth including restoration; not a circuit-depth minimum",
+            "retired_scratch_wires": [
+              7,
+              8,
+              9
+            ],
+            "retained_product_wires": [
+              6
+            ],
+            "final_products_materialized": false,
+            "boundary_outputs_synthesized_jointly": [
+              4,
+              5
+            ],
+            "removed_materialization_bank": true
+          },
+          "exact_search": {
+            "kind": "exact_small",
+            "resource": "and_count",
+            "value": 2,
+            "reason": "minimum in complete care-set XOR/AND search",
+            "scope": {
+              "inputs": 3,
+              "outputs": 2,
+              "assignments": 8,
+              "domain": "full Boolean cube"
+            },
+            "model": "free XOR/NOT/constants; two-input AND straight-line circuits restricted to promised rows",
+            "proven_lower_bound": 2,
+            "searched_up_to": 2,
+            "states": 12,
+            "expansions": 186,
+            "seconds": 0.0014299380127340555,
+            "witness": [
+              {
+                "left": 240,
+                "right": 204,
+                "product": 192,
+                "left_coefficients": 2,
+                "right_coefficients": 4
+              },
+              {
+                "left": 170,
+                "right": 12,
+                "product": 8,
+                "left_coefficients": 8,
+                "right_coefficients": 20
+              }
+            ],
+            "contract_hash": "2a168cf842cbcd1f06cd385e484373530140064bd2fa7ecae487fa21450b08a4",
+            "output_coefficients": [
+              52,
+              20
+            ],
+            "witness_encoding": "bit 0 is constant 1, then boundary inputs, then preceding AND results",
+            "anf_contract_hash": "950c08fbd48677f60e3296de663b66aee6050e3261fc934595bc54da101b7cc7"
+          },
+          "bounded_search": null
+        },
+        {
+          "mechanism": "joint_storage_recomputation",
+          "status": "verified",
+          "reason": null,
+          "cost_delta": -59.0,
+          "check_status": "equivalent",
+          "equivalent": true,
+          "structural_witness": {
+            "source_nonlinear_dataflow_depth": 2,
+            "materialized_clean_wires": [
+              6,
+              7,
+              8,
+              9
+            ],
+            "depth_scope": "syntactic dependency depth including restoration; not a circuit-depth minimum",
+            "retired_scratch_wires": [
+              7,
+              8,
+              9
+            ],
+            "retained_product_wires": [
+              6
+            ],
+            "final_products_materialized": false,
+            "boundary_outputs_synthesized_jointly": [
+              4,
+              5
+            ],
+            "removed_materialization_bank": true,
+            "schedule_recomputations": 0
+          },
+          "exact_search": null,
+          "bounded_search": null
+        },
+        {
+          "mechanism": "algebraic_boundary_synthesis",
+          "status": "verified",
+          "reason": null,
+          "cost_delta": -59.0,
+          "check_status": "equivalent",
+          "equivalent": true,
+          "structural_witness": {
+            "source_nonlinear_dataflow_depth": 2,
+            "materialized_clean_wires": [
+              6,
+              7,
+              8,
+              9
+            ],
+            "depth_scope": "syntactic dependency depth including restoration; not a circuit-depth minimum",
+            "retired_scratch_wires": [
+              7,
+              8,
+              9
+            ],
+            "retained_product_wires": [
+              6
+            ],
+            "boundary_outputs_synthesized_jointly": [
+              4,
+              5
+            ],
+            "final_products_materialized": false,
+            "removed_materialization_bank": true
+          },
+          "exact_search": null,
+          "bounded_search": {
+            "attempts": [
+              {
+                "order": [
+                  2,
+                  0,
+                  3
+                ],
+                "status": "verified",
+                "candidate_hash": "f7983c7aea05352fe5fbae485f53969e349ce99b8fcd7b6d835fc07dd978a92b",
+                "cost": 28.0,
+                "resources": {
+                  "Q": 7,
+                  "toffoli": 4,
+                  "t": 0,
+                  "rotations": 0,
+                  "instructions": 14,
+                  "accounting": "static_emitted",
+                  "reaction_depth": 2
+                },
+                "product_nodes": 3,
+                "materialized_products": 1
+              },
+              {
+                "order": [
+                  3,
+                  0,
+                  2
+                ],
+                "status": "verified",
+                "candidate_hash": "1ec5f53ce1cde9879f1ae87bddde62129489062b5a4c7fb039d270dd54cd3ff4",
+                "cost": 21.0,
+                "resources": {
+                  "Q": 7,
+                  "toffoli": 3,
+                  "t": 0,
+                  "rotations": 0,
+                  "instructions": 10,
+                  "accounting": "static_emitted",
+                  "reaction_depth": 2
+                },
+                "product_nodes": 2,
+                "materialized_products": 1
+              },
+              {
+                "order": [
+                  0,
+                  2,
+                  3
+                ],
+                "status": "verified",
+                "candidate_hash": "4f4d29b97070f66ea8a31505b9f2fa41e6208b7e49ef177fd88bca80b34f5e61",
+                "cost": 28.0,
+                "resources": {
+                  "Q": 7,
+                  "toffoli": 4,
+                  "t": 0,
+                  "rotations": 0,
+                  "instructions": 12,
+                  "accounting": "static_emitted",
+                  "reaction_depth": 2
+                },
+                "product_nodes": 3,
+                "materialized_products": 1
+              },
+              {
+                "order": [
+                  3,
+                  2,
+                  0
+                ],
+                "status": "verified",
+                "candidate_hash": "bb128ba99f8e462f6c691d250b5a01592064346cec5a124a620b011b2ec55796",
+                "cost": 21.0,
+                "resources": {
+                  "Q": 7,
+                  "toffoli": 3,
+                  "t": 0,
+                  "rotations": 0,
+                  "instructions": 10,
+                  "accounting": "static_emitted",
+                  "reaction_depth": 2
+                },
+                "product_nodes": 2,
+                "materialized_products": 1
+              },
+              {
+                "order": [
+                  0,
+                  3,
+                  2
+                ],
+                "status": "verified",
+                "candidate_hash": "85c11aca83010b7a1c05bd99ebcfc63acddd3b2e5ae181acc247288a4fcdd6fe",
+                "cost": 28.0,
+                "resources": {
+                  "Q": 7,
+                  "toffoli": 4,
+                  "t": 0,
+                  "rotations": 0,
+                  "instructions": 12,
+                  "accounting": "static_emitted",
+                  "reaction_depth": 2
+                },
+                "product_nodes": 3,
+                "materialized_products": 1
+              }
+            ],
+            "stopped_reason": null,
+            "factor_steps": 325,
+            "limits": {
+              "max_orders": 8,
+              "max_factor_nodes": 4096,
+              "max_factor_steps": 1000000,
+              "timeout": 3.0,
+              "max_operations": 200,
+              "max_variables": 32,
+              "max_terms": 65536,
+              "max_product_terms": 65536
+            },
+            "seconds": 0.015144198900088668,
+            "optimality": "not claimed; bounded algebraic constructions"
+          }
+        },
+        {
+          "mechanism": "affine_representation_search",
+          "status": "verified",
+          "reason": null,
+          "cost_delta": -59.0,
+          "check_status": "equivalent",
+          "equivalent": true,
+          "structural_witness": {
+            "source_nonlinear_dataflow_depth": 2,
+            "materialized_clean_wires": [
+              6,
+              7,
+              8,
+              9
+            ],
+            "depth_scope": "syntactic dependency depth including restoration; not a circuit-depth minimum",
+            "retired_scratch_wires": [
+              7,
+              8,
+              9
+            ],
+            "retained_product_wires": [
+              6
+            ],
+            "boundary_outputs_synthesized_jointly": [
+              4,
+              5
+            ],
+            "final_products_materialized": false,
+            "removed_materialization_bank": true
+          },
+          "exact_search": null,
+          "bounded_search": {
+            "candidate_steps": 225,
+            "considered_encodings": 36,
+            "stopped_reason": null,
+            "attempted": 16,
+            "verified": 16,
+            "limits": {
+              "max_encodings": 16,
+              "beam_width": 4,
+              "max_encoding_depth": 2,
+              "max_representation_steps": 1000000,
+              "max_orders": 2,
+              "max_factor_nodes": 4096,
+              "max_factor_steps": 1000000,
+              "max_operations": 200,
+              "max_variables": 32,
+              "max_terms": 65536,
+              "max_product_terms": 65536,
+              "timeout": 5.0
+            },
+            "seconds": 0.20107401092536747,
+            "optimality": "not claimed; bounded affine encodings and algebraic orders"
+          }
+        },
+        {
+          "mechanism": "measurement_debt_lowering",
+          "status": "verified",
+          "reason": null,
+          "cost_delta": -66.0,
+          "check_status": "equivalent",
+          "equivalent": true,
+          "structural_witness": {
+            "source_nonlinear_dataflow_depth": 2,
+            "materialized_clean_wires": [
+              6,
+              7,
+              8,
+              9
+            ],
+            "depth_scope": "syntactic dependency depth including restoration; not a circuit-depth minimum",
+            "retired_scratch_wires": [
+              7,
+              8,
+              9
+            ],
+            "retained_product_wires": [
+              6
+            ],
+            "final_products_materialized": false,
+            "boundary_outputs_synthesized_jointly": [
+              4,
+              5
+            ],
+            "removed_materialization_bank": true,
+            "measured_cleanup_nodes": 1,
+            "schedule_recomputations": 0
+          },
+          "exact_search": null,
+          "bounded_search": null
+        },
+        {
+          "mechanism": "consumer_functional_decomposition",
+          "status": "verified",
+          "reason": null,
+          "cost_delta": -59.0,
+          "check_status": "equivalent",
+          "equivalent": true,
+          "structural_witness": {
+            "discovered_consumer_class_bit": true,
+            "bound_inputs": [
+              2,
+              0
+            ],
+            "classes_by_assignment": [
+              0,
+              1,
+              0,
+              0
+            ],
+            "residual_class_count": 2,
+            "selector_anf": [
+              [
+                0,
+                2
+              ],
+              [
+                2
+              ]
+            ],
+            "consumer_targets": [
+              4,
+              5
+            ],
+            "compared_all_remaining_inputs_symbolically": true
+          },
+          "exact_search": null,
+          "bounded_search": {
+            "partitions_tested": 3,
+            "rejected_by_three_distinct_cofactors": 2,
+            "full_partition_checks": 1,
+            "two_class_nonlinear_maps": 1,
+            "verified_lowerings": 1,
+            "step_count": 133,
+            "stop_reason": null,
+            "max_partitions": 96
+          }
+        },
+        {
+          "mechanism": "output_basis_search",
+          "status": "verified",
+          "reason": null,
+          "cost_delta": -59.0,
+          "check_status": "equivalent",
+          "equivalent": true,
+          "structural_witness": {
+            "paid_output_basis_change": false,
+            "output_basis_changed": false,
+            "encoded_output_targets": [
+              4,
+              5
+            ],
+            "original_output_deltas": {
+              "4": [
+                [
+                  2
+                ],
+                [
+                  0,
+                  2
+                ],
+                [
+                  2,
+                  3
+                ],
+                [
+                  0,
+                  2,
+                  3
+                ]
+              ],
+              "5": [
+                [
+                  2
+                ],
+                [
+                  0,
+                  2
+                ]
+              ]
+            },
+            "encoded_output_deltas": {
+              "4": [
+                [
+                  2
+                ],
+                [
+                  0,
+                  2
+                ],
+                [
+                  2,
+                  3
+                ],
+                [
+                  0,
+                  2,
+                  3
+                ]
+              ],
+              "5": [
+                [
+                  2
+                ],
+                [
+                  0,
+                  2
+                ]
+              ]
+            },
+            "synthesized_joint_outputs": [
+              4,
+              5
+            ],
+            "materialized_products": 1,
+            "basis_conversions_emitted": true,
+            "input_basis_changed": false,
+            "unencoded_comparator_cost": 21.0,
+            "unencoded_comparison_complete": true,
+            "same_factor_order_limit": 8,
+            "baseline_materialized_products": 1
+          },
+          "exact_search": null,
+          "bounded_search": {
+            "candidate_steps": 122,
+            "considered_bases": 5,
+            "stopped_reason": null,
+            "attempted": 5,
+            "verified": 5,
+            "limits": {
+              "max_encodings": 16,
+              "beam_width": 4,
+              "max_encoding_depth": 2,
+              "max_representation_steps": 1000000,
+              "max_orders": 8,
+              "max_factor_nodes": 4096,
+              "max_factor_steps": 1000000,
+              "max_operations": 200,
+              "max_variables": 32,
+              "max_terms": 65536,
+              "max_product_terms": 65536,
+              "timeout": 5.0
+            },
+            "seconds": 0.11775538395158947,
+            "analysis_operation_limit": 204,
+            "optimality": "not claimed; output bases change bounded factoring, not unrestricted multiplicative complexity"
+          }
+        },
+        {
+          "mechanism": "factored_observable_search",
+          "status": "not_constructed",
+          "reason": "exact zero boundary sign",
+          "cost_delta": null,
+          "check_status": null,
+          "equivalent": null,
+          "structural_witness": null,
+          "exact_search": null,
+          "bounded_search": null
+        },
+        {
+          "mechanism": "mixed_observable_search",
+          "status": "not_constructed",
+          "reason": "requires both an observable sign and changed output values",
+          "cost_delta": null,
+          "check_status": null,
+          "equivalent": null,
+          "structural_witness": null,
+          "exact_search": null,
+          "bounded_search": null
+        }
+      ],
+      "receipt": "mixed_basis_twolevel/restructure.json"
+    },
+    {
+      "name": "permuted_schedule",
+      "family": "nested_distributed_products",
+      "source_sha256": "c56dcb4f0f062e0f1fac0c1721d60b3bd2c4934c477965afaf3c1e45b98f82fb",
+      "discovery_status": "verified_improvement",
+      "selected_candidate": "4d13446e77539b60067d4460be2beeec405597af011774015ec69f2a24d399b5",
+      "selected_mechanism": "measurement_debt_lowering",
+      "complete_symbolic_boundary_proof": true,
+      "private_measurement_bits": [
+        0
+      ],
+      "independent_native_equal": true,
+      "native_check": {
+        "scope": "all_public_inputs",
+        "cases": 64,
+        "phase": "exact native Fraction modulo two",
+        "measurement_coverage": "one native draw per checked input; all-outcome evidence is the complete symbolic boundary proof"
+      },
+      "before": {
+        "Q": 10,
+        "toffoli": 8,
+        "t": 0,
+        "rotations": 0,
+        "instructions": 12,
+        "accounting": "static_emitted",
+        "reaction_depth": 2
+      },
+      "after": {
+        "Q": 7,
+        "toffoli": 2,
+        "t": 0,
+        "rotations": 0,
+        "instructions": 9,
+        "accounting": "static_emitted",
+        "reaction_depth": 2
+      },
+      "before_cost": 80.0,
+      "after_cost": 14.0,
+      "physical_clean_wires_retired": [
+        7,
+        8,
+        9
+      ],
+      "deep_bank_retirement": true,
+      "discovery_wall_seconds": 2.2819217308424413,
+      "engine_search_seconds": 2.1910698481369764,
+      "native_check_seconds": 0.002227223012596369,
+      "attempt_count": 10,
+      "mechanisms": [
+        {
+          "mechanism": "architecture_portfolio",
+          "status": "verified",
+          "reason": null,
+          "cost_delta": -59.0,
+          "check_status": "equivalent",
+          "equivalent": true,
+          "structural_witness": {
+            "joint_architecture_change": false,
+            "input_basis_changed": false,
+            "output_basis_changed": false,
+            "complete_joint_output_synthesis": true,
+            "both_adapter_pairs_charged": true,
+            "formulation_hash": "f1efd9284878d2a8813b933ca013971b6da97aa47618a96743400f934695e64f",
+            "graph_hash": "2e48edfeac0a68df0beb75970c0f858a268ef155afe2313b6f8895468b5b1196",
+            "verified_identity_comparator_cost": 21.0,
+            "identity_comparison_available": true,
+            "measured_joint_interaction_gain": false,
+            "interaction_scope": "only the measured axis finalists; not exhaustive separate-axis optima"
+          },
+          "exact_search": null,
+          "bounded_search": {
+            "proposed_attempts": 1826,
+            "unique_formulations": 1024,
+            "unique_representations": 273,
+            "unique_product_graphs": 617,
+            "independently_replayed": 1024,
+            "not_lowerable": 15,
+            "selected_finalists": 24,
+            "lowered": 24,
+            "verified": 24,
+            "native_improvements": 24,
+            "categories": {
+              "identity": 3,
+              "input_only": 379,
+              "output_only": 15,
+              "joint": 627
+            },
+            "generation_seconds": 1.2766188110690564,
+            "seconds": 1.3687382619827986,
+            "factor_steps": 117963,
+            "stopped_reason": "architecture_hypothesis_budget",
+            "representation_mode": "joint",
+            "limits": {
+              "max_hypotheses": 1024,
+              "max_representations": 1024,
+              "max_factor_orders": 8,
+              "max_representation_depth": 4,
+              "frontier_width": 64,
+              "max_finalists": 24,
+              "max_work_steps": 10000000,
+              "max_factor_nodes": 4096,
+              "max_operations": 200,
+              "max_variables": 32,
+              "max_terms": 65536,
+              "max_product_terms": 65536,
+              "timeout": 2.5
+            },
+            "native_evaluations_in_wide_stage": 0,
+            "optimality": "not claimed; bounded joint linear representations, polynomial factorizations and diverse finalists"
+          }
+        },
+        {
+          "mechanism": "joint_boundary_synthesis",
+          "status": "verified",
+          "reason": null,
+          "cost_delta": -59.0,
+          "check_status": "equivalent",
+          "equivalent": true,
+          "structural_witness": {
+            "source_nonlinear_dataflow_depth": 2,
+            "materialized_clean_wires": [
+              6,
+              7,
+              8,
+              9
+            ],
+            "depth_scope": "syntactic dependency depth including restoration; not a circuit-depth minimum",
+            "retired_scratch_wires": [
+              7,
+              8,
+              9
+            ],
+            "retained_product_wires": [
+              6
+            ],
+            "final_products_materialized": false,
+            "boundary_outputs_synthesized_jointly": [
+              4,
+              5
+            ],
+            "removed_materialization_bank": true
+          },
+          "exact_search": {
+            "kind": "exact_small",
+            "resource": "and_count",
+            "value": 2,
+            "reason": "minimum in complete care-set XOR/AND search",
+            "scope": {
+              "inputs": 4,
+              "outputs": 2,
+              "assignments": 16,
+              "domain": "full Boolean cube"
+            },
+            "model": "free XOR/NOT/constants; two-input AND straight-line circuits restricted to promised rows",
+            "proven_lower_bound": 2,
+            "searched_up_to": 2,
+            "states": 1447,
+            "expansions": 36911,
+            "seconds": 0.4820578130893409,
+            "witness": [
+              {
+                "left": 43690,
+                "right": 4080,
+                "product": 2720,
+                "left_coefficients": 16,
+                "right_coefficients": 6
+              },
+              {
+                "left": 52428,
+                "right": 2720,
+                "product": 2176,
+                "left_coefficients": 8,
+                "right_coefficients": 32
+              }
+            ],
+            "contract_hash": "bcefd76503dd15663c8a944115430d8e9ee331aeffdebcae8db50c308fb4d8da",
+            "output_coefficients": [
+              32,
+              64
+            ],
+            "witness_encoding": "bit 0 is constant 1, then boundary inputs, then preceding AND results",
+            "anf_contract_hash": "c4dbc5dc16e9639687c7055d0fb356c2a5e34412d4ed55815f62699832bd4d62"
+          },
+          "bounded_search": null
+        },
+        {
+          "mechanism": "joint_storage_recomputation",
+          "status": "verified",
+          "reason": null,
+          "cost_delta": -59.0,
+          "check_status": "equivalent",
+          "equivalent": true,
+          "structural_witness": {
+            "source_nonlinear_dataflow_depth": 2,
+            "materialized_clean_wires": [
+              6,
+              7,
+              8,
+              9
+            ],
+            "depth_scope": "syntactic dependency depth including restoration; not a circuit-depth minimum",
+            "retired_scratch_wires": [
+              7,
+              8,
+              9
+            ],
+            "retained_product_wires": [
+              6
+            ],
+            "final_products_materialized": false,
+            "boundary_outputs_synthesized_jointly": [
+              4,
+              5
+            ],
+            "removed_materialization_bank": true,
+            "schedule_recomputations": 0
+          },
+          "exact_search": null,
+          "bounded_search": null
+        },
+        {
+          "mechanism": "algebraic_boundary_synthesis",
+          "status": "verified",
+          "reason": null,
+          "cost_delta": -59.0,
+          "check_status": "equivalent",
+          "equivalent": true,
+          "structural_witness": {
+            "source_nonlinear_dataflow_depth": 2,
+            "materialized_clean_wires": [
+              6,
+              7,
+              8,
+              9
+            ],
+            "depth_scope": "syntactic dependency depth including restoration; not a circuit-depth minimum",
+            "retired_scratch_wires": [
+              7,
+              8,
+              9
+            ],
+            "retained_product_wires": [
+              6
+            ],
+            "boundary_outputs_synthesized_jointly": [
+              4,
+              5
+            ],
+            "final_products_materialized": false,
+            "removed_materialization_bank": true
+          },
+          "exact_search": null,
+          "bounded_search": {
+            "attempts": [
+              {
+                "order": [
+                  3,
+                  0,
+                  1,
+                  2
+                ],
+                "status": "verified",
+                "candidate_hash": "5699b8c4e3906f7e04d8fc6a4ec00bed3f06869495950017e7328d1797e4eb81",
+                "cost": 28.0,
+                "resources": {
+                  "Q": 7,
+                  "toffoli": 4,
+                  "t": 0,
+                  "rotations": 0,
+                  "instructions": 10,
+                  "accounting": "static_emitted",
+                  "reaction_depth": 2
+                },
+                "product_nodes": 3,
+                "materialized_products": 1
+              },
+              {
+                "order": [
+                  2,
+                  1,
+                  0,
+                  3
+                ],
+                "status": "verified",
+                "candidate_hash": "c9170aaf18c2ba0da4b33c813b06c0aeae2c0232ae8dd87448d9930b6b424392",
+                "cost": 21.0,
+                "resources": {
+                  "Q": 7,
+                  "toffoli": 3,
+                  "t": 0,
+                  "rotations": 0,
+                  "instructions": 8,
+                  "accounting": "static_emitted",
+                  "reaction_depth": 2
+                },
+                "product_nodes": 2,
+                "materialized_products": 1
+              },
+              {
+                "order": [
+                  0,
+                  1,
+                  2,
+                  3
+                ],
+                "status": "verified",
+                "candidate_hash": "d33d17bcfbda16c86257947ddb052fcd0fd10e2ad10638c8edcd05f4b14b413e",
+                "cost": 28.0,
+                "resources": {
+                  "Q": 7,
+                  "toffoli": 4,
+                  "t": 0,
+                  "rotations": 0,
+                  "instructions": 8,
+                  "accounting": "static_emitted",
+                  "reaction_depth": 2
+                },
+                "product_nodes": 3,
+                "materialized_products": 1
+              },
+              {
+                "order": [
+                  3,
+                  2,
+                  1,
+                  0
+                ],
+                "status": "verified",
+                "candidate_hash": "8e56f15305710bea713dc60f6eba06d552a24839392ad2324fb3570dfeff46d1",
+                "cost": 28.0,
+                "resources": {
+                  "Q": 7,
+                  "toffoli": 4,
+                  "t": 0,
+                  "rotations": 0,
+                  "instructions": 10,
+                  "accounting": "static_emitted",
+                  "reaction_depth": 2
+                },
+                "product_nodes": 3,
+                "materialized_products": 1
+              },
+              {
+                "order": [
+                  3,
+                  2,
+                  0,
+                  1
+                ],
+                "status": "verified",
+                "candidate_hash": "8e56f15305710bea713dc60f6eba06d552a24839392ad2324fb3570dfeff46d1",
+                "cost": 28.0,
+                "resources": {
+                  "Q": 7,
+                  "toffoli": 4,
+                  "t": 0,
+                  "rotations": 0,
+                  "instructions": 10,
+                  "accounting": "static_emitted",
+                  "reaction_depth": 2
+                },
+                "product_nodes": 3,
+                "materialized_products": 1
+              },
+              {
+                "order": [
+                  1,
+                  2,
+                  3,
+                  0
+                ],
+                "status": "verified",
+                "candidate_hash": "d33d17bcfbda16c86257947ddb052fcd0fd10e2ad10638c8edcd05f4b14b413e",
+                "cost": 28.0,
+                "resources": {
+                  "Q": 7,
+                  "toffoli": 4,
+                  "t": 0,
+                  "rotations": 0,
+                  "instructions": 8,
+                  "accounting": "static_emitted",
+                  "reaction_depth": 2
+                },
+                "product_nodes": 3,
+                "materialized_products": 1
+              },
+              {
+                "order": [
+                  2,
+                  3,
+                  0,
+                  1
+                ],
+                "status": "verified",
+                "candidate_hash": "2396f2fdb643646c1ceb81fc2b552b0be8387a0b5a88a298fc2d9c1a44a9aea1",
+                "cost": 21.0,
+                "resources": {
+                  "Q": 7,
+                  "toffoli": 3,
+                  "t": 0,
+                  "rotations": 0,
+                  "instructions": 8,
+                  "accounting": "static_emitted",
+                  "reaction_depth": 2
+                },
+                "product_nodes": 2,
+                "materialized_products": 1
+              }
+            ],
+            "stopped_reason": null,
+            "factor_steps": 387,
+            "limits": {
+              "max_orders": 8,
+              "max_factor_nodes": 4096,
+              "max_factor_steps": 1000000,
+              "timeout": 3.0,
+              "max_operations": 200,
+              "max_variables": 32,
+              "max_terms": 65536,
+              "max_product_terms": 65536
+            },
+            "seconds": 0.014846034115180373,
+            "optimality": "not claimed; bounded algebraic constructions"
+          }
+        },
+        {
+          "mechanism": "affine_representation_search",
+          "status": "verified",
+          "reason": null,
+          "cost_delta": -59.0,
+          "check_status": "equivalent",
+          "equivalent": true,
+          "structural_witness": {
+            "source_nonlinear_dataflow_depth": 2,
+            "materialized_clean_wires": [
+              6,
+              7,
+              8,
+              9
+            ],
+            "depth_scope": "syntactic dependency depth including restoration; not a circuit-depth minimum",
+            "retired_scratch_wires": [
+              7,
+              8,
+              9
+            ],
+            "retained_product_wires": [
+              6
+            ],
+            "boundary_outputs_synthesized_jointly": [
+              4,
+              5
+            ],
+            "final_products_materialized": false,
+            "removed_materialization_bank": true
+          },
+          "exact_search": null,
+          "bounded_search": {
+            "candidate_steps": 358,
+            "considered_encodings": 60,
+            "stopped_reason": null,
+            "attempted": 16,
+            "verified": 16,
+            "limits": {
+              "max_encodings": 16,
+              "beam_width": 4,
+              "max_encoding_depth": 2,
+              "max_representation_steps": 1000000,
+              "max_orders": 2,
+              "max_factor_nodes": 4096,
+              "max_factor_steps": 1000000,
+              "max_operations": 200,
+              "max_variables": 32,
+              "max_terms": 65536,
+              "max_product_terms": 65536,
+              "timeout": 5.0
+            },
+            "seconds": 0.17033100104890764,
+            "optimality": "not claimed; bounded affine encodings and algebraic orders"
+          }
+        },
+        {
+          "mechanism": "measurement_debt_lowering",
+          "status": "verified",
+          "reason": null,
+          "cost_delta": -66.0,
+          "check_status": "equivalent",
+          "equivalent": true,
+          "structural_witness": {
+            "source_nonlinear_dataflow_depth": 2,
+            "materialized_clean_wires": [
+              6,
+              7,
+              8,
+              9
+            ],
+            "depth_scope": "syntactic dependency depth including restoration; not a circuit-depth minimum",
+            "retired_scratch_wires": [
+              7,
+              8,
+              9
+            ],
+            "retained_product_wires": [
+              6
+            ],
+            "final_products_materialized": false,
+            "boundary_outputs_synthesized_jointly": [
+              4,
+              5
+            ],
+            "removed_materialization_bank": true,
+            "measured_cleanup_nodes": 1,
+            "schedule_recomputations": 0
+          },
+          "exact_search": null,
+          "bounded_search": null
+        },
+        {
+          "mechanism": "consumer_functional_decomposition",
+          "status": "verified",
+          "reason": null,
+          "cost_delta": -59.0,
+          "check_status": "equivalent",
+          "equivalent": true,
+          "structural_witness": {
+            "discovered_consumer_class_bit": true,
+            "bound_inputs": [
+              3,
+              0,
+              1
+            ],
+            "classes_by_assignment": [
+              0,
+              0,
+              0,
+              1,
+              0,
+              1,
+              0,
+              0
+            ],
+            "residual_class_count": 2,
+            "selector_anf": [
+              [
+                0,
+                3
+              ],
+              [
+                1,
+                3
+              ]
+            ],
+            "consumer_targets": [
+              4,
+              5
+            ],
+            "compared_all_remaining_inputs_symbolically": true
+          },
+          "exact_search": null,
+          "bounded_search": {
+            "partitions_tested": 10,
+            "rejected_by_three_distinct_cofactors": 8,
+            "full_partition_checks": 2,
+            "two_class_nonlinear_maps": 1,
+            "verified_lowerings": 1,
+            "step_count": 405,
+            "stop_reason": null,
+            "max_partitions": 96
+          }
+        },
+        {
+          "mechanism": "output_basis_search",
+          "status": "verified",
+          "reason": null,
+          "cost_delta": -59.0,
+          "check_status": "equivalent",
+          "equivalent": true,
+          "structural_witness": {
+            "paid_output_basis_change": false,
+            "output_basis_changed": false,
+            "encoded_output_targets": [
+              4,
+              5
+            ],
+            "original_output_deltas": {
+              "4": [
+                [
+                  0,
+                  3
+                ],
+                [
+                  1,
+                  3
+                ]
+              ],
+              "5": [
+                [
+                  0,
+                  2,
+                  3
+                ],
+                [
+                  1,
+                  2,
+                  3
+                ]
+              ]
+            },
+            "encoded_output_deltas": {
+              "4": [
+                [
+                  0,
+                  3
+                ],
+                [
+                  1,
+                  3
+                ]
+              ],
+              "5": [
+                [
+                  0,
+                  2,
+                  3
+                ],
+                [
+                  1,
+                  2,
+                  3
+                ]
+              ]
+            },
+            "synthesized_joint_outputs": [
+              4,
+              5
+            ],
+            "materialized_products": 1,
+            "basis_conversions_emitted": true,
+            "input_basis_changed": false,
+            "unencoded_comparator_cost": 21.0,
+            "unencoded_comparison_complete": true,
+            "same_factor_order_limit": 8,
+            "baseline_materialized_products": 1
+          },
+          "exact_search": null,
+          "bounded_search": {
+            "candidate_steps": 26,
+            "considered_bases": 1,
+            "stopped_reason": null,
+            "attempted": 1,
+            "verified": 1,
+            "limits": {
+              "max_encodings": 16,
+              "beam_width": 4,
+              "max_encoding_depth": 2,
+              "max_representation_steps": 1000000,
+              "max_orders": 8,
+              "max_factor_nodes": 4096,
+              "max_factor_steps": 1000000,
+              "max_operations": 200,
+              "max_variables": 32,
+              "max_terms": 65536,
+              "max_product_terms": 65536,
+              "timeout": 5.0
+            },
+            "seconds": 0.03539304598234594,
+            "analysis_operation_limit": 204,
+            "optimality": "not claimed; output bases change bounded factoring, not unrestricted multiplicative complexity"
+          }
+        },
+        {
+          "mechanism": "factored_observable_search",
+          "status": "not_constructed",
+          "reason": "exact zero boundary sign",
+          "cost_delta": null,
+          "check_status": null,
+          "equivalent": null,
+          "structural_witness": null,
+          "exact_search": null,
+          "bounded_search": null
+        },
+        {
+          "mechanism": "mixed_observable_search",
+          "status": "not_constructed",
+          "reason": "requires both an observable sign and changed output values",
+          "cost_delta": null,
+          "check_status": null,
+          "equivalent": null,
+          "structural_witness": null,
+          "exact_search": null,
+          "bounded_search": null
+        }
+      ],
+      "receipt": "permuted_schedule/restructure.json"
+    },
+    {
+      "name": "parity_product",
+      "family": "nonlinear_consumer_of_encoded_vector",
+      "source_sha256": "f9b13a18d29c7ff633f956535fd7b0f752fd39b462e408e19f9878f613a736d9",
+      "discovery_status": "verified_improvement",
+      "selected_candidate": "c14c62ab7e0268ad032b8f9ea4ac967920915195089354a0313098c5bd9cf631",
+      "selected_mechanism": "joint_boundary_synthesis",
+      "complete_symbolic_boundary_proof": true,
+      "private_measurement_bits": [],
+      "independent_native_equal": true,
+      "native_check": {
+        "scope": "all_public_inputs",
+        "cases": 32,
+        "phase": "exact native Fraction modulo two",
+        "measurement_coverage": "no measurements"
+      },
+      "before": {
+        "Q": 11,
+        "toffoli": 9,
+        "t": 0,
+        "rotations": 0,
+        "instructions": 21,
+        "accounting": "static_emitted",
+        "reaction_depth": 2
+      },
+      "after": {
+        "Q": 5,
+        "toffoli": 1,
+        "t": 0,
+        "rotations": 0,
+        "instructions": 5,
+        "accounting": "static_emitted",
+        "reaction_depth": 1
+      },
+      "before_cost": 99.0,
+      "after_cost": 5.0,
+      "physical_clean_wires_retired": [
+        5,
+        6,
+        7,
+        8,
+        9,
+        10
+      ],
+      "deep_bank_retirement": true,
+      "discovery_wall_seconds": 2.151451262878254,
+      "engine_search_seconds": 2.037510650930926,
+      "native_check_seconds": 0.0007443730719387531,
+      "attempt_count": 10,
+      "mechanisms": [
+        {
+          "mechanism": "joint_boundary_synthesis",
+          "status": "verified",
+          "reason": null,
+          "cost_delta": -94.0,
+          "check_status": "equivalent",
+          "equivalent": true,
+          "structural_witness": {
+            "source_nonlinear_dataflow_depth": 2,
+            "materialized_clean_wires": [
+              5,
+              6,
+              7,
+              8,
+              9,
+              10
+            ],
+            "depth_scope": "syntactic dependency depth including restoration; not a circuit-depth minimum",
+            "retired_scratch_wires": [
+              5,
+              6,
+              7,
+              8,
+              9,
+              10
+            ],
+            "retained_product_wires": [],
+            "final_products_materialized": false,
+            "boundary_outputs_synthesized_jointly": [
+              4
+            ],
+            "removed_materialization_bank": true
+          },
+          "exact_search": {
+            "kind": "exact_small",
+            "resource": "and_count",
+            "value": 1,
+            "reason": "minimum in complete care-set XOR/AND search",
+            "scope": {
+              "inputs": 4,
+              "outputs": 1,
+              "assignments": 16,
+              "domain": "full Boolean cube"
+            },
+            "model": "free XOR/NOT/constants; two-input AND straight-line circuits restricted to promised rows",
+            "proven_lower_bound": 1,
+            "searched_up_to": 1,
+            "states": 25,
+            "expansions": 229,
+            "seconds": 0.0022115230094641447,
+            "witness": [
+              {
+                "left": 4080,
+                "right": 26214,
+                "product": 1632,
+                "left_coefficients": 6,
+                "right_coefficients": 24
+              }
+            ],
+            "contract_hash": "83b35188026bbeae27f657d88dec5545d5c3b096abd60e31acc0618afe55c6e2",
+            "output_coefficients": [
+              32
+            ],
+            "witness_encoding": "bit 0 is constant 1, then boundary inputs, then preceding AND results",
+            "anf_contract_hash": "fcb295c11757f15ffa98996fdd128d09dbd4276a50728913c40723f9a0730c5f"
+          },
+          "bounded_search": null
+        },
+        {
+          "mechanism": "joint_storage_recomputation",
+          "status": "verified",
+          "reason": null,
+          "cost_delta": -94.0,
+          "check_status": "equivalent",
+          "equivalent": true,
+          "structural_witness": {
+            "source_nonlinear_dataflow_depth": 2,
+            "materialized_clean_wires": [
+              5,
+              6,
+              7,
+              8,
+              9,
+              10
+            ],
+            "depth_scope": "syntactic dependency depth including restoration; not a circuit-depth minimum",
+            "retired_scratch_wires": [
+              5,
+              6,
+              7,
+              8,
+              9,
+              10
+            ],
+            "retained_product_wires": [],
+            "final_products_materialized": false,
+            "boundary_outputs_synthesized_jointly": [
+              4
+            ],
+            "removed_materialization_bank": true,
+            "schedule_recomputations": 0
+          },
+          "exact_search": null,
+          "bounded_search": null
+        },
+        {
+          "mechanism": "algebraic_boundary_synthesis",
+          "status": "verified",
+          "reason": null,
+          "cost_delta": -94.0,
+          "check_status": "equivalent",
+          "equivalent": true,
+          "structural_witness": {
+            "source_nonlinear_dataflow_depth": 2,
+            "materialized_clean_wires": [
+              5,
+              6,
+              7,
+              8,
+              9,
+              10
+            ],
+            "depth_scope": "syntactic dependency depth including restoration; not a circuit-depth minimum",
+            "retired_scratch_wires": [
+              5,
+              6,
+              7,
+              8,
+              9,
+              10
+            ],
+            "retained_product_wires": [],
+            "boundary_outputs_synthesized_jointly": [
+              4
+            ],
+            "final_products_materialized": false,
+            "removed_materialization_bank": true
+          },
+          "exact_search": null,
+          "bounded_search": {
+            "attempts": [
+              {
+                "order": [
+                  0,
+                  1,
+                  2,
+                  3
+                ],
+                "status": "verified",
+                "candidate_hash": "fad24af42475c749910bcd8628ac4ac1568f4070eb43f3366e16358d7dac405b",
+                "cost": 5.0,
+                "resources": {
+                  "Q": 5,
+                  "toffoli": 1,
+                  "t": 0,
+                  "rotations": 0,
+                  "instructions": 5,
+                  "accounting": "static_emitted",
+                  "reaction_depth": 1
+                },
+                "product_nodes": 1,
+                "materialized_products": 0
+              },
+              {
+                "order": [
+                  3,
+                  2,
+                  1,
+                  0
+                ],
+                "status": "verified",
+                "candidate_hash": "8db207cfb5ff7a9739204f76ca1ca6276492e82948d1c68fb208dc6a59252cf5",
+                "cost": 5.0,
+                "resources": {
+                  "Q": 5,
+                  "toffoli": 1,
+                  "t": 0,
+                  "rotations": 0,
+                  "instructions": 5,
+                  "accounting": "static_emitted",
+                  "reaction_depth": 1
+                },
+                "product_nodes": 1,
+                "materialized_products": 0
+              },
+              {
+                "order": [
+                  1,
+                  2,
+                  3,
+                  0
+                ],
+                "status": "verified",
+                "candidate_hash": "fad24af42475c749910bcd8628ac4ac1568f4070eb43f3366e16358d7dac405b",
+                "cost": 5.0,
+                "resources": {
+                  "Q": 5,
+                  "toffoli": 1,
+                  "t": 0,
+                  "rotations": 0,
+                  "instructions": 5,
+                  "accounting": "static_emitted",
+                  "reaction_depth": 1
+                },
+                "product_nodes": 1,
+                "materialized_products": 0
+              },
+              {
+                "order": [
+                  2,
+                  3,
+                  0,
+                  1
+                ],
+                "status": "verified",
+                "candidate_hash": "8db207cfb5ff7a9739204f76ca1ca6276492e82948d1c68fb208dc6a59252cf5",
+                "cost": 5.0,
+                "resources": {
+                  "Q": 5,
+                  "toffoli": 1,
+                  "t": 0,
+                  "rotations": 0,
+                  "instructions": 5,
+                  "accounting": "static_emitted",
+                  "reaction_depth": 1
+                },
+                "product_nodes": 1,
+                "materialized_products": 0
+              },
+              {
+                "order": [
+                  3,
+                  0,
+                  1,
+                  2
+                ],
+                "status": "verified",
+                "candidate_hash": "8db207cfb5ff7a9739204f76ca1ca6276492e82948d1c68fb208dc6a59252cf5",
+                "cost": 5.0,
+                "resources": {
+                  "Q": 5,
+                  "toffoli": 1,
+                  "t": 0,
+                  "rotations": 0,
+                  "instructions": 5,
+                  "accounting": "static_emitted",
+                  "reaction_depth": 1
+                },
+                "product_nodes": 1,
+                "materialized_products": 0
+              }
+            ],
+            "stopped_reason": null,
+            "factor_steps": 165,
+            "limits": {
+              "max_orders": 8,
+              "max_factor_nodes": 4096,
+              "max_factor_steps": 1000000,
+              "timeout": 3.0,
+              "max_operations": 200,
+              "max_variables": 32,
+              "max_terms": 65536,
+              "max_product_terms": 65536
+            },
+            "seconds": 0.015164996962994337,
+            "optimality": "not claimed; bounded algebraic constructions"
+          }
+        },
+        {
+          "mechanism": "affine_representation_search",
+          "status": "verified",
+          "reason": null,
+          "cost_delta": -94.0,
+          "check_status": "equivalent",
+          "equivalent": true,
+          "structural_witness": {
+            "source_nonlinear_dataflow_depth": 2,
+            "materialized_clean_wires": [
+              5,
+              6,
+              7,
+              8,
+              9,
+              10
+            ],
+            "depth_scope": "syntactic dependency depth including restoration; not a circuit-depth minimum",
+            "retired_scratch_wires": [
+              5,
+              6,
+              7,
+              8,
+              9,
+              10
+            ],
+            "retained_product_wires": [],
+            "boundary_outputs_synthesized_jointly": [
+              4
+            ],
+            "final_products_materialized": false,
+            "removed_materialization_bank": true
+          },
+          "exact_search": null,
+          "bounded_search": {
+            "candidate_steps": 188,
+            "considered_encodings": 49,
+            "stopped_reason": null,
+            "attempted": 16,
+            "verified": 16,
+            "limits": {
+              "max_encodings": 16,
+              "beam_width": 4,
+              "max_encoding_depth": 2,
+              "max_representation_steps": 1000000,
+              "max_orders": 2,
+              "max_factor_nodes": 4096,
+              "max_factor_steps": 1000000,
+              "max_operations": 200,
+              "max_variables": 32,
+              "max_terms": 65536,
+              "max_product_terms": 65536,
+              "timeout": 5.0
+            },
+            "seconds": 0.1836688129696995,
+            "optimality": "not claimed; bounded affine encodings and algebraic orders"
+          }
+        },
+        {
+          "mechanism": "measurement_debt_lowering",
+          "status": "verified",
+          "reason": null,
+          "cost_delta": -94.0,
+          "check_status": "equivalent",
+          "equivalent": true,
+          "structural_witness": {
+            "source_nonlinear_dataflow_depth": 2,
+            "materialized_clean_wires": [
+              5,
+              6,
+              7,
+              8,
+              9,
+              10
+            ],
+            "depth_scope": "syntactic dependency depth including restoration; not a circuit-depth minimum",
+            "retired_scratch_wires": [
+              5,
+              6,
+              7,
+              8,
+              9,
+              10
+            ],
+            "retained_product_wires": [],
+            "final_products_materialized": false,
+            "boundary_outputs_synthesized_jointly": [
+              4
+            ],
+            "removed_materialization_bank": true,
+            "measured_cleanup_nodes": 0,
+            "schedule_recomputations": 0
+          },
+          "exact_search": null,
+          "bounded_search": null
+        },
+        {
+          "mechanism": "consumer_functional_decomposition",
+          "status": "not_constructed",
+          "reason": "no verified nonlinear two-class lowering among tested partitions",
+          "cost_delta": null,
+          "check_status": null,
+          "equivalent": null,
+          "structural_witness": null,
+          "exact_search": null,
+          "bounded_search": {
+            "partitions_tested": 10,
+            "rejected_by_three_distinct_cofactors": 8,
+            "full_partition_checks": 2,
+            "two_class_nonlinear_maps": 0,
+            "verified_lowerings": 0,
+            "step_count": 172,
+            "stop_reason": null,
+            "max_partitions": 96
+          }
+        },
+        {
+          "mechanism": "output_basis_search",
+          "status": "verified",
+          "reason": null,
+          "cost_delta": -94.0,
+          "check_status": "equivalent",
+          "equivalent": true,
+          "structural_witness": {
+            "paid_output_basis_change": false,
+            "output_basis_changed": false,
+            "encoded_output_targets": [
+              4
+            ],
+            "original_output_deltas": {
+              "4": [
+                [
+                  0,
+                  2
+                ],
+                [
+                  0,
+                  3
+                ],
+                [
+                  1,
+                  2
+                ],
+                [
+                  1,
+                  3
+                ]
+              ]
+            },
+            "encoded_output_deltas": {
+              "4": [
+                [
+                  0,
+                  2
+                ],
+                [
+                  0,
+                  3
+                ],
+                [
+                  1,
+                  2
+                ],
+                [
+                  1,
+                  3
+                ]
+              ]
+            },
+            "synthesized_joint_outputs": [
+              4
+            ],
+            "materialized_products": 0,
+            "basis_conversions_emitted": true,
+            "input_basis_changed": false,
+            "unencoded_comparator_cost": 5.0,
+            "unencoded_comparison_complete": true,
+            "same_factor_order_limit": 8,
+            "baseline_materialized_products": 0
+          },
+          "exact_search": null,
+          "bounded_search": {
+            "candidate_steps": 12,
+            "considered_bases": 1,
+            "stopped_reason": null,
+            "attempted": 1,
+            "verified": 1,
+            "limits": {
+              "max_encodings": 16,
+              "beam_width": 4,
+              "max_encoding_depth": 2,
+              "max_representation_steps": 1000000,
+              "max_orders": 8,
+              "max_factor_nodes": 4096,
+              "max_factor_steps": 1000000,
+              "max_operations": 200,
+              "max_variables": 32,
+              "max_terms": 65536,
+              "max_product_terms": 65536,
+              "timeout": 5.0
+            },
+            "seconds": 0.02402172493748367,
+            "analysis_operation_limit": 204,
+            "optimality": "not claimed; output bases change bounded factoring, not unrestricted multiplicative complexity"
+          }
+        },
+        {
+          "mechanism": "architecture_portfolio",
+          "status": "verified",
+          "reason": null,
+          "cost_delta": -94.0,
+          "check_status": "equivalent",
+          "equivalent": true,
+          "structural_witness": {
+            "joint_architecture_change": false,
+            "input_basis_changed": false,
+            "output_basis_changed": false,
+            "complete_joint_output_synthesis": true,
+            "both_adapter_pairs_charged": true,
+            "formulation_hash": "9a772eee5ce73d17c16c1558f47ca0fded18ca57de9a576709fa00d8ab691954",
+            "graph_hash": "a840c6953ea4a3f7f0952abec290598663cb12f380337e41f0e8d15c4f13ab2d",
+            "verified_identity_comparator_cost": 5.0,
+            "identity_comparison_available": true,
+            "measured_joint_interaction_gain": false,
+            "interaction_scope": "only the measured axis finalists; not exhaustive separate-axis optima"
+          },
+          "exact_search": null,
+          "bounded_search": {
+            "proposed_attempts": 3207,
+            "unique_formulations": 834,
+            "unique_representations": 500,
+            "unique_product_graphs": 155,
+            "independently_replayed": 834,
+            "not_lowerable": 0,
+            "selected_finalists": 24,
+            "lowered": 24,
+            "verified": 22,
+            "native_improvements": 22,
+            "categories": {
+              "identity": 1,
+              "input_only": 833,
+              "output_only": 0,
+              "joint": 0
+            },
+            "generation_seconds": 1.625984834972769,
+            "seconds": 1.724145777989179,
+            "factor_steps": 79916,
+            "stopped_reason": "algebraic_factor_time_budget",
+            "representation_mode": "joint",
+            "limits": {
+              "max_hypotheses": 1024,
+              "max_representations": 1024,
+              "max_factor_orders": 8,
+              "max_representation_depth": 4,
+              "frontier_width": 64,
+              "max_finalists": 24,
+              "max_work_steps": 10000000,
+              "max_factor_nodes": 4096,
+              "max_operations": 200,
+              "max_variables": 32,
+              "max_terms": 65536,
+              "max_product_terms": 65536,
+              "timeout": 2.5
+            },
+            "native_evaluations_in_wide_stage": 0,
+            "optimality": "not claimed; bounded joint linear representations, polynomial factorizations and diverse finalists"
+          }
+        },
+        {
+          "mechanism": "factored_observable_search",
+          "status": "not_constructed",
+          "reason": "exact zero boundary sign",
+          "cost_delta": null,
+          "check_status": null,
+          "equivalent": null,
+          "structural_witness": null,
+          "exact_search": null,
+          "bounded_search": null
+        },
+        {
+          "mechanism": "mixed_observable_search",
+          "status": "not_constructed",
+          "reason": "requires both an observable sign and changed output values",
+          "cost_delta": null,
+          "check_status": null,
+          "equivalent": null,
+          "structural_witness": null,
+          "exact_search": null,
+          "bounded_search": null
+        }
+      ],
+      "receipt": "parity_product/restructure.json"
+    },
+    {
+      "name": "duplicated_reencoding",
+      "family": "nonlinear_consumer_of_encoded_vector",
+      "source_sha256": "09080673a3ed510aabd99450e269f0ba4702e2900136bfa5701066f01dd1af90",
+      "discovery_status": "verified_improvement",
+      "selected_candidate": "b12de9315a9c7a684d9ea11e78cf409e579928f9fd74870505aff860c4da9445",
+      "selected_mechanism": "measurement_debt_lowering",
+      "complete_symbolic_boundary_proof": true,
+      "private_measurement_bits": [
+        0,
+        1
+      ],
+      "independent_native_equal": true,
+      "native_check": {
+        "scope": "all_public_inputs",
+        "cases": 32,
+        "phase": "exact native Fraction modulo two",
+        "measurement_coverage": "one native draw per checked input; all-outcome evidence is the complete symbolic boundary proof"
+      },
+      "before": {
+        "Q": 9,
+        "toffoli": 5,
+        "t": 0,
+        "rotations": 0,
+        "instructions": 11,
+        "accounting": "static_emitted",
+        "reaction_depth": 3
+      },
+      "after": {
+        "Q": 7,
+        "toffoli": 3,
+        "t": 0,
+        "rotations": 0,
+        "instructions": 11,
+        "accounting": "static_emitted",
+        "reaction_depth": 3
+      },
+      "before_cost": 45.0,
+      "after_cost": 21.0,
+      "physical_clean_wires_retired": [
+        7,
+        8
+      ],
+      "deep_bank_retirement": true,
+      "discovery_wall_seconds": 2.306093560066074,
+      "engine_search_seconds": 2.2314264059532434,
+      "native_check_seconds": 0.000734581844881177,
+      "attempt_count": 10,
+      "mechanisms": [
+        {
+          "mechanism": "joint_boundary_synthesis",
+          "status": "not_constructed",
+          "reason": "joint XOR/AND search did not establish a minimum",
+          "cost_delta": null,
+          "check_status": null,
+          "equivalent": null,
+          "structural_witness": null,
+          "exact_search": {
+            "kind": "unknown",
+            "resource": "and_count",
+            "value": null,
+            "reason": "search budget exhausted; no minimum claimed",
+            "scope": {
+              "inputs": 4,
+              "outputs": 1,
+              "assignments": 16,
+              "domain": "full Boolean cube"
+            },
+            "model": "free XOR/NOT/constants; two-input AND straight-line circuits restricted to promised rows",
+            "proven_lower_bound": 3,
+            "searched_up_to": 2,
+            "states": 2708,
+            "expansions": 82756,
+            "seconds": 1.0001328820362687,
+            "witness": null,
+            "contract_hash": "9f16b812f24d29b53d8070e4d61d9fdab8e6d5a8070f1948a81a50bc92a9bde6",
+            "anf_contract_hash": "f788c030a302d074b7aba43f60136741d61fed906f7566dd9d35a5837aa3d535"
+          },
+          "bounded_search": null
+        },
+        {
+          "mechanism": "joint_storage_recomputation",
+          "status": "not_constructed",
+          "reason": "no synthesized joint function DAG to schedule",
+          "cost_delta": null,
+          "check_status": null,
+          "equivalent": null,
+          "structural_witness": null,
+          "exact_search": null,
+          "bounded_search": null
+        },
+        {
+          "mechanism": "algebraic_boundary_synthesis",
+          "status": "verified",
+          "reason": null,
+          "cost_delta": -10.0,
+          "check_status": "equivalent",
+          "equivalent": true,
+          "structural_witness": {
+            "source_nonlinear_dataflow_depth": 2,
+            "materialized_clean_wires": [
+              5,
+              6,
+              7,
+              8
+            ],
+            "depth_scope": "syntactic dependency depth including restoration; not a circuit-depth minimum",
+            "retired_scratch_wires": [
+              7,
+              8
+            ],
+            "retained_product_wires": [
+              5,
+              6
+            ],
+            "boundary_outputs_synthesized_jointly": [
+              4
+            ],
+            "final_products_materialized": false,
+            "removed_materialization_bank": true
+          },
+          "exact_search": null,
+          "bounded_search": {
+            "attempts": [
+              {
+                "order": [
+                  0,
+                  1,
+                  2,
+                  3
+                ],
+                "status": "verified",
+                "candidate_hash": "5673c80bc9b3436558eb3b7e6f61cc5fa0295e43955a33482c7a17e99715088c",
+                "cost": 35.0,
+                "resources": {
+                  "Q": 7,
+                  "toffoli": 5,
+                  "t": 0,
+                  "rotations": 0,
+                  "instructions": 9,
+                  "accounting": "static_emitted",
+                  "reaction_depth": 3
+                },
+                "product_nodes": 3,
+                "materialized_products": 2
+              },
+              {
+                "order": [
+                  3,
+                  2,
+                  1,
+                  0
+                ],
+                "status": "verified",
+                "candidate_hash": "8f960010a9a73d1d02dc91b05c3cc794599aa3f1cf451db9f5bb912a10b8e501",
+                "cost": 35.0,
+                "resources": {
+                  "Q": 7,
+                  "toffoli": 5,
+                  "t": 0,
+                  "rotations": 0,
+                  "instructions": 6,
+                  "accounting": "static_emitted",
+                  "reaction_depth": 3
+                },
+                "product_nodes": 3,
+                "materialized_products": 2
+              },
+              {
+                "order": [
+                  1,
+                  2,
+                  3,
+                  0
+                ],
+                "status": "verified",
+                "candidate_hash": "6a7dddce2ec8837b07bb32e1819109d6d28213fe2ef37a8a62c28616ecb48837",
+                "cost": 35.0,
+                "resources": {
+                  "Q": 7,
+                  "toffoli": 5,
+                  "t": 0,
+                  "rotations": 0,
+                  "instructions": 7,
+                  "accounting": "static_emitted",
+                  "reaction_depth": 3
+                },
+                "product_nodes": 3,
+                "materialized_products": 2
+              },
+              {
+                "order": [
+                  2,
+                  3,
+                  0,
+                  1
+                ],
+                "status": "verified",
+                "candidate_hash": "b3fe903935a1162bd9bcb29d8fa38f169c25d6143563d386327798e642f5366d",
+                "cost": 35.0,
+                "resources": {
+                  "Q": 7,
+                  "toffoli": 5,
+                  "t": 0,
+                  "rotations": 0,
+                  "instructions": 6,
+                  "accounting": "static_emitted",
+                  "reaction_depth": 3
+                },
+                "product_nodes": 3,
+                "materialized_products": 2
+              },
+              {
+                "order": [
+                  3,
+                  0,
+                  1,
+                  2
+                ],
+                "status": "verified",
+                "candidate_hash": "78aaacb27da0a28a04091f7b9a95c4755e6f1850da38b0bcb9ff2683f22a1285",
+                "cost": 42.0,
+                "resources": {
+                  "Q": 7,
+                  "toffoli": 6,
+                  "t": 0,
+                  "rotations": 0,
+                  "instructions": 6,
+                  "accounting": "static_emitted",
+                  "reaction_depth": 3
+                },
+                "product_nodes": 4,
+                "materialized_products": 2
+              }
+            ],
+            "stopped_reason": null,
+            "factor_steps": 235,
+            "limits": {
+              "max_orders": 8,
+              "max_factor_nodes": 4096,
+              "max_factor_steps": 1000000,
+              "timeout": 3.0,
+              "max_operations": 200,
+              "max_variables": 32,
+              "max_terms": 65536,
+              "max_product_terms": 65536
+            },
+            "seconds": 0.010483653983101249,
+            "optimality": "not claimed; bounded algebraic constructions"
+          }
+        },
+        {
+          "mechanism": "affine_representation_search",
+          "status": "verified",
+          "reason": null,
+          "cost_delta": -10.0,
+          "check_status": "equivalent",
+          "equivalent": true,
+          "structural_witness": {
+            "source_nonlinear_dataflow_depth": 2,
+            "materialized_clean_wires": [
+              5,
+              6,
+              7,
+              8
+            ],
+            "depth_scope": "syntactic dependency depth including restoration; not a circuit-depth minimum",
+            "retired_scratch_wires": [
+              7,
+              8
+            ],
+            "retained_product_wires": [
+              5,
+              6
+            ],
+            "boundary_outputs_synthesized_jointly": [
+              4
+            ],
+            "final_products_materialized": false,
+            "removed_materialization_bank": true
+          },
+          "exact_search": null,
+          "bounded_search": {
+            "candidate_steps": 304,
+            "considered_encodings": 71,
+            "stopped_reason": null,
+            "attempted": 16,
+            "verified": 16,
+            "limits": {
+              "max_encodings": 16,
+              "beam_width": 4,
+              "max_encoding_depth": 2,
+              "max_representation_steps": 1000000,
+              "max_orders": 2,
+              "max_factor_nodes": 4096,
+              "max_factor_steps": 1000000,
+              "max_operations": 200,
+              "max_variables": 32,
+              "max_terms": 65536,
+              "max_product_terms": 65536,
+              "timeout": 5.0
+            },
+            "seconds": 0.15781888598576188,
+            "optimality": "not claimed; bounded affine encodings and algebraic orders"
+          }
+        },
+        {
+          "mechanism": "measurement_debt_lowering",
+          "status": "verified",
+          "reason": null,
+          "cost_delta": -24.0,
+          "check_status": "equivalent",
+          "equivalent": true,
+          "structural_witness": {
+            "source_nonlinear_dataflow_depth": 2,
+            "materialized_clean_wires": [
+              5,
+              6,
+              7,
+              8
+            ],
+            "depth_scope": "syntactic dependency depth including restoration; not a circuit-depth minimum",
+            "retired_scratch_wires": [
+              7,
+              8
+            ],
+            "retained_product_wires": [
+              5,
+              6
+            ],
+            "boundary_outputs_synthesized_jointly": [
+              4
+            ],
+            "final_products_materialized": false,
+            "removed_materialization_bank": true,
+            "measured_cleanup_nodes": 2,
+            "schedule_recomputations": 0
+          },
+          "exact_search": null,
+          "bounded_search": null
+        },
+        {
+          "mechanism": "consumer_functional_decomposition",
+          "status": "verified",
+          "reason": null,
+          "cost_delta": -10.0,
+          "check_status": "equivalent",
+          "equivalent": true,
+          "structural_witness": {
+            "discovered_consumer_class_bit": true,
+            "bound_inputs": [
+              0,
+              2,
+              3
+            ],
+            "classes_by_assignment": [
+              0,
+              1,
+              0,
+              1,
+              0,
+              1,
+              0,
+              0
+            ],
+            "residual_class_count": 2,
+            "selector_anf": [
+              [
+                0
+              ],
+              [
+                0,
+                2,
+                3
+              ]
+            ],
+            "consumer_targets": [
+              4
+            ],
+            "compared_all_remaining_inputs_symbolically": true
+          },
+          "exact_search": null,
+          "bounded_search": {
+            "partitions_tested": 10,
+            "rejected_by_three_distinct_cofactors": 6,
+            "full_partition_checks": 4,
+            "two_class_nonlinear_maps": 2,
+            "verified_lowerings": 2,
+            "step_count": 336,
+            "stop_reason": null,
+            "max_partitions": 96
+          }
+        },
+        {
+          "mechanism": "output_basis_search",
+          "status": "verified",
+          "reason": null,
+          "cost_delta": -10.0,
+          "check_status": "equivalent",
+          "equivalent": true,
+          "structural_witness": {
+            "paid_output_basis_change": false,
+            "output_basis_changed": false,
+            "encoded_output_targets": [
+              4
+            ],
+            "original_output_deltas": {
+              "4": [
+                [
+                  0,
+                  1
+                ],
+                [
+                  0,
+                  1,
+                  2,
+                  3
+                ]
+              ]
+            },
+            "encoded_output_deltas": {
+              "4": [
+                [
+                  0,
+                  1
+                ],
+                [
+                  0,
+                  1,
+                  2,
+                  3
+                ]
+              ]
+            },
+            "synthesized_joint_outputs": [
+              4
+            ],
+            "materialized_products": 2,
+            "basis_conversions_emitted": true,
+            "input_basis_changed": false,
+            "unencoded_comparator_cost": 35.0,
+            "unencoded_comparison_complete": true,
+            "same_factor_order_limit": 8,
+            "baseline_materialized_products": 2
+          },
+          "exact_search": null,
+          "bounded_search": {
+            "candidate_steps": 8,
+            "considered_bases": 1,
+            "stopped_reason": null,
+            "attempted": 1,
+            "verified": 1,
+            "limits": {
+              "max_encodings": 16,
+              "beam_width": 4,
+              "max_encoding_depth": 2,
+              "max_representation_steps": 1000000,
+              "max_orders": 8,
+              "max_factor_nodes": 4096,
+              "max_factor_steps": 1000000,
+              "max_operations": 200,
+              "max_variables": 32,
+              "max_terms": 65536,
+              "max_product_terms": 65536,
+              "timeout": 5.0
+            },
+            "seconds": 0.015078913187608123,
+            "analysis_operation_limit": 204,
+            "optimality": "not claimed; output bases change bounded factoring, not unrestricted multiplicative complexity"
+          }
+        },
+        {
+          "mechanism": "architecture_portfolio",
+          "status": "verified",
+          "reason": null,
+          "cost_delta": -10.0,
+          "check_status": "equivalent",
+          "equivalent": true,
+          "structural_witness": {
+            "joint_architecture_change": false,
+            "input_basis_changed": false,
+            "output_basis_changed": false,
+            "complete_joint_output_synthesis": true,
+            "both_adapter_pairs_charged": true,
+            "formulation_hash": "11cc58ef0084d5f10c862ad115f5d686d24fd9a19f6ce17bfcb7cdb1b6a9c4e9",
+            "graph_hash": "a74401277e40b9bf1b06414f0b61652822d79525aca5e5d149dfcc023a8e9991",
+            "verified_identity_comparator_cost": 35.0,
+            "identity_comparison_available": true,
+            "measured_joint_interaction_gain": false,
+            "interaction_scope": "only the measured axis finalists; not exhaustive separate-axis optima"
+          },
+          "exact_search": null,
+          "bounded_search": {
+            "proposed_attempts": 1104,
+            "unique_formulations": 1024,
+            "unique_representations": 166,
+            "unique_product_graphs": 355,
+            "independently_replayed": 1024,
+            "not_lowerable": 0,
+            "selected_finalists": 24,
+            "lowered": 24,
+            "verified": 24,
+            "native_improvements": 24,
+            "categories": {
+              "identity": 5,
+              "input_only": 1019,
+              "output_only": 0,
+              "joint": 0
+            },
+            "generation_seconds": 0.9191553299315274,
+            "seconds": 0.9742647490929812,
+            "factor_steps": 81536,
+            "stopped_reason": "architecture_hypothesis_budget",
+            "representation_mode": "joint",
+            "limits": {
+              "max_hypotheses": 1024,
+              "max_representations": 1024,
+              "max_factor_orders": 8,
+              "max_representation_depth": 4,
+              "frontier_width": 64,
+              "max_finalists": 24,
+              "max_work_steps": 10000000,
+              "max_factor_nodes": 4096,
+              "max_operations": 200,
+              "max_variables": 32,
+              "max_terms": 65536,
+              "max_product_terms": 65536,
+              "timeout": 2.5
+            },
+            "native_evaluations_in_wide_stage": 0,
+            "optimality": "not claimed; bounded joint linear representations, polynomial factorizations and diverse finalists"
+          }
+        },
+        {
+          "mechanism": "factored_observable_search",
+          "status": "not_constructed",
+          "reason": "exact zero boundary sign",
+          "cost_delta": null,
+          "check_status": null,
+          "equivalent": null,
+          "structural_witness": null,
+          "exact_search": null,
+          "bounded_search": null
+        },
+        {
+          "mechanism": "mixed_observable_search",
+          "status": "not_constructed",
+          "reason": "requires both an observable sign and changed output values",
+          "cost_delta": null,
+          "check_status": null,
+          "equivalent": null,
+          "structural_witness": null,
+          "exact_search": null,
+          "bounded_search": null
+        }
+      ],
+      "receipt": "duplicated_reencoding/restructure.json"
+    },
+    {
+      "name": "high_support_bound",
+      "family": "out_of_default_truth_budget",
+      "source_sha256": "5513a72ef65ee3cb4e6b558d217ba1136a49938b36439dc09402cd8850e89e34",
+      "discovery_status": "no_gain",
+      "selected_candidate": "5513a72ef65ee3cb4e6b558d217ba1136a49938b36439dc09402cd8850e89e34",
+      "selected_mechanism": "supplied_baseline",
+      "complete_symbolic_boundary_proof": true,
+      "private_measurement_bits": [],
+      "independent_native_equal": true,
+      "native_check": {
+        "scope": "all_public_inputs",
+        "cases": 2048,
+        "phase": "exact native Fraction modulo two",
+        "measurement_coverage": "no measurements"
+      },
+      "before": {
+        "Q": 19,
+        "toffoli": 17,
+        "t": 0,
+        "rotations": 0,
+        "instructions": 17,
+        "accounting": "static_emitted",
+        "reaction_depth": 9
+      },
+      "after": {
+        "Q": 19,
+        "toffoli": 17,
+        "t": 0,
+        "rotations": 0,
+        "instructions": 17,
+        "accounting": "static_emitted",
+        "reaction_depth": 9
+      },
+      "before_cost": 323.0,
+      "after_cost": 323.0,
+      "physical_clean_wires_retired": [],
+      "deep_bank_retirement": false,
+      "discovery_wall_seconds": 2.6670810440555215,
+      "engine_search_seconds": 2.595982712926343,
+      "native_check_seconds": 0.030968395993113518,
+      "attempt_count": 10,
+      "mechanisms": [
+        {
+          "mechanism": "joint_boundary_synthesis",
+          "status": "not_constructed",
+          "reason": "joint synthesis truth-table input budget",
+          "cost_delta": null,
+          "check_status": null,
+          "equivalent": null,
+          "structural_witness": null,
+          "exact_search": null,
+          "bounded_search": null
+        },
+        {
+          "mechanism": "joint_storage_recomputation",
+          "status": "not_constructed",
+          "reason": "no synthesized joint function DAG to schedule",
+          "cost_delta": null,
+          "check_status": null,
+          "equivalent": null,
+          "structural_witness": null,
+          "exact_search": null,
+          "bounded_search": null
+        },
+        {
+          "mechanism": "algebraic_boundary_synthesis",
+          "status": "verified",
+          "reason": null,
+          "cost_delta": 0.0,
+          "check_status": "equivalent",
+          "equivalent": true,
+          "structural_witness": {
+            "source_nonlinear_dataflow_depth": 9,
+            "materialized_clean_wires": [
+              11,
+              12,
+              13,
+              14,
+              15,
+              16,
+              17,
+              18
+            ],
+            "depth_scope": "syntactic dependency depth including restoration; not a circuit-depth minimum",
+            "retired_scratch_wires": [],
+            "retained_product_wires": [
+              11,
+              12,
+              13,
+              14,
+              15,
+              16,
+              17,
+              18
+            ],
+            "boundary_outputs_synthesized_jointly": [
+              10
+            ],
+            "final_products_materialized": false,
+            "removed_materialization_bank": false
+          },
+          "exact_search": null,
+          "bounded_search": {
+            "attempts": [
+              {
+                "order": [
+                  0,
+                  1,
+                  2,
+                  3,
+                  4,
+                  5,
+                  6,
+                  7,
+                  8,
+                  9
+                ],
+                "status": "verified",
+                "candidate_hash": "afe785e7dab9fb0c8fa9296b0a5ef7e21be604e8cc426ba7c586480e5d59f1ea",
+                "cost": 323.0,
+                "resources": {
+                  "Q": 19,
+                  "toffoli": 17,
+                  "t": 0,
+                  "rotations": 0,
+                  "instructions": 17,
+                  "accounting": "static_emitted",
+                  "reaction_depth": 9
+                },
+                "product_nodes": 9,
+                "materialized_products": 8
+              },
+              {
+                "order": [
+                  9,
+                  8,
+                  7,
+                  6,
+                  5,
+                  4,
+                  3,
+                  2,
+                  1,
+                  0
+                ],
+                "status": "verified",
+                "candidate_hash": "e7f29c424ef0c83fc39ce1174cfe091f2918bb30f9e5326d53795b172f251e68",
+                "cost": 323.0,
+                "resources": {
+                  "Q": 19,
+                  "toffoli": 17,
+                  "t": 0,
+                  "rotations": 0,
+                  "instructions": 17,
+                  "accounting": "static_emitted",
+                  "reaction_depth": 9
+                },
+                "product_nodes": 9,
+                "materialized_products": 8
+              },
+              {
+                "order": [
+                  1,
+                  2,
+                  3,
+                  4,
+                  5,
+                  6,
+                  7,
+                  8,
+                  9,
+                  0
+                ],
+                "status": "verified",
+                "candidate_hash": "378a4b2b7c5f92e5130bf6d527c78ee5eee769845df6a6e00ab743931c918e41",
+                "cost": 323.0,
+                "resources": {
+                  "Q": 19,
+                  "toffoli": 17,
+                  "t": 0,
+                  "rotations": 0,
+                  "instructions": 17,
+                  "accounting": "static_emitted",
+                  "reaction_depth": 9
+                },
+                "product_nodes": 9,
+                "materialized_products": 8
+              },
+              {
+                "order": [
+                  2,
+                  3,
+                  4,
+                  5,
+                  6,
+                  7,
+                  8,
+                  9,
+                  0,
+                  1
+                ],
+                "status": "verified",
+                "candidate_hash": "f23dbb387f7a5cf6e05333f36511dee580658487605c60d20da819207d5759f2",
+                "cost": 323.0,
+                "resources": {
+                  "Q": 19,
+                  "toffoli": 17,
+                  "t": 0,
+                  "rotations": 0,
+                  "instructions": 17,
+                  "accounting": "static_emitted",
+                  "reaction_depth": 9
+                },
+                "product_nodes": 9,
+                "materialized_products": 8
+              },
+              {
+                "order": [
+                  3,
+                  4,
+                  5,
+                  6,
+                  7,
+                  8,
+                  9,
+                  0,
+                  1,
+                  2
+                ],
+                "status": "verified",
+                "candidate_hash": "f7eaa7f61150db4c0be3911c16b8e485eb6d3c95ff652550352c58fc5b85c6af",
+                "cost": 323.0,
+                "resources": {
+                  "Q": 19,
+                  "toffoli": 17,
+                  "t": 0,
+                  "rotations": 0,
+                  "instructions": 17,
+                  "accounting": "static_emitted",
+                  "reaction_depth": 9
+                },
+                "product_nodes": 9,
+                "materialized_products": 8
+              },
+              {
+                "order": [
+                  4,
+                  5,
+                  6,
+                  7,
+                  8,
+                  9,
+                  0,
+                  1,
+                  2,
+                  3
+                ],
+                "status": "verified",
+                "candidate_hash": "e46fd1dc852556278c98f9e2a440240de20117d1333756142310a60262a08714",
+                "cost": 323.0,
+                "resources": {
+                  "Q": 19,
+                  "toffoli": 17,
+                  "t": 0,
+                  "rotations": 0,
+                  "instructions": 17,
+                  "accounting": "static_emitted",
+                  "reaction_depth": 9
+                },
+                "product_nodes": 9,
+                "materialized_products": 8
+              },
+              {
+                "order": [
+                  5,
+                  6,
+                  7,
+                  8,
+                  9,
+                  0,
+                  1,
+                  2,
+                  3,
+                  4
+                ],
+                "status": "verified",
+                "candidate_hash": "0b5e182fc372e2ceb46acd939efb8f412afbc7bd4a2b5e1793fcb04cae735198",
+                "cost": 323.0,
+                "resources": {
+                  "Q": 19,
+                  "toffoli": 17,
+                  "t": 0,
+                  "rotations": 0,
+                  "instructions": 17,
+                  "accounting": "static_emitted",
+                  "reaction_depth": 9
+                },
+                "product_nodes": 9,
+                "materialized_products": 8
+              },
+              {
+                "order": [
+                  6,
+                  7,
+                  8,
+                  9,
+                  0,
+                  1,
+                  2,
+                  3,
+                  4,
+                  5
+                ],
+                "status": "verified",
+                "candidate_hash": "97f49bfeda80501ccaa97bfa2af47afa9e11b9c92c0d93b0d96c92cc7898e5d2",
+                "cost": 323.0,
+                "resources": {
+                  "Q": 19,
+                  "toffoli": 17,
+                  "t": 0,
+                  "rotations": 0,
+                  "instructions": 17,
+                  "accounting": "static_emitted",
+                  "reaction_depth": 9
+                },
+                "product_nodes": 9,
+                "materialized_products": 8
+              }
+            ],
+            "stopped_reason": null,
+            "factor_steps": 896,
+            "limits": {
+              "max_orders": 8,
+              "max_factor_nodes": 4096,
+              "max_factor_steps": 1000000,
+              "timeout": 3.0,
+              "max_operations": 200,
+              "max_variables": 32,
+              "max_terms": 65536,
+              "max_product_terms": 65536
+            },
+            "seconds": 0.026464208029210567,
+            "optimality": "not claimed; bounded algebraic constructions"
+          }
+        },
+        {
+          "mechanism": "affine_representation_search",
+          "status": "verified",
+          "reason": null,
+          "cost_delta": 0.0,
+          "check_status": "equivalent",
+          "equivalent": true,
+          "structural_witness": {},
+          "exact_search": null,
+          "bounded_search": {
+            "candidate_steps": 1400,
+            "considered_encodings": 491,
+            "stopped_reason": null,
+            "attempted": 16,
+            "verified": 16,
+            "limits": {
+              "max_encodings": 16,
+              "beam_width": 4,
+              "max_encoding_depth": 2,
+              "max_representation_steps": 1000000,
+              "max_orders": 2,
+              "max_factor_nodes": 4096,
+              "max_factor_steps": 1000000,
+              "max_operations": 200,
+              "max_variables": 32,
+              "max_terms": 65536,
+              "max_product_terms": 65536,
+              "timeout": 5.0
+            },
+            "seconds": 0.4957417990081012,
+            "optimality": "not claimed; bounded affine encodings and algebraic orders"
+          }
+        },
+        {
+          "mechanism": "measurement_debt_lowering",
+          "status": "verified",
+          "reason": null,
+          "cost_delta": 0.0,
+          "check_status": "equivalent",
+          "equivalent": true,
+          "structural_witness": {
+            "source_nonlinear_dataflow_depth": 9,
+            "materialized_clean_wires": [
+              11,
+              12,
+              13,
+              14,
+              15,
+              16,
+              17,
+              18
+            ],
+            "depth_scope": "syntactic dependency depth including restoration; not a circuit-depth minimum",
+            "retired_scratch_wires": [],
+            "retained_product_wires": [
+              11,
+              12,
+              13,
+              14,
+              15,
+              16,
+              17,
+              18
+            ],
+            "boundary_outputs_synthesized_jointly": [
+              10
+            ],
+            "final_products_materialized": false,
+            "removed_materialization_bank": false,
+            "measured_cleanup_nodes": 0,
+            "schedule_recomputations": 0
+          },
+          "exact_search": null,
+          "bounded_search": null
+        },
+        {
+          "mechanism": "consumer_functional_decomposition",
+          "status": "not_constructed",
+          "reason": "no verified nonlinear two-class lowering among tested partitions",
+          "cost_delta": null,
+          "check_status": null,
+          "equivalent": null,
+          "structural_witness": null,
+          "exact_search": null,
+          "bounded_search": {
+            "partitions_tested": 96,
+            "rejected_by_three_distinct_cofactors": 0,
+            "full_partition_checks": 96,
+            "two_class_nonlinear_maps": 0,
+            "verified_lowerings": 0,
+            "step_count": 7179,
+            "stop_reason": null,
+            "max_partitions": 96
+          }
+        },
+        {
+          "mechanism": "output_basis_search",
+          "status": "verified",
+          "reason": null,
+          "cost_delta": 0.0,
+          "check_status": "equivalent",
+          "equivalent": true,
+          "structural_witness": {
+            "paid_output_basis_change": false
+          },
+          "exact_search": null,
+          "bounded_search": {
+            "candidate_steps": 11,
+            "considered_bases": 1,
+            "stopped_reason": null,
+            "attempted": 1,
+            "verified": 1,
+            "limits": {
+              "max_encodings": 16,
+              "beam_width": 4,
+              "max_encoding_depth": 2,
+              "max_representation_steps": 1000000,
+              "max_orders": 8,
+              "max_factor_nodes": 4096,
+              "max_factor_steps": 1000000,
+              "max_operations": 200,
+              "max_variables": 32,
+              "max_terms": 65536,
+              "max_product_terms": 65536,
+              "timeout": 5.0
+            },
+            "seconds": 0.04789314907975495,
+            "analysis_operation_limit": 204,
+            "optimality": "not claimed; output bases change bounded factoring, not unrestricted multiplicative complexity"
+          }
+        },
+        {
+          "mechanism": "architecture_portfolio",
+          "status": "verified",
+          "reason": null,
+          "cost_delta": 0.0,
+          "check_status": "equivalent",
+          "equivalent": true,
+          "structural_witness": {
+            "joint_architecture_change": false
+          },
+          "exact_search": null,
+          "bounded_search": {
+            "proposed_attempts": 1006,
+            "unique_formulations": 1004,
+            "unique_representations": 126,
+            "unique_product_graphs": 820,
+            "independently_replayed": 1004,
+            "not_lowerable": 0,
+            "selected_finalists": 24,
+            "lowered": 24,
+            "verified": 24,
+            "native_improvements": 0,
+            "categories": {
+              "identity": 8,
+              "input_only": 996,
+              "output_only": 0,
+              "joint": 0
+            },
+            "generation_seconds": 1.625629061134532,
+            "seconds": 1.7382785161025822,
+            "factor_steps": 244353,
+            "stopped_reason": "algebraic_factor_time_budget",
+            "representation_mode": "joint",
+            "limits": {
+              "max_hypotheses": 1024,
+              "max_representations": 1024,
+              "max_factor_orders": 8,
+              "max_representation_depth": 4,
+              "frontier_width": 64,
+              "max_finalists": 24,
+              "max_work_steps": 10000000,
+              "max_factor_nodes": 4096,
+              "max_operations": 200,
+              "max_variables": 32,
+              "max_terms": 65536,
+              "max_product_terms": 65536,
+              "timeout": 2.5
+            },
+            "native_evaluations_in_wide_stage": 0,
+            "optimality": "not claimed; bounded joint linear representations, polynomial factorizations and diverse finalists"
+          }
+        },
+        {
+          "mechanism": "factored_observable_search",
+          "status": "not_constructed",
+          "reason": "exact zero boundary sign",
+          "cost_delta": null,
+          "check_status": null,
+          "equivalent": null,
+          "structural_witness": null,
+          "exact_search": null,
+          "bounded_search": null
+        },
+        {
+          "mechanism": "mixed_observable_search",
+          "status": "not_constructed",
+          "reason": "requires both an observable sign and changed output values",
+          "cost_delta": null,
+          "check_status": null,
+          "equivalent": null,
+          "structural_witness": null,
+          "exact_search": null,
+          "bounded_search": null
+        }
+      ],
+      "receipt": "high_support_bound/restructure.json"
+    }
+  ],
+  "deep_bank_retirements": 6,
+  "bounded_or_no_deep_gain": 1,
+  "independent_native_checks_passed": 7,
+  "discovery_wall_seconds": 15.977203916758299,
+  "engine_search_seconds": 15.36454822588712,
+  "native_check_seconds": 0.03902399493381381,
+  "total_wall_seconds": 16.036366237793118,
+  "process_peak_rss_bytes": 62472192,
+  "memory_scope": "Linux process high-water RSS, including imports, discovery and native checks; not a per-constructor peak"
+}

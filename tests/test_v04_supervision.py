@@ -240,3 +240,14 @@ def test_shell_style_exit_code_is_not_asserted_to_be_a_signal(tmp_path, local_pr
     assert run['diagnosis']['oom_confirmed'] is False
     assert 'signal' not in run['diagnosis']
     board.finish(token, 'failed')
+
+
+def test_shell_style_cpu_limit_exit_records_limit_as_possible_cause(tmp_path, local_process_double):
+    board, _, token = _owned(tmp_path)
+    run = run_owned(board, token, [sys.executable, '-c', 'raise SystemExit(152)'],
+                    tmp_path, cpu_seconds=22)
+    assert run['status'] == 'nonzero_exit'
+    assert run['diagnosis']['possible_signal_name'] == 'SIGXCPU'
+    assert any('22 seconds' in item for item in run['diagnosis']['evidence'])
+    assert 'signal' not in run['diagnosis']
+    board.finish(token, 'failed')

@@ -519,6 +519,10 @@ def _advance_zero_facts(item, zeros, depth=0, at=None):
     """
     if item['status'] == 'metadata':
         return
+    if item.get('reason') == 'unsupported_fractional_phase' and item.get('op') == 'Z_POW':
+        # A native diagonal rotation preserves every basis value even when
+        # this sign-only semantic backend cannot represent its phase.
+        return
     if item['status'] != 'supported':
         zeros.clear()
         return

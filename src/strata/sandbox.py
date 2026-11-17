@@ -55,10 +55,12 @@ def process_state(identity):
 
 
 def effective_limits(*, timeout=60, max_output=1_000_000, memory_bytes=2*1024**3,
-                     max_file_bytes=1024**3, cpu_seconds=None):
+                     max_file_bytes=1024**3, cpu_seconds=None, threads=1):
     if type(timeout) not in (int, float) or not math.isfinite(timeout) or timeout <= 0:
         raise StrataError('sandbox timeout must be positive and finite')
-    cpu_seconds = max(1, math.ceil(timeout)) if cpu_seconds is None else cpu_seconds
+    if type(threads) is not int or threads < 1:
+        raise StrataError('thread reservation must be a positive integer')
+    cpu_seconds = max(1, math.ceil(timeout * threads)) if cpu_seconds is None else cpu_seconds
     values = dict(memory_bytes=memory_bytes, max_file_bytes=max_file_bytes,
                   cpu_seconds=cpu_seconds, max_output=max_output)
     for name, value in values.items():
@@ -203,6 +205,9 @@ def run(argv, workdir, timeout=60, max_output=1_000_000, memory_bytes=2*1024**3,
     if possible_signal:
         diagnosis['possible_signal'] = possible_signal
         diagnosis['evidence'].append('exit status resembles 128 + signal; signal cause is unconfirmed')
+        if possible_signal == signal.SIGXCPU:
+            diagnosis['possible_signal_name'] = 'SIGXCPU'
+            diagnosis['evidence'].append(f'consistent with configured CPU limit of {configured["cpu_seconds"]} seconds per process')
     if signum:
         diagnosis.update(signal=signum, signal_name=signal.Signals(signum).name if signum in signal.Signals._value2member_map_ else str(signum))
         if signum == signal.SIGKILL and reason is None:

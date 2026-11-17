@@ -150,14 +150,28 @@ class ExperimentBoard:
         return self._public(self._row(job_id))
 
     def _discard_abandoned_queue(self):
-        # A queued entry owns no child or resources. Only a proven dead
-        # submitter authorizes automatic withdrawal; legacy/unknown identities
-        # remain available for explicit cancellation.
-        rows = self.db.execute("SELECT job_id,owner_identity FROM experiment_board_jobs WHERE state='queued' AND owner_identity IS NOT NULL").fetchall()
+        # Legacy requests did not retain a submitter identity. They own no
+        # resources only when every claim/launch field and retained event agrees;
+        # ambiguous identities or launch evidence must never release work.
+        rows = self.db.execute("""SELECT job_id,owner_identity FROM experiment_board_jobs
+            WHERE state='queued' AND owner IS NULL AND token_hash IS NULL
+              AND process_identity IS NULL AND process_phase='not_started'
+              AND heartbeat IS NULL AND lease_until IS NULL AND result_handle IS NULL""").fetchall()
         for job_id, identity in rows:
-            if process_state(json.loads(identity)) == 'dead':
-                self.db.execute("UPDATE experiment_board_jobs SET state='cancelled',cancel_requested=1,updated=? WHERE job_id=?", (time.time(), job_id))
-                self._event(job_id, 'cancelled', reason='queued submitter exited before claim')
+            prior_launch = self.db.execute("""SELECT 1 FROM experiment_board_events e
+                JOIN records r ON r.id=e.record_handle WHERE e.job_id=?
+                AND json_extract(r.body,'$.type') != 'enqueued' LIMIT 1""", (job_id,)).fetchone()
+            if prior_launch:
+                continue
+            if identity is None:
+                reason = 'legacy queued request has no owner, claim, or launch evidence'
+            elif process_state(json.loads(identity)) == 'dead':
+                reason = 'queued submitter exited before claim'
+            else:
+                continue
+            self.db.execute("UPDATE experiment_board_jobs SET state='cancelled',cancel_requested=1,updated=? WHERE job_id=?", (time.time(), job_id))
+            self._event(job_id, 'cancelled', reason=reason,
+                        evidence='queued; unclaimed; process not started; no retained claim or launch events')
 
     def _owned(self, token):
         if not isinstance(token, str) or not token:

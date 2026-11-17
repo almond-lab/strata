@@ -57,8 +57,9 @@ def _bounds(max_window, max_variables, max_terms):
     return limits
 
 
-def _artifact(path, circuit, formula, canonical_hash=None):
-    resources = Kickmix().measured(circuit)
+def _artifact(path, circuit, formula, canonical_hash=None, *, accounting='static', external_distribution=None):
+    from .accounting import measured_resources
+    resources = measured_resources(circuit,accounting=accounting,external_distribution=external_distribution)
     return dict(path=str(path), sha256=canonical_hash or _hash(str(circuit)),
                 source_sha256=_source_hash(path), resources=resources, cost=formula(resources))
 
@@ -149,7 +150,28 @@ def _boundary_depths(lines, ranges):
     return depths, min(len(lines), merged[-1][1])
 
 
-def _local_proofs(old, new, changes, opcodes, requested, limits, max_attempts):
+def _has_fractional_rotation(lines):
+    # Canonical native decimals already reflect the SDK's exact quantization.
+    return any(line.startswith('Z_POW ') and _parse(line).get('reason') == 'unsupported_fractional_phase'
+               for line in lines)
+
+
+def _fractional_interval_check(before, after, limits):
+    from .fractional_equivalence import equivalent_fractional_boundaries
+
+    left, right = (km.Circuit('\n'.join(lines)) for lines in (before, after))
+    if left.num_qubits != right.num_qubits:
+        # The enclosing files have the same physical width. Both slices act
+        # on the union of their wires, even when one side leaves its top wire
+        # untouched. The common inert register preserves every arbitrary input.
+        top = max(left.num_qubits, right.num_qubits) - 1
+        index = max(left.num_registers, right.num_registers)
+        pin = f'APPEND_TO_REGISTER q{top} r{index}'
+        left, right = (km.Circuit(str(circuit) + '\n' + pin) for circuit in (left, right))
+    return equivalent_fractional_boundaries(left, right, **limits)
+
+
+def _local_proofs(old, new, changes, opcodes, requested, limits, max_attempts, *, independent=False, private=()):
     """Recover dirty-boundary functions only around edits, with bounded growth.
 
     An unsuccessful small comparison is not a final rejection: adjacent edits
@@ -175,6 +197,18 @@ def _local_proofs(old, new, changes, opcodes, requested, limits, max_attempts):
                         if d-c <= limit]
     old_depths, recovery['context_scan_lines']['source'] = _boundary_depths(old, source_ranges)
     new_depths, recovery['context_scan_lines']['candidate'] = _boundary_depths(new, candidate_ranges)
+    def last_uses(tape):
+        # A discarded local measurement bit cannot influence the unchanged suffix.
+        uses={}
+        if private:
+            import re
+            allowed=set(private)
+            for at,line in enumerate(tape):
+                for token in re.findall(r'\bb(\d+)\b',line):
+                    bit=int(token)
+                    if bit in allowed:uses[bit]=at
+        return uses
+    old_uses,new_uses=last_uses(old),last_uses(new)
     while index < len(changes):
         _, a, b, _, _ = changes[index]
         joined = False
@@ -218,7 +252,15 @@ def _local_proofs(old, new, changes, opcodes, requested, limits, max_attempts):
                 check = dict(status='unknown', equivalent=None, reason='metadata_boundary_changed')
             else:
                 recovery['semantic_comparisons'] += 1
-                check = equivalent_windows(before_lines, after_lines, **limits)
+                if independent:
+                    from .measurement_equivalence import equivalent_independent_outputs
+                    internal=[bit for bit in private if old_uses.get(bit,-1)<b and new_uses.get(bit,-1)<d]
+                    check=equivalent_independent_outputs(before_lines,after_lines,internal_bits=internal,
+                        max_operations=limit,max_variables=limits['max_variables'],max_nodes=max(2,4*limits['max_terms']))
+                elif _has_fractional_rotation(before_lines) or _has_fractional_rotation(after_lines):
+                    check = _fractional_interval_check(before_lines, after_lines, limits)
+                else:
+                    check = equivalent_windows(before_lines, after_lines, **limits)
             reason = check.get('reason') or next((check[side].get('reason') for side in ('before', 'after')
                                                  if check.get(side, {}).get('status') != 'exact'
                                                  and check.get(side, {}).get('reason')), check.get('status'))
@@ -227,7 +269,9 @@ def _local_proofs(old, new, changes, opcodes, requested, limits, max_attempts):
                             source_sha256=_hash('\n'.join(before_lines)),
                             replacement_sha256=_hash('\n'.join(after_lines)))
             if check['equivalent'] is True:
-                interval['function_hash'] = _function(analyze_complete(before_lines, **limits))
+                semantics=analyze_complete(before_lines, **limits)
+                if semantics['status'] in ('exact','exact_factored'):
+                    interval['function_hash'] = _function(semantics)
                 intervals.append(interval)
                 while index < len(changes) and a <= changes[index][1] <= changes[index][2] <= b and c <= changes[index][3] <= changes[index][4] <= d:
                     index += 1
@@ -651,18 +695,20 @@ def _stream_clean_restoration(lines, clean, max_facts):
 def evaluate_candidate(original_path, candidate_path, out, *, cost=DEFAULT_COST,
                        hypothesis=None, regions=None, max_window=256,
                        max_variables=64, max_terms=4096, domain=None, clean_inputs=(), max_proof_attempts=64,
-                       measurement_mode='coupled', internal_bits=()):
+                       measurement_mode='coupled', internal_bits=(), accounting='static', external_distribution=None,
+                       max_proof_operations=None):
     with ExitStack() as tapes:
         return _evaluate_candidate(original_path, candidate_path, out, cost=cost,
-            hypothesis=hypothesis, regions=regions, max_window=max_window,
+            hypothesis=hypothesis, regions=regions, max_window=max_window if max_proof_operations is None else max_proof_operations,
             max_variables=max_variables, max_terms=max_terms, domain=domain,
             clean_inputs=clean_inputs, max_proof_attempts=max_proof_attempts,
-            measurement_mode=measurement_mode, internal_bits=internal_bits, tapes=tapes)
+            measurement_mode=measurement_mode, internal_bits=internal_bits, tapes=tapes,
+            accounting=accounting,external_distribution=external_distribution)
 
 
 def _evaluate_candidate(original_path, candidate_path, out, *, cost, hypothesis, regions,
                         max_window, max_variables, max_terms, domain, clean_inputs,
-                        max_proof_attempts, measurement_mode, internal_bits, tapes):
+                        max_proof_attempts, measurement_mode, internal_bits, tapes,accounting,external_distribution):
     """Measure and retain an AI-authored file candidate without a TaskAdapter.
 
     Ranges use zero-based half-open indices in canonical source text.  They
@@ -672,8 +718,8 @@ def _evaluate_candidate(original_path, candidate_path, out, *, cost, hypothesis,
     limits = _bounds(max_window, max_variables, max_terms)
     if measurement_mode not in {'coupled', 'independent-map'}:
         raise StrataError('measurement_mode must be coupled or independent-map')
-    if (measurement_mode != 'coupled' or internal_bits) and domain is None:
-        raise StrataError('independent measurement maps require an explicit finite domain')
+    if internal_bits and measurement_mode!='independent-map':
+        raise StrataError('private classical bits require independent-map measurement mode')
     if type(max_proof_attempts) is not int or max_proof_attempts < 1:
         raise StrataError('max_proof_attempts must be a positive integer')
     formula = Formula(cost)
@@ -691,7 +737,7 @@ def _evaluate_candidate(original_path, candidate_path, out, *, cost, hypothesis,
     from .inference import _wires
     clean = sorted(_wires(original, clean_inputs, 'clean inputs'))
     root = _safe_output(out, [parent_path, child_path], ['evaluation.json'])
-    baseline = _artifact(parent_path, original, formula, old.sha256)
+    baseline = _artifact(parent_path, original, formula, old.sha256,accounting=accounting,external_distribution=external_distribution)
     if baseline['source_sha256'] != source_hash:
         raise StrataError('source changed during parent preflight; retry with a stable artifact')
     try:
@@ -701,7 +747,7 @@ def _evaluate_candidate(original_path, candidate_path, out, *, cost, hypothesis,
                       parent_sha256=baseline['sha256'], baseline=baseline,
                       candidate=dict(path=str(child_path), sha256=None, source_sha256=_source_hash(child_path),
                                      resources=None, cost=None, blob_encoding='raw_unparsed'),
-                      objective=dict(expression=cost, accounting='static_emitted'),
+                      objective=dict(expression=cost, accounting=baseline['resources']['accounting'],external_distribution=external_distribution),
                       hypothesis=hypothesis, hypothesis_binding=binding, clean_inputs=clean,
                       cost_delta=None, accepted_gain=None,
                       cost_delta_scope='unavailable: candidate could not be parsed',
@@ -714,47 +760,45 @@ def _evaluate_candidate(original_path, candidate_path, out, *, cost, hypothesis,
         report['feedback']['next_test'] = 'Correct the syntax in the selected circuit format using the parser error, then resubmit the concrete candidate for measurement and exact equivalence.'
         return _retain(report, old.path, child_path, root)
     new = tapes.enter_context(canonical_tape(candidate))
-    measured = _artifact(child_path, candidate, formula, new.sha256)
+    if any(type(b) is not int or not 0<=b<max(original.num_bits,candidate.num_bits) for b in internal_bits):
+        raise StrataError('private classical bit outside the compared circuits')
+    measured = _artifact(child_path, candidate, formula, new.sha256,accounting=accounting,external_distribution=external_distribution)
     requested = _requested_ranges(regions, len(old))
+    # Reuse the disk-backed normalized tapes for circuits containing rotations.
+    fractional = any(circuit.operation_statistics()['Z_POW'] and _has_fractional_rotation(tape)
+                     for circuit, tape in ((original, old), (candidate, new)))
+    phase_contract = 'exact_native_dyadic' if fractional else 'exact_sign'
     report = dict(schema_version='1', kind='agent_candidate_evaluation',
                   parent_sha256=baseline['sha256'], baseline=baseline, candidate=measured,
-                  objective=dict(expression=cost, accounting='static_emitted'),
+                  objective=dict(expression=cost, accounting=baseline['resources']['accounting'],external_distribution=external_distribution),
                   cost_delta=measured['cost']-baseline['cost'], hypothesis=hypothesis,
                   hypothesis_binding=binding, clean_inputs=clean,
                   requested_regions=requested, limits=limits, intervals=[], function_hashes=[],
                   official_verifier_run=False, structural_depth='not_established_by_equivalence',
                   disposition='evidence_for_this_candidate_only; mechanism family remains open',
-                  score_status='static file objective; no official task or portfolio score',
-                  checks=dict(equivalent=None, all_inputs_arbitrary=not clean, phase='exact_sign',
+                  score_status='file objective under declared accounting; no official task or portfolio score',
+                  checks=dict(equivalent=None, all_inputs_arbitrary=not clean, phase=phase_contract,
                               scope='disjoint arbitrary-boundary substitutions; no task-domain reachability assumptions',
                               width_preserved=original.num_qubits == candidate.num_qubits,
                               boundaries_preserved=False))
     contract = dict(baseline_sha256=baseline['sha256'], candidate_sha256=measured['sha256'],
                     clean_inputs=clean, required_zero_outputs=clean, domain_hash=None,
                     boundary='whole artifact' if clean or domain is not None else 'arbitrary regional boundaries',
-                    physical_width=original.num_qubits, phase='exact_sign')
+                    physical_width=original.num_qubits, phase=phase_contract)
     contract.update(measurement_mode=measurement_mode, internal_classical_outputs=list(internal_bits))
     report.update(contract=contract, contract_hash=digest(contract))
     reason = None
     if domain is not None:
-        from .domains import load_domain, equivalent_on_domain
+        from .promised_domain import load_search_domain,check_promised_candidate
         if regions is not None:
             raise StrataError('finite-domain evaluation checks the whole circuit; region promises must be evaluated separately')
-        promise = load_domain(domain, original,max_operations=max_window)
-        if any(row[f'q{q}'] for row in promise['assignments'] for q in clean):
+        promise = load_search_domain(domain, original,clean_inputs=clean,max_operations=max_window)
+        if any(row[f'q{q}'] for row in promise.get('assignments',()) for q in clean):
             raise StrataError('finite domain contradicts declared clean boundary inputs')
         contract['domain_hash'] = promise['domain_hash']
         report['contract_hash'] = digest(contract)
-        check = equivalent_on_domain(original, candidate, promise,
-                                     max_operations=max_window, measurement_mode=measurement_mode,
-                                     internal_bits=internal_bits, required_zero_outputs=clean)
-        if clean and measurement_mode == 'coupled' and check.get('equivalent') is True:
-            restoration = _finite_clean_restoration(original, candidate, promise, clean,
-                                                    check['outcome_count'], max_window)
-            check['clean_outputs_restored'] = restoration['restored']
-            if restoration['restored'] is not True:
-                check.update(equivalent=restoration['restored'], reason=restoration['reason'])
-                check['counterexample'] = restoration.get('counterexample')
+        check = check_promised_candidate(original,candidate,promise,clean_inputs=clean,measurement_mode=measurement_mode,
+                                         internal_bits=internal_bits,**limits)
         report['domain'] = promise
         report['checks'].update(check)
         report['checks']['all_inputs_arbitrary'] = False
@@ -762,7 +806,7 @@ def _evaluate_candidate(original_path, candidate_path, out, *, cost, hypothesis,
         report['checks'].setdefault('reason', check.get('status', 'finite_domain_check'))
         report['status'] = ('verified_domain_improvement' if report['cost_delta'] < 0 else 'verified_domain_no_gain') if report['checks'].get('equivalent') is True else ('rejected' if report['checks'].get('equivalent') is False else 'unknown')
         report['accepted_gain'] = max(0.0, -report['cost_delta']) if report['checks'].get('equivalent') is True else None
-        report['cost_delta_scope'] = 'static diagnostic accepted only on explicit hashed finite domain'
+        report['cost_delta_scope'] = 'declared accounting; accepted only on the hashed finite domain'
         report['counterexample'] = check.get('counterexample')
         report['feedback'] = _feedback(report)
         report['feedback']['inference_scope'] = 'this construction on the hashed finite promised domain; no all-input or host acceptance claim'
@@ -776,11 +820,24 @@ def _evaluate_candidate(original_path, candidate_path, out, *, cost, hypothesis,
                                changed_intervals=[dict(start=a, stop=b, candidate_start=c, candidate_stop=d)
                                                   for _, a, b, c, d in changes],
                                storage='disk-backed canonical tape; sparse offsets and bounded line cache')
-    if reason is None and clean and max(len(old), len(new)) > max_window:
+    if reason is None and measurement_mode=='independent-map' and max(len(old),len(new))<=max_window:
+        from .measurement_equivalence import equivalent_independent_outputs
+        if requested is not None and any(not any(x<=a<=b<=y for x,y in requested) for _,a,b,_,_ in changes):
+            reason='changes_outside_requested_regions'
+        elif original.register_data!=candidate.register_data:
+            reason='metadata_boundary_changed'
+        else:
+            check=equivalent_independent_outputs(old,new,clean_inputs=clean,internal_bits=internal_bits,
+                required_zero_outputs=clean,max_operations=max_window,max_variables=max_variables,max_nodes=max(2,4*max_terms))
+            report['checks'].update(check)
+            report['counterexample']=check.get('counterexample')
+            reason=None if check['equivalent'] is True else check['reason']
+    elif reason is None and clean and max(len(old), len(new)) > max_window:
         # A clean-input declaration must not force a local edit into a giant
         # whole-artifact proof. Prove the substitution on arbitrary boundaries,
         # then discharge the declared whole-artifact cleanup separately.
-        local = _local_proofs(old, new, changes, opcodes, requested, limits, max_proof_attempts)
+        local = _local_proofs(old, new, changes, opcodes, requested, limits, max_proof_attempts,
+                              independent=measurement_mode=='independent-map',private=internal_bits)
         report['intervals'], report['recovery'] = local['intervals'], local['recovery']
         report['function_hashes'] = [row['function_hash'] for row in local['intervals'] if 'function_hash' in row]
         reason = local['reason']
@@ -804,10 +861,15 @@ def _evaluate_candidate(original_path, candidate_path, out, *, cost, hypothesis,
               [line for line in new if _parse(line)['status'] == 'metadata']):
             reason = 'metadata_boundary_changed'
         else:
-            check = equivalent_windows(old, new, clean_inputs=clean, **limits)
+            if fractional:
+                from .fractional_equivalence import equivalent_fractional_boundaries
+                check=equivalent_fractional_boundaries(original,candidate,clean_inputs=clean,required_zero_outputs=clean,**limits)
+            else:
+                check = equivalent_windows(old, new, clean_inputs=clean, **limits)
             before = analyze_window(old, clean_inputs=clean, **limits)
             after = analyze_window(new, clean_inputs=clean, **limits)
-            restoration = _clean_restoration(before, after, clean)
+            restoration = (dict(restored=True) if check.get('equivalent') is True and check.get('exact_phase') else
+                           _clean_restoration(before, after, clean))
             report['checks']['clean_outputs_restored'] = restoration['restored']
             interval = dict(start=0, stop=len(old), candidate_start=0, candidate_stop=len(new),
                             check=check, clean_restoration=restoration, source_sha256=_hash('\n'.join(old)),
@@ -827,7 +889,8 @@ def _evaluate_candidate(original_path, candidate_path, out, *, cost, hypothesis,
             elif check['equivalent'] is not True or restoration['restored'] is not True:
                 reason = 'proof_budget_or_semantics_unavailable'
     elif reason is None:
-        local = _local_proofs(old, new, changes, opcodes, requested, limits, max_proof_attempts)
+        local = _local_proofs(old, new, changes, opcodes, requested, limits, max_proof_attempts,
+                              independent=measurement_mode=='independent-map',private=internal_bits)
         report['intervals'] = local['intervals']
         report['recovery'] = local['recovery']
         report['function_hashes'] = [row['function_hash'] for row in report['intervals'] if 'function_hash' in row]

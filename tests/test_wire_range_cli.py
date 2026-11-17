@@ -40,8 +40,9 @@ def test_floors_cli_range_and_usage_error(tmp_path, capsys):
     assert 'inclusive ranges' in capsys.readouterr().out
 
 
-def test_measurement_semantics_do_not_establish_boolean_gate_floor():
+def test_repaired_measurement_establishes_only_a_scoped_boolean_value_floor():
     measured = km.Circuit('CX q0 q1\nHMR q1 b0\nZ q0 if b0')
     result = circuit_floors(measured, clean_inputs=[1])
-    assert result['status'] == 'unknown'
-    assert 'measurement or classical channels' in result['reason']
+    assert result['status'] == 'exact' and result['value'] == 0
+    assert result['measurement_analysis']['phase_obligations_discharged']
+    assert result['global_quantum_floor'] is False

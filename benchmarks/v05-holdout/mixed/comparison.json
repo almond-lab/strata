@@ -1,0 +1,78 @@
+{
+  "fixture_binding": "088c6a164350a7743be9656bd6a1de4e39676fb4dc4de16352b0ca7cf0d75fee",
+  "results": [
+    {
+      "name": "updated_dirty_target_phase",
+      "previous_status": "no_gain",
+      "corrected_status": "verified_improvement",
+      "previous_cost": 88,
+      "corrected_cost": 32,
+      "corrected_mechanism": "mixed_observable_search",
+      "corrected_native": {
+        "scope": "all physical public quantum inputs, all initial classical bits, every HMR/R outcome",
+        "quantum_input_bits": 7,
+        "classical_input_bits": 0,
+        "formal_outcome_bits": 0,
+        "total_cases": 128,
+        "primitive_adapter": "native HMR/R plus exact local outcome/sign forcing",
+        "introduced_bits_initial_values": "also exhaustively arbitrary",
+        "equivalent": true,
+        "status": "exhaustive_equal"
+      }
+    },
+    {
+      "name": "dependent_observable_then_adapter",
+      "previous_status": "no_gain",
+      "corrected_status": "no_gain",
+      "previous_cost": 72,
+      "corrected_cost": 72,
+      "corrected_mechanism": "supplied_baseline",
+      "corrected_native": {
+        "scope": "all physical public quantum inputs, all initial classical bits, every HMR/R outcome",
+        "quantum_input_bits": 5,
+        "classical_input_bits": 0,
+        "formal_outcome_bits": 0,
+        "total_cases": 32,
+        "primitive_adapter": "native HMR/R plus exact local outcome/sign forcing",
+        "introduced_bits_initial_values": "also exhaustively arbitrary",
+        "equivalent": true,
+        "status": "exhaustive_equal"
+      }
+    },
+    {
+      "name": "fractional_observable_guard",
+      "previous_status": "no_gain",
+      "corrected_status": "no_gain",
+      "previous_cost": 80,
+      "corrected_cost": 80,
+      "corrected_mechanism": "supplied_baseline",
+      "corrected_native": {
+        "scope": "all physical public quantum inputs, all initial classical bits, every HMR/R outcome",
+        "quantum_input_bits": 6,
+        "classical_input_bits": 0,
+        "formal_outcome_bits": 0,
+        "total_cases": 64,
+        "primitive_adapter": "native HMR/R plus exact local outcome/sign forcing",
+        "introduced_bits_initial_values": "also exhaustively arbitrary",
+        "equivalent": true,
+        "status": "exhaustive_equal"
+      }
+    }
+  ],
+  "source_code": {
+    "previous": "76fa40cd16054c0f4a8e7319b8d2abbb300465cf7da80791824b434f946689d3",
+    "corrected": "7bad01fef642b7b3696672d3b4ec8c1d7eeb8e80b1844da593769b60385af310"
+  },
+  "discovery_wall_seconds": {
+    "previous": 0.2764377021230757,
+    "corrected": 1.1069404676090926
+  },
+  "process_wall_seconds": {
+    "previous": 1.088975426973775,
+    "corrected": 2.6071797320619226
+  },
+  "all_selected_bytes_replayed": true,
+  "physical_layouts_checked": true,
+  "provenance": "New mixed holdouts frozen before corrected-engine results; prior nine-case phase failure was already exposed.",
+  "limits": "Fixed short ceilings; no global optimum, official score, or generic fractional-phase construction claim."
+}

@@ -21,6 +21,8 @@ def add_parsers(sub):
     p.add_argument('--setting', action='append', default=[], metavar='NAME=JSON')
     p.add_argument('--timeout', type=float, default=60)
     p.add_argument('--threads', type=int, default=1)
+    p.add_argument('--dependency',action='append',default=[],metavar='FILE_OR_DIR',
+                   help='also pin a local import, data file, or complete source directory')
     p.add_argument('--memory-mb', type=int, default=2048)
     p.add_argument('--storage-mb', type=int, default=64,
                    help='cooperative temporary-storage reservation, not an enforced total quota')
@@ -103,10 +105,17 @@ def wrap_command(args):
         raise StrataError('command executable was not found')
     argv[0] = str(Path(executable).absolute())  # preserve virtualenv invocation
     output_paths = {Path(v.partition('=')[2].rpartition(':')[0]) for v in args.output}
-    dependencies = {}
+    dependencies = {f'extra{i}':str(Path(value).absolute()) for i,value in enumerate(args.dependency)}
+    trees = [Path(path).resolve() for path in dependencies.values() if Path(path).is_dir()]
+    python_files = []
     for i, value in enumerate(argv[1:], 1):
         path = Path(value)
         if path.is_file() and path not in output_paths:
+            if any(path.resolve().is_relative_to(tree) for tree in trees):
+                argv[i] = str(path.resolve())
+                continue
+            if path.suffix == '.py':
+                python_files.append(path.name)
             name = f'arg{i}'
             dependencies[name] = str(path.resolve())
             argv[i] = '{dependency:' + name + '}'
@@ -132,6 +141,9 @@ def wrap_command(args):
                                storage_bytes=args.storage_mb * 1024**2),
                 limits=dict(timeout=args.timeout, memory_bytes=args.memory_mb * 1024**2,
                             max_file_bytes=args.max_file_mb * 1024**2))
+    # Python imports must leave immutable staged source trees byte-identical.
+    if trees and Path(argv[0]).name.startswith(('python', 'pypy')):
+        spec['environment'] = {'PYTHONDONTWRITEBYTECODE': '1'}
     destination = Path(args.out).absolute()
     destination.parent.mkdir(parents=True, exist_ok=True)
     if destination.exists():
@@ -145,6 +157,8 @@ def wrap_command(args):
         load_manifest(temporary.name)
     destination.write_text(json.dumps(spec, indent=2, allow_nan=False) + '\n')
     return dict(manifest=str(destination), status='wrapped',
+                dependency_notice=(f'Pinned Python files {", ".join(python_files)}. Sibling imports are staged only if declared. '
+                                   'Use --dependency FILE_OR_DIR to include helpers or the source directory.' if python_files else None),
                 next_command=['strata', 'experiment', 'run', str(destination),
                               '--store', 'work/experiments'],
                 scope='Existing command recorded; no run or acceptance is claimed')

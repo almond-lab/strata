@@ -26,6 +26,12 @@ def _wire_list(value):
         wires.extend(range(start, stop + 1))
     return tuple(wires)
 
+def _bit_list(value):
+    try:
+        return _wire_list(re.sub(r'\bb(?=\d)', '', value))
+    except StrataError as exc:
+        raise StrataError('classical bit indices must be nonnegative integers or bN names, optionally in inclusive ranges') from exc
+
 
 def _memory_status(store, contract, scale):
     from .memory import apply_memory
@@ -51,26 +57,43 @@ def main(argv=None):
     p = sub.add_parser('report');p.add_argument('--store', required=True);p.add_argument('--handle');p.add_argument('--format', choices=('json', 'markdown'), default='json')
     p = sub.add_parser('memory-import');p.add_argument('input');p.add_argument('--store', required=True)
     p = sub.add_parser('memory-status');p.add_argument('--store', required=True);p.add_argument('--contract');p.add_argument('--scale')
-    for name in ('function-of', 'slack', 'floors'):
+    for name in ('function-of', 'slack', 'floors', 'hmr-debt'):
         p = sub.add_parser(name);p.add_argument('input')
         p.add_argument('--at', type=int, required=name == 'function-of')
         p.add_argument('--clean-inputs', default='')
         p.add_argument('--from',dest='from_at',type=int,default=0)
+        p.add_argument('--range-unit',choices=('operation','text-line'),default='operation',
+                       help='zero-based native operation cuts (default), or canonical KMX text lines')
         p.add_argument('--domain')
+        p.add_argument('--observations',help='source-bound reachable-boundary observation receipt; sampled evidence remains sampled')
         p.add_argument('--max-operations',type=int,default=10000)
         p.add_argument('--max-variables',type=int,default=128)
         p.add_argument('--max-terms',type=int,default=65536)
         p.add_argument('--max-product-terms',type=int,default=1048576)
         p.add_argument('--max-assignments',type=int,default=65536)
-        if name in {'function-of', 'slack'}:
+        if name in {'function-of', 'slack','hmr-debt'}:
             p.add_argument('--timeout', type=float, default=5,
                            help='search seconds after window semantics are available')
         if name == 'function-of':
             p.add_argument('--wire', type=int, required=True);p.add_argument('--support', required=True)
             p.add_argument('--degree', type=int, default=2);p.add_argument('--max-forms', type=int, default=4096)
+        elif name == 'hmr-debt':
+            p.add_argument('--measurement',type=int,required=True,help='zero-based position of the HMR instruction')
+            p.add_argument('--cuts',required=True,help='later cuts for reconstructing its measured predicate')
+            p.add_argument('--support',help='surviving quantum wires; defaults to all nonconstant distinct functions')
+            p.add_argument('--degree',type=int,default=3);p.add_argument('--max-forms',type=int,default=4096)
+            p.add_argument('--max-outcomes',type=int,default=1024)
         elif name == 'slack':
             p.add_argument('--wires')
             p.add_argument('--max-inputs', type=int, default=16)
+        else:
+            p.add_argument('--outputs')
+            p.add_argument('--exact',action='store_true')
+            p.add_argument('--max-and',type=int,default=3)
+            p.add_argument('--timeout',type=float,default=1.0)
+            p.add_argument('--max-states',type=int,default=10000)
+            p.add_argument('--max-expansions',type=int,default=100000)
+            p.add_argument('--max-outcomes',type=int,default=1024)
     for name in ('inspect-file', 'optimize', 'discover', 'evaluate-file', 'note'):
         p=sub.add_parser(name);p.add_argument('input');p.add_argument('--out',required=True)
         if name=='note':p.add_argument('--note',required=True)
@@ -78,6 +101,7 @@ def main(argv=None):
             p.add_argument('candidate');p.add_argument('--hypothesis');p.add_argument('--regions')
             p.add_argument('--domain')
             p.add_argument('--max-proof-attempts',type=int,default=64)
+            p.add_argument('--max-proof-operations',type=int,help='override the operation cap on a changed-span or domain proof')
             p.add_argument('--measurement-mode', choices=('coupled', 'independent-map'), default='coupled')
             p.add_argument('--internal-bits', default='', help='explicitly private classical outcome bits for independent-map checking')
         if name in {'inspect-file','discover','optimize','evaluate-file'}:p.add_argument('--clean-inputs',default='')
@@ -93,13 +117,40 @@ def main(argv=None):
         p.add_argument('--max-terms',type=int,default=4096)
         p.add_argument('--cost',default='Q*(toffoli+t/4)')
         if name=='optimize':p.add_argument('--max-candidates',type=int,default=64)
-    p=sub.add_parser('restructure');p.add_argument('input');p.add_argument('--out',required=True)
-    p.add_argument('--clean-inputs',default='');p.add_argument('--cost',default='Q*(toffoli+t/4)')
-    p.add_argument('--rounds',type=int,default=2);p.add_argument('--beam',type=int,default=4)
-    p.add_argument('--max-candidates',type=int,default=24);p.add_argument('--archive')
-    p.add_argument('--max-operations',type=int,default=10000);p.add_argument('--max-variables',type=int,default=128)
-    p.add_argument('--max-terms',type=int,default=65536)
-    p.add_argument('--max-product-terms',type=int,default=65536)
+        if name in {'optimize','evaluate-file'}:
+            p.add_argument('--accounting',choices=('static','expected'),default='static')
+            p.add_argument('--external-distribution',help='JSON joint distribution of external classical input bits')
+    for command in ('restructure','search'):
+        p=sub.add_parser(command);p.add_argument('input');p.add_argument('--out',required=True)
+        p.add_argument('--domain',help='complete finite assignment or address-promise JSON at the input of this artifact')
+        p.add_argument('--max-assignments',type=int,default=65536,help='finite-domain construction row budget')
+        p.add_argument('--clean-inputs',default='');p.add_argument('--cost',default='Q*(toffoli+t/4)')
+        p.add_argument('--internal-bits',default='',help='existing classical outputs explicitly private at the complete search boundary')
+        p.add_argument('--rounds',type=int,default=2);p.add_argument('--beam',type=int,default=4)
+        p.add_argument('--max-candidates',type=int,default=24);p.add_argument('--archive')
+        p.add_argument('--max-finalists',type=int,default=24,help='additional distinct structural alternatives to price and independently check')
+        p.add_argument('--goal',choices=('discoveries','best-cost'),default='discoveries',
+                       help='collect different cheaper designs, or stop once a known objective floor is reached')
+        p.add_argument('--max-architectures',type=int,default=1024,help='joint representation and factor-graph proposal budget per portfolio')
+        p.add_argument('--max-operations',type=int,default=10000);p.add_argument('--max-variables',type=int,default=128)
+        p.add_argument('--max-terms',type=int,default=65536)
+        p.add_argument('--max-product-terms',type=int,default=65536)
+        p.add_argument('--range',dest='scan_range',help='complete episode START:STOP within the parent')
+        p.add_argument('--range-unit',choices=('operation','text-line'),default='operation')
+        p.add_argument('--width',type=int,help='explicit physical parent layout, including untouched helpers')
+        p.add_argument('--accounting',choices=('static','expected'),default='static')
+        p.add_argument('--external-distribution')
+        p.add_argument('--deep-only',action='store_true',help='retain verified structural candidates')
+        p.add_argument('--seconds',type=float,default=30.0 if command=='search' else None,
+                       help='shared wall budget for starting or continuing constructor trials')
+        p.add_argument('--trial-seconds',type=float,default=4.0 if command=='search' else None,
+                       help='hard wall limit for each isolated Linux constructor')
+        p.add_argument('--cancel-file',help='stop current and future trials when this path exists; search defaults to OUT/STOP')
+    p=sub.add_parser('observe-boundary');p.add_argument('input');p.add_argument('--at',type=int,required=True)
+    p.add_argument('--out',required=True);p.add_argument('--clean-inputs',default='')
+    p.add_argument('--assignments',help='JSON list of initial assignments; omitted means bounded exhaustive initial cube')
+    p.add_argument('--max-inputs',type=int,default=4096);p.add_argument('--max-rows',type=int,default=65536)
+    p.add_argument('--max-outcomes',type=int,default=1024);p.add_argument('--max-operations',type=int,default=10000)
     for name in ('numeric-budget','numeric-forecast','numeric-floor','numeric-bets'):
         p=sub.add_parser(name);p.add_argument('input');p.add_argument('--out',required=True);p.add_argument('--store')
     p=sub.add_parser('numeric-job');p.add_argument('job');p.add_argument('--store',required=True)
@@ -124,6 +175,16 @@ def main(argv=None):
         if args.cmd in EXPERIMENT_COMMANDS:
             from .experiment_cli import execute
             return execute(args)
+        if args.cmd=='observe-boundary':
+            from .frontends import load_circuit
+            from .boundary_observations import observe_boundary
+            if Path(args.input).resolve()==Path(args.out).resolve():
+                raise StrataError('observation output would overwrite input circuit')
+            result=observe_boundary(load_circuit(args.input),args.at,
+                assignments=json.loads(Path(args.assignments).read_text()) if args.assignments else None,
+                clean_inputs=_wire_list(args.clean_inputs),max_inputs=args.max_inputs,max_rows=args.max_rows,
+                max_outcomes=args.max_outcomes,max_operations=args.max_operations,output=args.out)
+            print(json.dumps(result,indent=2));return 0
         if args.cmd in {'numeric-budget','numeric-forecast','numeric-floor','numeric-bets'}:
             from .store import Store
             source=Path(args.input).resolve();destination=Path(args.out).resolve()
@@ -183,6 +244,17 @@ def main(argv=None):
                 store.db.close()
             print(json.dumps(result, indent=2, default=str))
             return 0
+        if args.cmd=='hmr-debt':
+            from .frontends import load_circuit
+            from .hmr_debt import hmr_debt
+            if args.observations or args.from_at or args.at is not None:
+                raise StrataError('use --measurement and --cuts relative to the supplied artifact; use --domain for reachable inputs')
+            result=hmr_debt(load_circuit(args.input),args.measurement,_wire_list(args.cuts),
+                            support=None if args.support is None else _wire_list(args.support),
+                            clean_inputs=_wire_list(args.clean_inputs),domain=args.domain,unit=args.range_unit,
+                            **{k:getattr(args,k) for k in ('degree','max_forms','timeout','max_operations','max_variables',
+                                'max_terms','max_product_terms','max_assignments','max_outcomes')})
+            print(json.dumps(result,indent=2));return 0
         if args.cmd in {'function-of', 'slack', 'floors'}:
             from .frontends import load_circuit
             from .inference import functions_at, is_function_of, information_slack
@@ -190,34 +262,59 @@ def main(argv=None):
             circuit = load_circuit(args.input)
             load_seconds = monotonic() - load_started
             query_started = monotonic()
-            options=dict(from_at=args.from_at,clean_inputs=_wire_list(args.clean_inputs),domain=args.domain,
+            from .domains import query_text_coordinates
+            query_from,query_at=query_text_coordinates(circuit,args.from_at,args.at,unit=args.range_unit)
+            options=dict(from_at=query_from,clean_inputs=_wire_list(args.clean_inputs),domain=args.domain,observations=args.observations,
                          max_operations=args.max_operations,max_variables=args.max_variables,max_terms=args.max_terms,
                          max_product_terms=args.max_product_terms,max_assignments=args.max_assignments)
             if args.cmd == 'function-of':
-                result = is_function_of(circuit, args.wire, args.at, _wire_list(args.support),
+                result = is_function_of(circuit, args.wire, query_at, _wire_list(args.support),
                                         timeout=args.timeout, degree=args.degree, max_forms=args.max_forms, **options)
             elif args.cmd == 'slack':
-                result = information_slack(circuit, args.at,
+                result = information_slack(circuit, query_at,
                     wires=None if args.wires is None else _wire_list(args.wires),
                     timeout=args.timeout, max_inputs=args.max_inputs, **options)
             else:
                 from .floors import circuit_floors
-                result=circuit_floors(circuit,at=args.at,**options)
+                result=circuit_floors(circuit,at=query_at,outputs=None if args.outputs is None else _wire_list(args.outputs),
+                    exact=args.exact,max_and=args.max_and,timeout=args.timeout,max_states=args.max_states,
+                    max_expansions=args.max_expansions,max_outcomes=args.max_outcomes,**options)
+            result['canonical_text_window']=dict(from_at=query_from,at=result.get('at',query_at),coordinate_unit='text-line')
+            resolved_at=args.at
+            if args.range_unit=='operation' and resolved_at is None and result.get('at') is not None:
+                from .domains import window_lines
+                selected,_=window_lines(circuit,query_from,result['at'],max_lines=args.max_operations)
+                resolved_at=args.from_at+sum(line.split()[0] not in {'REGISTER','APPEND_TO_REGISTER'} for line in selected)
+            result.update(coordinate_unit=args.range_unit,from_at=args.from_at,
+                          at=resolved_at if args.range_unit=='operation' else result.get('at',query_at))
             result.setdefault('timings', {}).update(load_seconds=load_seconds, query_seconds=monotonic()-query_started)
             print(json.dumps(result, indent=2, default=str))
             return 0
-        if args.cmd=='restructure':
+        if args.cmd in {'restructure','search'}:
             from .restructure import restructure_file
+            region=None
+            if args.scan_range:
+                parts=args.scan_range.split(':')
+                if len(parts)!=2:raise StrataError('range must be START:STOP')
+                region=tuple(map(int,parts))
             result=restructure_file(args.input,args.out,clean_inputs=_wire_list(args.clean_inputs),cost=args.cost,
                 rounds=args.rounds,beam=args.beam,max_candidates=args.max_candidates,archive=args.archive,
                 max_operations=args.max_operations,max_variables=args.max_variables,max_terms=args.max_terms,
-                max_product_terms=args.max_product_terms)
+                max_product_terms=args.max_product_terms,scan_range=region,range_unit=args.range_unit,width=args.width,
+                accounting=args.accounting,external_distribution=json.loads(Path(args.external_distribution).read_text()) if args.external_distribution else None,
+                deep_only=args.deep_only or args.cmd=='search',internal_bits=_bit_list(args.internal_bits),
+                domain=args.domain,max_assignments=args.max_assignments,
+                fast=args.cmd=='search',search_seconds=args.seconds,trial_seconds=args.trial_seconds,max_finalists=args.max_finalists,
+                goal=args.goal,max_architectures=args.max_architectures,
+                cancel_file=args.cancel_file or (Path(args.out)/'STOP' if args.cmd=='search' else None))
             print(json.dumps(result,indent=2,default=str));return 0
         if args.cmd in {'inspect-file','optimize','discover','evaluate-file','note'}:
             from .file_workflow import inspect_file, optimize_file
             options=dict(cost=args.cost,max_window=256 if args.max_window is None else args.max_window,
                          max_variables=args.max_variables,max_terms=args.max_terms)
             if args.cmd in {'inspect-file','discover','optimize','evaluate-file'}:options['clean_inputs']=_wire_list(args.clean_inputs)
+            if args.cmd in {'optimize','evaluate-file'}:
+                options.update(accounting=args.accounting,external_distribution=json.loads(Path(args.external_distribution).read_text()) if args.external_distribution else None)
             if args.cmd in {'discover','inspect-file'}:
                 scan_range=None
                 if args.scan_range:
@@ -238,7 +335,8 @@ def main(argv=None):
                 regions=json.loads(Path(args.regions).read_text()) if args.regions else None
                 result=evaluate_candidate(args.input,args.candidate,args.out,hypothesis=hypothesis,regions=regions,
                                           domain=args.domain,max_proof_attempts=args.max_proof_attempts,
-                                          measurement_mode=args.measurement_mode,internal_bits=_wire_list(args.internal_bits),**options)
+                                          max_proof_operations=args.max_proof_operations,
+                                          measurement_mode=args.measurement_mode,internal_bits=_bit_list(args.internal_bits),**options)
             elif args.cmd=='note':
                 from .discovery import record_research_note
                 result=record_research_note(args.input,args.out,json.loads(Path(args.note).read_text()))

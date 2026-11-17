@@ -111,7 +111,7 @@ def _limits(max_operations, max_terms, max_wires):
 
 def optimize_circuit(circuit, formula=None, *, max_operations=256,
                      max_terms=4096, max_wires=64, region_order=None,
-                     max_candidates=None):
+                     max_candidates=None, clean_inputs=(),accounting='static',external_distribution=None):
     """Return ``(candidate Circuit, artifact-bound JSON report)``.
 
     ``circuit`` is native text or a loaded kickmix Circuit; file ingestion uses
@@ -133,17 +133,22 @@ def optimize_circuit(circuit, formula=None, *, max_operations=256,
         raise StrataError('region_order must be a sequence of region IDs')
     if isinstance(circuit, str):
         circuit = km.Circuit(circuit)
+    clean_inputs = tuple(sorted(set(clean_inputs)))
+    if any(type(q) is not int or not 0 <= q < circuit.num_qubits for q in clean_inputs):
+        raise StrataError('clean inputs must be physical wires of the supplied circuit')
     formula = Formula(formula or DEFAULT_OBJECTIVE) if isinstance(formula, (str, type(None))) else formula
     if not isinstance(formula, Formula):
         raise StrataError('file optimization requires a restricted Formula or expression')
     frontend = Kickmix()
-    baseline_resources = frontend.measured(circuit)
+    from .accounting import measured_resources
+    measure=lambda c:measured_resources(c,accounting=accounting,external_distribution=external_distribution)
+    baseline_resources = measure(circuit)
     baseline_cost = formula(baseline_resources)
     original_lines = str(circuit).splitlines()
     candidate_lines = list(original_lines)
     current_resources, current_cost = baseline_resources, baseline_cost
     lifted = lift_regions(circuit, max_window=max_operations,
-                          max_variables=max_wires, max_terms=max_terms)
+                          max_variables=max_wires, max_terms=max_terms, clean_inputs=clean_inputs)
     prepared = {}
     for region in lifted['regions']:
         semantics = region['semantics']
@@ -178,10 +183,12 @@ def optimize_circuit(circuit, formula=None, *, max_operations=256,
             continue
         attempted_order.append(region['id'])
         before = original_lines[start:stop]
+        boundary_clean = tuple(sorted(map(int, region.get('boundary_zero_evidence', {}))))
+        row['boundary_zero_evidence'] = region.get('boundary_zero_evidence', {})
         omitted_wires = {episode['wire'] for episode in removed}
         without_materialization = [line for line in before
                                    if not (_written([line]) & omitted_wires)]
-        contribution = equivalent_windows(before, without_materialization, **limits)
+        contribution = equivalent_windows(before, without_materialization, clean_inputs=boundary_clean, **limits)
         if contribution['equivalent'] is not False:
             row['reason'] = 'materialization_has_no_proven_net_boundary_effect'
             continue
@@ -190,7 +197,7 @@ def optimize_circuit(circuit, formula=None, *, max_operations=256,
                    materialization_contribution=contribution,
                    inferred=dict(changes=semantics['changes'], phase=semantics['phase'],
                                  assumptions=semantics['assumptions']))
-        check = equivalent_windows(before, emitted, **limits)
+        check = equivalent_windows(before, emitted, clean_inputs=boundary_clean, **limits)
         row['check'] = check
         if check['equivalent'] is not True:
             row['reason'] = 'exact_equivalence_not_established'
@@ -201,7 +208,7 @@ def optimize_circuit(circuit, formula=None, *, max_operations=256,
         if trial.num_qubits != circuit.num_qubits:
             row['reason'] = 'boundary_width_would_change'
             continue
-        measured = frontend.measured(trial)
+        measured = measure(trial)
         trial_cost = formula(measured)
         row['before'] = dict(resources=current_resources, cost=current_cost,
                              region_operations=len(before))
@@ -223,10 +230,12 @@ def optimize_circuit(circuit, formula=None, *, max_operations=256,
 
     candidate = km.Circuit('\n'.join(candidate_lines))
     report = dict(schema_version='1',
+                  clean_inputs=list(clean_inputs),
                   status='improved' if current_cost < baseline_cost else 'unchanged',
                   baseline=dict(sha256=_hash(circuit), resources=baseline_resources, cost=baseline_cost),
                   candidate=dict(sha256=_hash(candidate), resources=current_resources, cost=current_cost),
-                  objective=dict(expression=formula.expression, accounting='static_emitted',
+                  objective=dict(expression=formula.expression, accounting=baseline_resources['accounting'],
+                                 external_distribution=external_distribution,
                                  authority='native SDK resource counts; not an official task score'),
                   regions=rows, coverage=lifted['coverage'], opaque=lifted['unknown'],
                   metadata=lifted['metadata'], limits=limits,
@@ -245,14 +254,15 @@ def optimize_circuit(circuit, formula=None, *, max_operations=256,
                       'Strict improvements are selected greedily under the supplied static objective; '
                       'no optimality or official task score is claimed.'])
     report['checks'] = verify_optimization(circuit, candidate, report, formula=formula, **dict(
-        max_operations=max_operations, max_terms=max_terms, max_wires=max_wires))
+        max_operations=max_operations, max_terms=max_terms, max_wires=max_wires, clean_inputs=clean_inputs,
+        accounting=accounting,external_distribution=external_distribution))
     if report['checks']['equivalent'] is not True:
         raise StrataError('internal file optimization replay check failed: ' + report['checks']['reason'])
     return candidate, report
 
 
 def verify_optimization(original, candidate, report, *, formula=None, max_operations=256,
-                        max_terms=4096, max_wires=64):
+                        max_terms=4096, max_wires=64, clean_inputs=(),accounting='static',external_distribution=None):
     """Recheck artifact binding and the proof of every accepted substitution.
 
     Report success flags are never trusted.  This verifies equality of all
@@ -266,16 +276,21 @@ def verify_optimization(original, candidate, report, *, formula=None, max_operat
         original = km.Circuit(original)
     if isinstance(candidate, str):
         candidate = km.Circuit(candidate)
+    clean_inputs = tuple(sorted(set(clean_inputs)))
+    from .accounting import measured_resources
+    measure=lambda c:measured_resources(c,accounting=accounting,external_distribution=external_distribution)
     base_hash, candidate_hash = _hash(original), _hash(candidate)
     result = dict(equivalent=False, kind='exact_symbolic_disjoint_substitution',
                   baseline_sha256=base_hash, candidate_sha256=candidate_hash,
-                  all_inputs_arbitrary=True, phase='exact', width_preserved=False,
+                  all_inputs_arbitrary=not bool(clean_inputs), clean_inputs=list(clean_inputs), phase='exact', width_preserved=False,
                   boundaries_preserved=False, checked_regions=0)
 
     def fail(reason):
         return dict(result, reason=reason)
 
     try:
+        if list(clean_inputs) != report.get('clean_inputs', []):
+            return fail('clean_input_promise_mismatch')
         if (report['baseline']['sha256'] != base_hash or
                 report['candidate']['sha256'] != candidate_hash):
             return fail('artifact_hash_mismatch')
@@ -284,7 +299,7 @@ def verify_optimization(original, candidate, report, *, formula=None, max_operat
         result['width_preserved'] = True
         old, new = str(original).splitlines(), str(candidate).splitlines()
         eligible = lift_regions(original, max_window=max_operations,
-                                max_variables=max_wires, max_terms=max_terms)['regions']
+                                max_variables=max_wires, max_terms=max_terms, clean_inputs=clean_inputs)['regions']
         old_at = new_at = 0
         for row in report['regions']:
             if row['status'] != 'accepted':
@@ -297,24 +312,31 @@ def verify_optimization(original, candidate, report, *, formula=None, max_operat
                 return fail('overlapping_or_invalid_regions')
             if old[old_at:start] != new[new_at:at]:
                 return fail('outside_region_changed')
-            if not any(r['start'] <= start < stop <= r['stop'] for r in eligible):
+            region = next((r for r in eligible if r['start'] == start and r['stop'] == stop), None)
+            if region is None:
                 return fail('region_crosses_opaque_or_metadata_boundary')
+            boundary_evidence = region.get('boundary_zero_evidence', {})
+            if row.get('boundary_zero_evidence', {}) != boundary_evidence:
+                return fail('boundary_zero_evidence_mismatch')
             before, after = old[start:stop], new[at:end]
             if any(not shlex.split(line) or shlex.split(line)[0] not in ARITY for line in after):
                 return fail('replacement_contains_unsupported_or_metadata_operation')
             if (row['source_sha256'] != _hash('\n'.join(before)) or
                     row['replacement_sha256'] != _hash('\n'.join(after))):
                 return fail('region_hash_mismatch')
-            check = equivalent_windows(before, after, **limits)
+            check = equivalent_windows(before, after, clean_inputs=tuple(sorted(map(int, boundary_evidence))), **limits)
             if check['equivalent'] is not True:
                 return fail('region_equivalence_not_established')
             old_at, new_at = stop, end
             result['checked_regions'] += 1
         if old[old_at:] != new[new_at:]:
             return fail('outside_region_changed')
-        if (Kickmix().measured(original) != report['baseline']['resources'] or
-                Kickmix().measured(candidate) != report['candidate']['resources']):
+        if (measure(original) != report['baseline']['resources'] or
+                measure(candidate) != report['candidate']['resources']):
             return fail('resource_measurement_mismatch')
+        if (report['objective'].get('external_distribution') != external_distribution or
+                report['objective']['accounting'] != report['baseline']['resources']['accounting']):
+            return fail('accounting_model_mismatch')
         objective = (Formula(formula or report['objective']['expression'])
                      if isinstance(formula, (str, type(None))) else formula)
         if (not isinstance(objective, Formula) or

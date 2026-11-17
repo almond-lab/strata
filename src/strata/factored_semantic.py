@@ -144,6 +144,117 @@ def analyze_factored(lines, *, clean_inputs=(), max_operations=10000, max_variab
     return _receipt(dag, result, clean)
 
 
+def constructor_semantics(lines, *, clean_inputs=(), max_operations=10000,
+                          max_variables=128, max_terms=65536, max_product_terms=65536):
+    """Recover bounded final ANFs for a quantum constructor segment.
+
+    Sparse execution can exceed a budget on an intermediate expression even
+    when the final deltas are small. Canonical decisions can cancel that
+    intermediate first, then this projection expands only the final changes
+    and phase. It is exact and separately bounded; no truncated polynomial is
+    handed to a constructor. Measurement and classical scopes remain barriers.
+    """
+    from .semantic import analyze_window, _poly, _lines
+    lines = list(_lines(lines))
+    sparse = analyze_window(lines, clean_inputs=clean_inputs, max_operations=max_operations,
+                            max_variables=max_variables, max_terms=max_terms,
+                            max_product_terms=max_product_terms)
+    if sparse['status'] == 'exact': return sparse
+    if sparse.get('reason') not in {'term_budget', 'product_budget'}: return sparse
+    dag, result, clean = _prepare(lines, clean_inputs, max_operations, max_variables,
+                                  max_terms, 32 * max_product_terms)
+    if 'status' in result: return result
+    if result['events'] or result['bits'] or result['resets']:
+        return dict(status='not_applicable', reason='constructor projection requires a quantum-only permutation segment')
+    memo = {0: frozenset(), 1: frozenset({frozenset()})}
+    work = 0
+
+    def polynomial(root):
+        nonlocal work
+        if root in memo: return memo[root]
+        level, low, high = dag.nodes[root]
+        left, right = polynomial(low), polynomial(high)
+        delta = left ^ right
+        work += len(left) + len(right) + len(delta)
+        if work > max_product_terms:
+            raise DecisionBudget('constructor_anf_product_budget')
+        variable = dag.variables[level]
+        value = left ^ frozenset(term | {variable} for term in delta)
+        if len(value) > max_terms:
+            raise DecisionBudget('constructor_anf_term_budget')
+        memo[root] = value
+        return value
+
+    try:
+        changes = {str(q): _poly(polynomial(dag.xor(value, result['initial'][q])))
+                   for q, value in result['state'].items() if value != result['initial'][q]}
+        phase = _poly(polynomial(result['phase']))
+    except DecisionBudget as exc:
+        return dict(status='bounded', reason=str(exc), source_status='exact_factored')
+    return dict(status='exact', kind='projected_factored_constructor_segment',
+                source_status='exact_factored', evidence='canonical_decisions_then_exact_bounded_final_anf',
+                inputs=result['wires'], clean_input_assumptions=sorted(clean),
+                modified_wires=sorted(int(q) for q in changes),
+                changes=changes, phase=phase, is_permutation=True,
+                measurement_variables=[], measurement_events=[], classical_inputs=[], classical_outputs={},
+                effects=dict(clean_outputs=[q for q, value in result['state'].items() if value == 0]),
+                operation_count=result['operations'], features=[], projection_work=work,
+                sparse_obstruction=sparse.get('reason'))
+
+
+def projected_value_semantics(lines, *, clean_inputs=(), max_operations=10000,
+                               max_variables=128, max_terms=65536, max_product_terms=65536):
+    """Expand only final value/phase roots after canonical factored execution.
+
+    This is a value-query receipt, not the sparse full-trajectory schema:
+    measurement events retain canonical decision roots in ``factored_semantics``.
+    Expanding an intermediate measured value is unnecessary to recover a small
+    final value map. Full trajectory equivalence remains ``equivalent_factored``.
+    """
+    from .semantic import _poly, _lines
+    lines = list(_lines(lines))
+    dag, result, clean = _prepare(lines, clean_inputs, max_operations, max_variables,
+                                  max_terms, 32 * max_product_terms)
+    if 'status' in result: return result
+    receipt = _receipt(dag, result, clean)
+    memo = {0: frozenset(), 1: frozenset({frozenset()})}
+    work = 0
+
+    def polynomial(root):
+        nonlocal work
+        if root in memo: return memo[root]
+        level, low, high = dag.nodes[root]
+        left, right = polynomial(low), polynomial(high)
+        delta = left ^ right
+        work += len(left) + len(right) + len(delta)
+        if work > max_product_terms: raise DecisionBudget('value_projection_product_budget')
+        value = left ^ frozenset(term | {dag.variables[level]} for term in delta)
+        if len(value) > max_terms: raise DecisionBudget('value_projection_term_budget')
+        memo[root] = value
+        return value
+
+    try:
+        outputs = {str(q): _poly(polynomial(value)) for q, value in result['state'].items()}
+        classical = {bit: _poly(polynomial(value)) for bit, value in result['classical'].items()}
+        phase = _poly(polynomial(result['phase']))
+    except DecisionBudget as exc:
+        return dict(status='bounded', reason=str(exc), source_status='exact_factored', factored_semantics=receipt)
+    from .semantic import _parse
+    permutation = not result['events'] and not result['resets'] and not any(
+        _parse(line)['op'].startswith('BIT_') for line in lines)
+    return dict(status='exact', kind='projected_factored_final_values', source_status='exact_factored',
+                outputs=outputs, classical_outputs=classical, phase=phase,
+                inputs=result['wires'], classical_inputs=result['bits'],
+                clean_input_assumptions=sorted(clean), is_permutation=permutation,
+                measurement_variables=receipt['measurement_variables'],
+                measurement_events=receipt['measurement_events'],
+                measurement_event_representation='canonical_factored_roots_in_factored_semantics',
+                effects=receipt['effects'], factored_semantics=receipt,
+                operation_count=result['operations'], projection_work=work,
+                semantic_scope=receipt['semantic_scope'],
+                evidence='canonical_factored_execution_then_exact_bounded_final_value_ANFs')
+
+
 def equivalent_factored(original, candidate, *, clean_inputs=(), max_operations=10000,
                         max_variables=512, max_nodes=262144, max_apply_steps=1048576):
     from .semantic import _limits

@@ -274,7 +274,9 @@ class Task:
         if hasattr(self.frontend, 'validate_tree'):
             self.frontend.validate_tree(tree)
         options = limits or {}
-        if set(options) - {'max_trajectories', 'timeout', 'batch_size', 'shard_index', 'shard_count', 'branch_strategy'}:
+        if set(options) - {'max_trajectories', 'timeout', 'batch_size', 'shard_index', 'shard_count', 'branch_strategy',
+                           'max_symbolic_nodes', 'max_symbolic_apply_steps', 'max_symbolic_operations',
+                           'max_symbolic_variables', 'max_symbolic_phase_bits'}:
             raise StrataError('unknown lab limit')
         if hasattr(adapter, 'lab_components'):
             from .component_lab import run_component_labs

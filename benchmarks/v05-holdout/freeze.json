@@ -1,0 +1,32 @@
+{
+  "generator_seed": 914027,
+  "generator_sha256": "576f8ed0587f25047ff5f30de8f60cc2db5226d6ba70b9d3043317e797bb38c6",
+  "fixtures_sha256": "474639c8ea85e3752ee75defd7f00e303daa939663f3a30da4a6ca360f82d1de",
+  "fixture_count": 9,
+  "frozen_before_first_search": true,
+  "no_replacement_or_region_supplied": true,
+  "provenance": "Independent review-agent generators; frozen after existing development suites were read, before any holdout search. This is not a blind historical benchmark.",
+  "objective": "Q*toffoli",
+  "budgets": {
+    "rounds": 1,
+    "beam": 4,
+    "max_candidates": 12,
+    "max_operations": 512,
+    "max_variables": 128,
+    "max_terms": 65536,
+    "max_product_terms": 65536
+  },
+  "fixture_timeout_seconds": 45,
+  "native_case_cap": 1048576,
+  "source_hashes": {
+    "field_difference_0": "81551e8babedabd102fab45bdbf06db37f8a3cdba59640a7c916f591973f84da",
+    "field_difference_1": "0cd2efa242aa9ddd9c7e59d3962fece04aec75c608d5d711192f79cd4fe7fd73",
+    "modular_difference_3": "464674bcc8110eea5a66ba998aabbc8e9df9d2a8c52d98845bed15f78b5f6f07",
+    "modular_difference_4": "652a0f374dcc18ba1eb7f9ee4002d157fb816a6569066557fbdc2dfe4a08d6f0",
+    "table_difference_0": "36df6cefc6d9d6212f5c517a3029bc259acce6f7070fa4f1412bc105ddc6958d",
+    "table_difference_1": "17720a26fb2b83c04888318f6cf8c0b946a6dfcf1df0436ff90979e09426d099",
+    "phase_obligation": "9c641886351de20b0005a1db663448c76f32b855c2eb45a0e3eef7cd33617b41",
+    "dirty_workspace_obligation": "464674bcc8110eea5a66ba998aabbc8e9df9d2a8c52d98845bed15f78b5f6f07",
+    "public_classical_obligation": "f40916b2b351a6ec46a8f57e76ed2c5b46914cfdb91ad53906933b62709e08af"
+  }
+}

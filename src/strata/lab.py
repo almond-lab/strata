@@ -1,8 +1,8 @@
 """Exact finite-domain checks using native, bit-sliced kickmix execution.
 
-HMR outcomes are injected exactly. An affine classical-control proof can reduce
-the necessary branches to zero and the unit vectors; it never reports these as
-2**n simulations. Promised domains come from the adapter and are hash-bound.
+HMR outcomes are injected exactly. Affine witnesses and bounded canonical
+decisions can prove all branches without enumerating them; receipts distinguish
+native checks from represented outcomes. Adapter domains are hash-bound.
 """
 from dataclasses import dataclass
 from fractions import Fraction
@@ -15,6 +15,7 @@ import kickmix as km
 import numpy as np
 
 from .lab_program import compile_program
+from .lab_symbolic import SymbolicHMR
 from .model import StrataError, digest
 
 
@@ -41,6 +42,7 @@ class LabResult:
     executed_cases: int
     reduction: str
     shard: dict
+    proof: dict | None = None
 
 
 def validate_lab_receipt(lab):
@@ -76,6 +78,27 @@ def validate_lab_receipt(lab):
         require(lab['executed_branches'] == lab['branches'])
     elif lab.get('reduction') == 'affine_hmr':
         require(lab['hmr_count'] >= 2 and lab['executed_branches'] == lab['hmr_count'] + 1)
+    elif lab.get('reduction') == 'symbolic_hmr':
+        require(lab['executed_branches'] == 1)
+        proof = lab.get('proof')
+        require(isinstance(proof, dict))
+        require(proof.get('mode') == 'per_input_reduced_ordered_decisions')
+        require(proof.get('all_measurement_outcomes') is True and proof.get('exact_phase') is True)
+        require(type(proof.get('proved_cases')) is int and proof['proved_cases'] == lab['cases'])
+        require(type(proof.get('measurement_variables')) is int and
+                proof['measurement_variables'] == lab['hmr_count'])
+        require(proof.get('outcome_order') == 'instruction_order')
+        require(proof.get('phase_representation') == 'dyadic_bit_planes_mod_2')
+        require(proof.get('native_cross_check_branches') == [0])
+        limits = proof.get('limits')
+        require(isinstance(limits, dict))
+        for key in ('max_nodes', 'max_apply_steps', 'max_operations', 'max_variables', 'max_phase_bits'):
+            require(type(limits.get(key)) is int and limits[key] > 0)
+        for key, minimum, limit in [('decision_nodes', 2, 'max_nodes'), ('apply_steps', 0, 'max_apply_steps'),
+                                    ('expression_nodes', 2, 'max_nodes'),
+                                    ('symbolic_operations', 0, 'max_operations'), ('phase_bits', 1, 'max_phase_bits')]:
+            require(type(proof.get(key)) is int and minimum <= proof[key] <= limits[limit])
+        require(lab['hmr_count'] <= min(limits['max_variables'], 512))
     else:
         require(False)
 
@@ -134,13 +157,19 @@ def _domain(contract, domain, max_cases, check_time):
 
 def exhaustive(circuit, contract, reference, scale=None, max_trajectories=1_000_000,
                timeout=60, *, domain=None, batch_size=4096, shard_index=0,
-               shard_count=1, branch_strategy='auto', evidence_kind=None):
+               shard_count=1, branch_strategy='auto', evidence_kind=None,
+               max_symbolic_nodes=262144, max_symbolic_apply_steps=1048576,
+               max_symbolic_operations=1000000, max_symbolic_variables=512,
+               max_symbolic_phase_bits=129):
     """Check an entire declared domain, or a deterministic explicitly partial shard.
 
     ``max_trajectories`` limits executed trajectories, including affine branch
     witnesses. ``branches`` counts represented HMR assignments; ``tested`` counts
-    actual input/branch checks. Shards are samples and cannot certify a design.
-    ``branch_strategy='full'`` disables the proved reduction for cross-checking.
+    actual native input/branch checks. If those exceed the native budget, auto
+    proves every outcome with bounded decisions per input and replays branch
+    zero natively. Symbolic operation/apply budgets are global across inputs.
+    Shards are samples and cannot certify a design. ``full`` disables reductions;
+    ``symbolic`` forces the decision proof, including for small cross-checks.
     """
     start = time.monotonic()
 
@@ -149,14 +178,18 @@ def exhaustive(circuit, contract, reference, scale=None, max_trajectories=1_000_
             raise StrataError('exhaustive lab timed out; no certificate')
 
     for name, value in [('max_trajectories', max_trajectories), ('batch_size', batch_size),
-                        ('shard_count', shard_count)]:
+                        ('shard_count', shard_count), ('max_symbolic_nodes', max_symbolic_nodes),
+                        ('max_symbolic_apply_steps', max_symbolic_apply_steps),
+                        ('max_symbolic_operations', max_symbolic_operations),
+                        ('max_symbolic_variables', max_symbolic_variables),
+                        ('max_symbolic_phase_bits', max_symbolic_phase_bits)]:
         if type(value) is not int or value < 1:
             raise StrataError(name + ' must be a positive integer')
     if type(shard_index) is not int or not 0 <= shard_index < shard_count:
         raise StrataError('invalid deterministic lab shard')
     if not isinstance(timeout, (int, float)) or not np.isfinite(timeout) or timeout <= 0:
         raise StrataError('timeout must be finite and positive')
-    if branch_strategy not in {'auto', 'full'}:
+    if branch_strategy not in {'auto', 'full', 'symbolic'}:
         raise StrataError('unknown HMR branch strategy')
     if contract.phase != 'exact' or contract.failure != 'none':
         raise StrataError('exhaustive runner requires exact phase and no failure allowance')
@@ -179,12 +212,9 @@ def exhaustive(circuit, contract, reference, scale=None, max_trajectories=1_000_
     # compiler assumed internal classical storage initially zero. Reprove the
     # reduction for every distinct classical assignment in the actual domain.
     recheck_classical = bool(classical_registers) and branch_strategy == 'auto' and hmr >= 2
-    minimum_count = hmr + 1 if reduced or recheck_classical else branches
+    minimum_count = branches if branch_strategy == 'full' else 1
     if minimum_count > max_trajectories * shard_count:
-        detail = (f'; non-affine HMR control requires all 2^{hmr} branches per input; '
-                  'symbolic HMR checking is not implemented in the lab'
-                  if branch_strategy == 'auto' and hmr >= 2 and not reduced and not recheck_classical else '')
-        raise StrataError('exhaustive domain exceeds budget; cannot label a sample exhaustive' + detail)
+        raise StrataError('exhaustive domain exceeds budget; cannot label a sample exhaustive')
     inputs, domain_hash, domain_source = _domain(
         contract, domain, max_trajectories * shard_count // minimum_count, check_time)
     if recheck_classical:
@@ -200,17 +230,23 @@ def exhaustive(circuit, contract, reference, scale=None, max_trajectories=1_000_
             if not program.affine_hmr_with_inputs(bits):
                 reduced = False
                 break
-    branch_ids = [0, *(1 << m for m in range(hmr))] if reduced else range(branches)
     executed_count = hmr + 1 if reduced else branches
     cases = len(inputs)
     selected = list(range(shard_index, cases, shard_count))
     if not selected:
         raise StrataError('lab shard contains no inputs')
+    symbolic = None
+    if branch_strategy == 'symbolic' or (branch_strategy == 'auto' and
+                                        len(selected) * executed_count > max_trajectories):
+        symbolic = SymbolicHMR(program, check_time=check_time, max_nodes=max_symbolic_nodes,
+                               max_apply_steps=max_symbolic_apply_steps,
+                               max_operations=max_symbolic_operations,
+                               max_variables=max_symbolic_variables,
+                               max_phase_bits=max_symbolic_phase_bits)
+        executed_count = 1
     if len(selected) * executed_count > max_trajectories:
-        detail = (f'; non-affine HMR control requires all 2^{hmr} branches per input; '
-                  'symbolic HMR checking is not implemented in the lab'
-                  if branch_strategy == 'auto' and hmr >= 2 and not reduced else '')
-        raise StrataError('exhaustive domain exceeds budget; cannot label a sample exhaustive' + detail)
+        raise StrataError('exhaustive domain exceeds budget; cannot label a sample exhaustive')
+    branch_ids = [0] if symbolic else [0, *(1 << m for m in range(hmr))] if reduced else range(branches)
     scope = dict(scale or {})
     kind = evidence_kind or ('exact_small' if scope else 'exact_full')
     if kind not in {'exact_full', 'exact_small'} or kind == 'exact_small' and not scope:
@@ -226,8 +262,9 @@ def exhaustive(circuit, contract, reference, scale=None, max_trajectories=1_000_
                          contract.fingerprint, time.monotonic() - start, kind,
                          contract.promise, domain_hash, domain_source, hmr, len(executed),
                          branches, cases * branches, len(selected),
-                         'affine_hmr' if reduced else 'none',
-                         dict(index=shard_index, count=shard_count))
+                         'symbolic_hmr' if symbolic else 'affine_hmr' if reduced else 'none',
+                         dict(index=shard_index, count=shard_count),
+                         symbolic.receipt(native_branches=sorted(executed)) if symbolic else None)
 
     # References run once per distinct input, independent of how many HMR branches
     # witness the result. Dirty and clean obligations never come from the oracle.
@@ -245,6 +282,12 @@ def exhaustive(circuit, contract, reference, scale=None, max_trajectories=1_000_
             wants.append(int(want))
         expected_values[x] = wants
         expected_phases[x] = Fraction(phase) % 2
+
+    if symbolic:
+        for x in selected:
+            failure = symbolic.check(inputs[x], contract.registers, expected_values[x], expected_phases[x])
+            if failure is not None:
+                return result(False, failure)
 
     trajectories = itertools.product(branch_ids, selected)
     qubits = [km.q(q) for q in range(circuit.num_qubits)]

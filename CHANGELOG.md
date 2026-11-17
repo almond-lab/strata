@@ -1,5 +1,46 @@
 # Change log
 
+## 0.5.0 — 2026-11-17
+
+- Jointly explore input and output representations and shared nonlinear
+  factorizations. Independently price and verify multiple finalists and retain
+  distinct resource tradeoffs. A discovery receipt counts accepted native
+  circuits and distinguishes changes in their nonlinear products on small
+  supported boundaries. The CLI screens ineligible families and supports
+  bounded, cancellable constructor trials.
+- Infer nonlinear intermediate predicates by grouping producer assignments
+  with identical effects on every consumer. Search output encodings and
+  factored sign observables, with dedicated structural witnesses at fixed width.
+
+- Add `search`: recover whole Boolean output equations, jointly factor them,
+  search invertible affine representations and complete reversible schedules,
+  and verify emitted candidates under their full parent objective.
+- Add algebraic construction beyond bounded truth tables, terminal-product
+  consumption, phase-debt-aware measured cleanup and explicit private-bit scopes.
+- Add bounded symbolic all-outcome labs, including nonlinear conditions and
+  exact dyadic phase; retain explicit failures and node-budget limits.
+- Correct live status and legacy FIFO handling, clean-fact transport, range and
+  helper-layout search, expected conditional costs, measured value-map floors,
+  final factored projections and source-bound boundary observations.
+- Add frozen generated v0.4.2 comparison fixtures, separate symbolic scale
+  regressions and a [delivery/acceptance plan](docs/V0.5-DISCOVERY.md).
+
+- Search over a complete [finite input promise](docs/PROMISED-DOMAINS.md).
+  A compact address set or interval can be checked across arbitrary dirty words.
+- Factor [native fractional rotations](docs/FRACTIONAL-OBSERVABLES.md) and check
+  their exact dyadic phases together with the output bits.
+- Add measurement-debt queries, compact evaluation contracts, a binary Griesmer
+  tensor bound, explicit wrapped source dependencies and thread-aware CPU limits.
+  The [issue ledger](docs/POST-0.4.2-FIXES.md) gives the scope for #86–104.
+
+The [transfer sweep](benchmarks/v05-transfer/README.md) covers 20 bounded
+episodes from a submitted portfolio. Both the conservative and prefix-promise
+runs retained the original bytes on all 20 under the fixed-width static paid-gate
+objective. On three generated cases, the [release wheel](benchmarks/v05-holdout/yield_fresh/v050-release-recheck.json)
+found 57 cheaper programs versus 1 for v0.4.2 and improved the previous best
+on one case (156 to 70). General word-arithmetic recovery,
+numeric table fitting and unhinted whole-host discovery remain open.
+
 ## 0.4.2 — 2026-11-17
 
 - Fix reported execution, scheduling, comparison and lab problems after v0.4.1;

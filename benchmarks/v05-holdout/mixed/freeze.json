@@ -1,0 +1,26 @@
+{
+  "generator_seed": 731809,
+  "generator_sha256": "e7bb47e5d628813156c4e3a16d6254db8c0ac9fdda95286c6d40b43355654018",
+  "fixtures_sha256": "088c6a164350a7743be9656bd6a1de4e39676fb4dc4de16352b0ca7cf0d75fee",
+  "fixture_count": 3,
+  "frozen_before_first_search": true,
+  "no_replacement_or_region_supplied": true,
+  "provenance": "New independent composed value/phase cases, frozen after the original nine-case phase failure was exposed and before any corrected-engine candidate result. Parent received no fixture details before freeze.",
+  "objective": "Q*toffoli",
+  "budgets": {
+    "rounds": 1,
+    "beam": 4,
+    "max_candidates": 12,
+    "max_operations": 128,
+    "max_variables": 32,
+    "max_terms": 65536,
+    "max_product_terms": 65536
+  },
+  "fixture_timeout_seconds": 45,
+  "native_case_cap": 65536,
+  "source_hashes": {
+    "updated_dirty_target_phase": "990259891409f99cfa06a0c3858b865e25024d3d3631e313406863edcd205246",
+    "dependent_observable_then_adapter": "19361b85b30398fc0432f43a8bf315dbf661cb3a60f673721ebe9107a18e3b8e",
+    "fractional_observable_guard": "754d52a54c4fe422db84ce803923aa70a2272b1114439d222b9e510db9c8ae26"
+  }
+}

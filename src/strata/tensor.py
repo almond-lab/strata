@@ -216,15 +216,26 @@ def tensor_bounds(tensor, *, max_substitution_combinations=4095, substitution_ti
     shape = _validate(tensor)
     ranks = _flattenings(_encoded(tensor),shape)
     substitution=_substitution(_encoded(tensor),shape,max_combinations=max_substitution_combinations,timeout=substitution_timeout)
+    code_bounds = {}
+    for mode,row in substitution['per_mode'].items():
+        k,d = row['slice_space_dimension'],row['minimum_nonzero_rank']
+        terms = [((d-1) >> i) + 1 for i in range(k)] if d is not None else None
+        code_bounds[mode] = dict(status=row['status'],dimension=k,minimum_distance_lower_bound=d,
+                                 terms=terms,value=sum(terms) if terms is not None else None)
+    griesmer = max((row['value'] for row in code_bounds.values() if row['value'] is not None),default=None)
     deltas = [list(terms) for terms in tensor['affine']]
     for i,j,k in tensor['entries']:
         deltas[k].append([tensor['left'][i],tensor['right'][j]])
     return dict(kind='proof',resource='bilinear_products',shape=shape,
                 flattening_ranks=dict(left=ranks[0],right=ranks[1],output=ranks[2]),
-                value=max(*ranks,substitution['value'] or 0),model=MODEL,scope=SCOPE,tensor_hash=tensor['tensor_hash'],
+                value=max(*ranks,substitution['value'] or 0,griesmer or 0),model=MODEL,scope=SCOPE,tensor_hash=tensor['tensor_hash'],
                 reasoning='Each rank-one tensor contributes matrix rank at most one in every flattening.',
                 quadratic=quadratic_bounds(deltas),
-                substitution_bound=substitution)
+                substitution_bound=substitution,
+                griesmer_bound=dict(value=griesmer,per_mode=code_bounds,field='GF(2)',
+                    reasoning='In compressed mode dimension k, each nonzero slice uses at least d rank-one terms. '
+                              'The resulting binary linear code has dimension k and distance at least d. '
+                              'Its length is at least the sum of ceil(d/2^i) over 0 <= i < k.'))
 
 
 def _outer(left,right,out,shape):

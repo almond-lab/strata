@@ -100,12 +100,13 @@ HMR q3 b1
 POP_CONDITION
 CX q3 q2
 CX q3 q2'''
-    # The measured dirty value has an outstanding phase debt. Even though an
-    # earlier quadratic segment is profitable, no complete candidate is emitted.
+    # The outstanding phase debt remains exactly equal, and a conditional HMR
+    # never grants an unconditional zero lease for the later segment.
     result=resynthesize_measured_lookup(km.Circuit(source),clean_inputs=[4])
-    assert result['status']=='not_applicable'
-    assert 'phase debt' in result['reason']
-    assert 'candidate' not in result
+    assert result['status']=='constructed'
+    assert 3 not in result['segments'][-1]['clean_at_entry']
+    assert any(d['status']=='outstanding' for d in result['phase_preservation']['original_phase_debts'])
+    _all_branches(source,result['candidate'],public=[0,1,2,3],width=5,bits=2,measurements=2)
 
 
 def test_repaired_conditional_hmr_keeps_inactive_branch_values_until_explicit_uncompute():
@@ -248,8 +249,8 @@ def test_cli_restructure_exposes_product_budget_for_lookup_and_phase_constructor
                  '--rounds','1','--clean-inputs','2','--max-product-terms','1'])==0
     report=json.loads(capsys.readouterr().out)
     proposal=next(row for row in report['attempts'] if row['mechanism']=='observable_phase_elimination')
-    assert proposal['construction']['status']=='not_applicable'
-    assert 'requires explicit ANF' in proposal['construction']['reason']
+    assert proposal['construction']['status']=='not_constructed'
+    assert proposal['construction']['segments'][0]['construction']['semantics']['reason']=='constructor_anf_product_budget'
     boundary=report['boundary_receipts'][report['baseline']['id']]
     assert boundary['status']=='exact_factored' and boundary['phase_zero'] is False
     assert boundary['limits']['max_apply_steps']==32

@@ -127,15 +127,19 @@ def nonlinear_identity(count):
     return measurements + '\nPUSH_CONDITION if b0\nNEG if b1\nNEG if b1\nPOP_CONDITION'
 
 
-def test_true_nonlinear_47_outcome_lab_limit_is_explicit_without_false_certificate():
+def test_true_nonlinear_47_outcome_lab_is_symbolic_when_enumeration_exceeds_budget():
     contract = Contract('nonlinear', (Register('scratch', (0,), role='clean'),), 'id')
     reference = lambda inp, scale: ({}, 0)
     small = exhaustive(km.Circuit(nonlinear_identity(2)), contract, reference)
     assert small.passed and small.reduction == 'none' and small.tested == 4
     text = nonlinear_identity(47)
     assert compile_program(text).affine_hmr is False
-    with pytest.raises(StrataError, match=r'non-affine HMR control requires all 2\^47 branches.*symbolic HMR checking is not implemented'):
-        exhaustive(km.Circuit(text), contract, reference)
+    result = exhaustive(km.Circuit(text), contract, reference)
+    assert result.passed and result.reduction == 'symbolic_hmr'
+    assert result.branches == 1 << 47 and result.tested == 1
+    validate_lab_receipt(asdict(result))
+    with pytest.raises(StrataError, match='symbolic HMR.*budget.*no certificate'):
+        exhaustive(km.Circuit(text), contract, reference, max_symbolic_nodes=2)
 
 
 def test_multibit_classical_register_obeys_little_endian_order():

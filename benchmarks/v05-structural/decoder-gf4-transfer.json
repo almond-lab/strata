@@ -1,0 +1,174 @@
+{
+  "source_sha256": "e55f587301091083f92ebd1788091c3fa4e0602a7d7e627e2b1361fdfcd62430",
+  "search": "automatic bounded episode selection and certified construction; no supplied mechanism",
+  "status": "no_gain",
+  "cost_delta": 0.0,
+  "search_control": {
+    "fast": true,
+    "stop_reason": null,
+    "search_seconds": 45,
+    "trial_seconds": 4,
+    "screened_count": 22,
+    "timed_out": 0
+  },
+  "discovery_yield": {
+    "unique_verified_cheaper_native_designs": 0,
+    "designs": {},
+    "scope": "distinct verified complete-parent splice bytes, one selected candidate per evaluated region"
+  },
+  "construction_budget": {
+    "max_candidates": 12,
+    "remaining": 0
+  },
+  "source": "Gu-style small decoder generator, gf_bits=2, four syndrome words",
+  "parent_width": 49,
+  "source_instructions": 2970,
+  "source_cost": 926786.0,
+  "best_cost": 926786.0,
+  "objective": "static Q**2*toffoli on supplied component; no official task score",
+  "segments": [
+    {
+      "target": {
+        "start": 18,
+        "stop": 146,
+        "paid": 25,
+        "retrieval": "joint_intermediate_bank"
+      },
+      "status": "no_gain",
+      "cost_delta": 0,
+      "reason": null
+    },
+    {
+      "target": {
+        "start": 363,
+        "stop": 485,
+        "paid": 24,
+        "retrieval": "joint_intermediate_bank"
+      },
+      "status": "no_gain",
+      "cost_delta": 0,
+      "reason": null
+    },
+    {
+      "target": {
+        "start": 718,
+        "stop": 838,
+        "paid": 22,
+        "retrieval": "joint_intermediate_bank"
+      },
+      "status": "no_gain",
+      "cost_delta": 0,
+      "reason": null
+    },
+    {
+      "target": {
+        "start": 1119,
+        "stop": 1244,
+        "paid": 21,
+        "retrieval": "matched_involution_dependency_hypothesis"
+      },
+      "status": "no_gain",
+      "cost_delta": 0,
+      "reason": null
+    },
+    {
+      "target": {
+        "start": 724,
+        "stop": 838,
+        "paid": 21,
+        "retrieval": "matched_involution_dependency_hypothesis"
+      },
+      "status": "no_gain",
+      "cost_delta": 0,
+      "reason": null
+    },
+    {
+      "target": {
+        "start": 369,
+        "stop": 472,
+        "paid": 21,
+        "retrieval": "matched_involution_dependency_hypothesis"
+      },
+      "status": "no_gain",
+      "cost_delta": 0,
+      "reason": null
+    },
+    {
+      "target": {
+        "start": 55,
+        "stop": 146,
+        "paid": 21,
+        "retrieval": "matched_involution_dependency_hypothesis"
+      },
+      "status": "no_gain",
+      "cost_delta": 0,
+      "reason": null
+    },
+    {
+      "target": {
+        "start": 1135,
+        "stop": 1237,
+        "paid": 18,
+        "retrieval": "matched_involution_dependency_hypothesis"
+      },
+      "status": "no_gain",
+      "cost_delta": 0,
+      "reason": null
+    }
+  ],
+  "source_credit": "Decoder team BM generator on the shared SSD; SHA-256 bound above.",
+  "region_operation_cap": 128,
+  "public_inputs": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7
+  ],
+  "clean_inputs": [
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23,
+    24,
+    25,
+    26,
+    27,
+    28,
+    29,
+    30,
+    31,
+    32,
+    33,
+    34,
+    35,
+    36,
+    37,
+    38,
+    39,
+    40,
+    41,
+    42,
+    43,
+    44,
+    45,
+    46,
+    47,
+    48
+  ]
+}

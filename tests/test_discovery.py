@@ -117,8 +117,8 @@ def test_phase_only_failure_has_native_counterexample(tmp_path, materialization)
     assert witness['kind'] == 'phase'
 
 
-@pytest.mark.parametrize('barrier', ['HMR q2 b0', 'Z_POW q2 0.25'])
-def test_changed_opaque_or_conditional_spans_stay_unknown(tmp_path, barrier):
+def test_deleted_measurement_with_public_outcome_stays_unknown(tmp_path):
+    barrier = 'HMR q2 b0'
     original = write_circuit(tmp_path, 'source.kmx', f'CCX q0 q1 q2\n{barrier}\nCX q2 q3')
     candidate = write_circuit(tmp_path, 'candidate.kmx', 'CCX q0 q1 q2\nCX q2 q3')
     report = evaluate_candidate(original, candidate, tmp_path / 'out')
@@ -126,6 +126,15 @@ def test_changed_opaque_or_conditional_spans_stay_unknown(tmp_path, barrier):
     assert report['checks']['equivalent'] is None
     assert report['feedback']['unresolved_obligations']
     assert len(Store(tmp_path / 'out' / '.strata').all('file_candidate_attempt')) == 1
+
+
+def test_removing_fractional_phase_with_public_input_has_counterexample(tmp_path):
+    source = write_circuit(tmp_path, 'source.kmx', 'CCX q0 q1 q2\nZ_POW q2 0.25\nCX q2 q3')
+    candidate = write_circuit(tmp_path, 'candidate.kmx', 'CCX q0 q1 q2\nCX q2 q3')
+    report = evaluate_candidate(source, candidate, tmp_path / 'out')
+    assert report['status'] == 'rejected'
+    assert report['checks']['equivalent'] is False
+    assert report['counterexample']['before_phase'] == '1/4'
 
 
 def test_small_proof_budget_is_unknown_not_sampled_success(tmp_path, materialization):

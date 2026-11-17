@@ -1,6 +1,12 @@
 # Strata
 
-**Contract-driven circuit restructuring on kickmix.** Strata 0.4 adds an experiment
+**Contract-driven circuit restructuring on kickmix.** Version 0.5.0
+adds automatic joint-function factorization, consumer-derived intermediate
+values, input and output encodings, direct phase synthesis and reversible
+storage/cleanup search. Read the [v0.5 design and acceptance gates](docs/V0.5-DISCOVERY.md)
+and the [release](https://github.com/almond-lab/strata/releases/tag/v0.5.0).
+Search also supports [declared input domains](docs/PROMISED-DOMAINS.md) and
+[exact fractional phase endpoints](docs/FRACTIONAL-OBSERVABLES.md). Strata 0.4 added an experiment
 workflow for existing scripts, sweeps, shared job ownership and structured agent
 feedback. Its circuit layer recovers bounded
 semantic functions and effects, constructs candidates through generic mechanisms,
@@ -19,6 +25,9 @@ unmet research milestones. See [v0.4.2 fixes](docs/POST-0.4.1-FIXES.md),
 
 ## Documentation
 
+- [Twenty submitted circuit episodes](benchmarks/v05-transfer/README.md) and [issue-by-issue fixes](docs/POST-0.4.2-FIXES.md).
+- [v0.5 automatic discovery](docs/V0.5-DISCOVERY.md): whole-function candidates, symbolic scaling, representation costs, measurement debts and release gates.
+- [v0.5 measurement semantics](docs/V0.5-MEASUREMENTS.md): outcome-aware costs and bounded exact verification.
 - [Small-first research](docs/SMALL-FIRST.md): tiny exact prototypes, scaling evidence, bounded full builds and final-only expensive checks; default guidance for connected agents.
 - [Useful in ten minutes](docs/TEN-MINUTES.md): wrap an existing script, run a sweep and hand the results to your agent, without writing an adapter.
 - [v0.4 experiment workflow](docs/V0.4-WORKFLOW.md): checkpoints, owned cancellation, verified artifacts, calibrated screening, continuation policies and the research loop.
@@ -50,6 +59,7 @@ python3.14 -m venv .venv
 .venv/bin/strata discover circuit.kmb --out work/research
 .venv/bin/strata optimize circuit.kmb --out work/automatic --cost 'Q*(toffoli+t/4)'
 .venv/bin/strata restructure episode.kmb --out work/construct --rounds 2
+.venv/bin/strata search episode.kmb --out work/deep --clean-inputs 6,7,8,9 --cost 'Q*toffoli'
 ```
 
 No adapter, project file or suggested replacement is needed for the file
@@ -58,6 +68,13 @@ analysis, including affine maps, bilinear accumulators and materialization
 removal. Unsupported semantics stay opaque. `discover` supplies evidence to the
 connected agent, which follows the skill to originate hypotheses and construct
 candidates. A standalone CLI call does not invoke an AI provider.
+In the v0.5 development tree, `search` proposes supported structural candidates
+algorithmically without a supplied hypothesis. The example clean-wire IDs must
+be replaced by the actual boundary promise; unspecified wires stay arbitrary.
+For multi-output Boolean functions it can jointly change the input basis,
+output basis and nonlinear factorization. The discovery receipt reports priced
+and verified alternatives, their resource tradeoffs and, on small circuits,
+how many different sets of nonlinear functions those alternatives compute.
 
 ## What 0.4 adds
 

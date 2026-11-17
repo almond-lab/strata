@@ -1,0 +1,26 @@
+{
+  "generator_seed": 260493,
+  "generator_sha256": "4bd1f71ac42d69de97e78a00c1c83b98dd823b67afd6232cd229361951e49633",
+  "fixtures_sha256": "55cece6ecc391ed127d3f9fac576a58e813a12931893b1fff15855b3f4c2c749",
+  "fixture_count": 3,
+  "frozen_before_first_search": true,
+  "no_replacement_or_region_supplied": true,
+  "provenance": "Fresh review-agent compositions and a duplicate-materialization canary, frozen before seeing any wide-portfolio candidate. Earlier suites were already exposed; these exact bytes were not supplied to implementers.",
+  "objective": "Q*toffoli",
+  "budgets": {
+    "rounds": 1,
+    "beam": 4,
+    "max_candidates": 12,
+    "max_operations": 128,
+    "max_variables": 32,
+    "max_terms": 65536,
+    "max_product_terms": 65536
+  },
+  "fixture_timeout_seconds": 45,
+  "native_case_cap": 65536,
+  "source_hashes": {
+    "selector_shared_consumer": "95dc06c1803e50b9cb33d59ca7245e89512d16a2abca5b19f35fb2d0de798331",
+    "selector_dirty_observable": "c891758488ebe3d955777d0b5048a5c47f2236f75f622ff2631fbd6d7340761c",
+    "alias_multiplicity_canary": "63fcea7eee4b17c318e754659920fa05dd9d490a19884f46919d4c97311a6253"
+  }
+}

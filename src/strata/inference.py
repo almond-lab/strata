@@ -1,6 +1,6 @@
 """Exact, bounded value queries and executable information-compression witnesses."""
 from itertools import combinations
-from math import isfinite
+from math import comb, isfinite
 from time import monotonic
 from .model import StrataError, digest
 from .semantic import analyze_window
@@ -40,7 +40,17 @@ def _wires(circuit, wires, name='wire set'):
     return values
 
 
-def functions_at(circuit, at=None, *, from_at=0, clean_inputs=(), domain=None,
+def _value_semantics(lines, **limits):
+    result = analyze_window(lines, **limits)
+    if result.get('reason') in {'term_budget', 'product_budget'}:
+        from .factored_semantic import projected_value_semantics
+        projected = projected_value_semantics(lines, **limits)
+        if projected['status'] == 'exact':
+            return projected
+    return result
+
+
+def functions_at(circuit, at=None, *, from_at=0, clean_inputs=(), domain=None, observations=None,
                  max_variables=128, max_terms=65536, max_operations=10000,
                  max_product_terms=1048576, max_assignments=65536, max_outcomes=1024):
     """Recover values in [from_at, at), treating its initial boundary as arbitrary.
@@ -49,6 +59,12 @@ def functions_at(circuit, at=None, *, from_at=0, clean_inputs=(), domain=None,
     about an earlier prefix. Domain rows are independently executed and retained
     for exact finite relation/rank queries even when symbolic limits are reached.
     """
+    if observations is not None:
+        from .boundary_observations import query_observations
+        return query_observations('functions', circuit, observations, at=at, from_at=from_at,
+            domain=domain, clean_inputs=clean_inputs, max_variables=max_variables, max_terms=max_terms,
+            max_operations=max_operations, max_product_terms=max_product_terms,
+            max_assignments=max_assignments, max_outcomes=max_outcomes)
     try:
         lines, at = window_lines(circuit, from_at, at, max_lines=max_operations)
     except WindowLimit as exc:
@@ -58,9 +74,14 @@ def functions_at(circuit, at=None, *, from_at=0, clean_inputs=(), domain=None,
                 window_hash=digest(dict(lines=lines, num_qubits=circuit.num_qubits,
                                         from_at=from_at, at=at, clean_inputs=sorted(clean))),
                 scope='all arbitrary window boundary inputs except explicitly declared zero inputs')
+    sem = _value_semantics(lines, max_variables=max_variables, max_terms=max_terms,
+                         max_operations=max_operations, max_product_terms=max_product_terms,
+                         clean_inputs=sorted(clean))
     if domain is not None:
         bound = load_domain(domain, circuit, from_at=from_at, at=at,
-                            max_assignments=max_assignments, max_operations=max_operations)
+                            max_assignments=max_assignments, max_operations=max_operations,
+                            value_only=True, clean_inputs=clean, max_variables=max_variables,
+                            max_terms=max_terms, max_product_terms=max_product_terms)
         if any(row[f'q{q}'] for row in bound['assignments'] for q in clean):
             raise StrataError('finite domain contradicts declared clean boundary inputs')
         rows = []
@@ -68,28 +89,34 @@ def functions_at(circuit, at=None, *, from_at=0, clean_inputs=(), domain=None,
         count = sum(bool(w) and w[0] == 'HMR' for w in (shlex.split(line, comments=True) for line in lines))
         if type(max_outcomes) is not int or max_outcomes < 1:
             raise StrataError('max_outcomes must be positive')
-        if (1 << count) > max_outcomes:
+        outcome_independent = sem['status'] == 'exact' and not any(
+            variable in sem.get('measurement_variables', [])
+            for poly in sem['outputs'].values() for term in poly['monomials'] for variable in term)
+        evaluated_outcomes = 1 if outcome_independent else 1 << count
+        if evaluated_outcomes > max_outcomes:
             return dict(base, status='unknown', reason='measurement_outcome_budget', domain_hash=bound['domain_hash'])
         try:
             for assignment in bound['assignments']:
-                for encoded in range(1 << count):
+                concrete = {**{b: 0 for b in bound.get('omitted_classical_inputs', [])}, **assignment}
+                for encoded in range(evaluated_outcomes):
                     outcomes = [(encoded >> i) & 1 for i in range(count)]
-                    row = execute_assignment(lines, assignment, circuit.num_qubits, outcomes=outcomes, max_operations=max_operations)
+                    row = execute_assignment(lines, concrete, circuit.num_qubits, outcomes=outcomes, max_operations=max_operations)
                     rows.append({int(q): value for q, value in row['outputs'].items()})
         except (_Unknown, ValueError) as exc:
             return dict(base, status='unknown', reason=str(exc), domain_hash=bound['domain_hash'])
         base.update(scope=bound['scope'], domain_hash=bound['domain_hash'],
                     assignment_count=bound['assignment_count'], outcome_count=1 << count,
+                    evaluated_outcomes=evaluated_outcomes,
+                    outcome_reduction=('exact_ANF_quantum_output_independence' if outcome_independent else 'none'),
                     finite_values=rows, all_input_equivalence=False,
+                    omitted_classical_inputs=bound.get('omitted_classical_inputs', []),
+                    value_dependency_proof=bound.get('value_dependency_proof'),
                     measurement_variables=[f'm{i}' for i in range(count)],
                     classical_inputs=bound['classical_inputs'],
                     is_permutation=not any((words := shlex.split(line, comments=True)) and
                         (words[0] in {'HMR','R','BIT_STORE0','BIT_STORE1','BIT_INVERT','PUSH_CONDITION','POP_CONDITION'}
                          or 'if' in words) for line in lines),
                     semantic_scope='finite native outcome-parametric basis trajectories')
-    sem = analyze_window(lines, max_variables=max_variables, max_terms=max_terms,
-                         max_operations=max_operations, max_product_terms=max_product_terms,
-                         clean_inputs=sorted(clean))
     if sem['status'] != 'exact':
         if domain is not None:
             return dict(base, status='exact', kind='finite_enumeration', symbolic_status=sem['status'])
@@ -97,6 +124,7 @@ def functions_at(circuit, at=None, *, from_at=0, clean_inputs=(), domain=None,
     funcs = {q: _poly(sem['outputs'].get(str(q), {'monomials': [[q]]})) for q in range(circuit.num_qubits)}
     funcs = {q: {term for term in poly if not term & clean} for q, poly in funcs.items()}
     return dict(base, status='exact', functions=funcs,
+                value_semantics=sem.get('evidence'), semantic_source_status=sem.get('source_status', sem['status']),
                 phase={t for t in _poly(sem['phase']) if not t & clean},
                 is_permutation=sem.get('is_permutation', True),
                 semantic_scope=sem.get('semantic_scope', 'exact_permutation_and_sign'),
@@ -105,7 +133,12 @@ def functions_at(circuit, at=None, *, from_at=0, clean_inputs=(), domain=None,
 
 
 def is_function_of(circuit, wire, at, support, *, degree=2, max_forms=4096,
-                   timeout=5, clean_inputs=(), from_at=0, domain=None, **budgets):
+                   timeout=5, clean_inputs=(), from_at=0, domain=None, observations=None, **budgets):
+    if observations is not None:
+        from .boundary_observations import query_observations
+        return query_observations('function-of', circuit, observations, at=at, from_at=from_at,
+            wire=wire, support=support, degree=degree, max_forms=max_forms, timeout=timeout,
+            clean_inputs=clean_inputs, domain=domain, **budgets)
     support = tuple(support)
     if len(set(support)) != len(support) or wire in support:
         raise StrataError('support must be distinct and exclude target')
@@ -129,6 +162,10 @@ def is_function_of(circuit, wire, at, support, *, degree=2, max_forms=4096,
 
 
 def _function_search(result, wire, support, *, family, degree, max_forms, timeout, start, from_at, domain, budgets):
+    needed = sum(comb(len(support), n) for n in range(min(degree,len(support)) + 1))
+    if needed > max_forms:
+        return dict(status='unknown', reason='functional search form budget', budget_phase='functional_search',
+                    searched_family=family, forms_needed=needed, max_forms=max_forms, forms=0)
     def check_budget():
         if monotonic() - start > timeout:
             raise StrataError('functional search timeout')
@@ -139,9 +176,6 @@ def _function_search(result, wire, support, *, family, degree, max_forms, timeou
         for size in range(degree + 1):
             for form in combinations(support, size):
                 check_budget()
-                if len(forms) >= max_forms:
-                    return dict(status='unknown', reason='functional search form budget', budget_phase='functional_search',
-                                searched_family=family, forms=len(forms))
                 if finite is not None:
                     poly = {i for i, row in enumerate(finite) if all(row[q] for q in form)}
                 else:
@@ -221,8 +255,12 @@ def _patterns(result, selected, max_inputs, check_budget=None):
 
 
 def information_slack(circuit, at=None, *, from_at=0, wires=None, clean_inputs=(),
-                      domain=None, max_inputs=16, timeout=5, **budgets):
+                      domain=None, observations=None, max_inputs=16, timeout=5, **budgets):
     """Exact joint information bound; the default set is touched window wires."""
+    if observations is not None:
+        from .boundary_observations import query_observations
+        return query_observations('slack', circuit, observations, at=at, from_at=from_at,
+            wires=wires, clean_inputs=clean_inputs, domain=domain, max_inputs=max_inputs, timeout=timeout, **budgets)
     if type(timeout) not in (int, float) or not isfinite(timeout) or timeout <= 0:
         raise StrataError('invalid slack search timeout')
     start = monotonic()

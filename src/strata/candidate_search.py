@@ -140,7 +140,7 @@ def _native_batch(reference,finalists,helpers,max_input_bits):
 
 def search_candidates(tensor, *, strategy='guided',candidate_budget=1_000_000,seed=123,
                       batch_size=65536,materialization_limit=128,native_limit=8,
-                      clean_helpers=None,max_native_input_bits=12):
+                      clean_helpers=None,max_native_input_bits=12,cost='Q*toffoli'):
     """Search the same four-product family by random sampling or exact residuals.
 
     Random selection is uniform without replacement. Guided matching may exhaust
@@ -150,6 +150,8 @@ def search_candidates(tensor, *, strategy='guided',candidate_budget=1_000_000,se
     if strategy not in {'guided','random'} or any(type(v)is not int or v<1 for v in
         (candidate_budget,batch_size,materialization_limit,native_limit,max_native_input_bits)):
         raise StrataError('invalid candidate search strategy or budgets')
+    from .cost import Formula
+    objective=Formula(cost)
     started=perf_counter();bounds=tensor_bounds(tensor)
     if bounds['value']>4:
         raise StrataError('four-product candidate family is below the proved tensor lower bound')
@@ -190,7 +192,7 @@ def search_candidates(tensor, *, strategy='guided',candidate_budget=1_000_000,se
             duplicates+=1;continue
         program_hashes.add(code_hash);resources=Kickmix().measured(circuit)
         materialized.append((key,circuit,dict(specification=[int(i) for i in spec],decomposition=decomposition,
-            artifact_sha256=code_hash,native_text=text,resources=resources,cost=resources['Q']*resources['toffoli'])))
+            artifact_sha256=code_hash,native_text=text,resources=resources,cost=objective(resources))))
     materialization_seconds=perf_counter()-materialize_started
     materialized.sort(key=lambda row:(row[2]['cost'],row[2]['resources']['instructions'],row[0]))
     finalists=materialized[:native_limit]
@@ -203,7 +205,7 @@ def search_candidates(tensor, *, strategy='guided',candidate_budget=1_000_000,se
             raise StrataError('candidate failed native or exact complete-boundary verification')
         verified.append(dict(candidate_index=key,**row,exact_verification=proof))
     proof_seconds=perf_counter()-then
-    baseline=Kickmix().measured(reference);baseline_cost=baseline['Q']*baseline['toffoli']
+    baseline=Kickmix().measured(reference);baseline_cost=objective(baseline)
     best=min(verified,key=lambda row:row['cost']) if verified else None
     return dict(schema_version='1',kind='bounded_bilinear_candidate_search',strategy=strategy,seed=seed,
         tensor_hash=tensor['tensor_hash'],tensor_shape=tensor['shape'],tensor=tensor,bounds=bounds,
@@ -221,7 +223,7 @@ def search_candidates(tensor, *, strategy='guided',candidate_budget=1_000_000,se
             final_exact_proof=proof_seconds,total=perf_counter()-started),
         baseline=dict(resources=baseline,cost=baseline_cost,native=str(reference)),native_validation=native,
         best=best,verified_candidates=verified,accepted_gain=max(0,baseline_cost-best['cost']) if best else None,
-        objective=dict(expression='Q*toffoli',accounting='emitted native circuit; two clean helper wires priced when used'),
+        objective=dict(expression=objective.expression,accounting='emitted native circuit; two clean helper wires priced when used'),
         limits=dict(batch_size=batch_size,materialization_limit=materialization_limit,native_limit=native_limit),
         interpretation='restricted algebraic solver experiment; guided precision is not an unbiased success probability; equal candidate caps do not imply equal computation',
         forced_measurement_events=0,

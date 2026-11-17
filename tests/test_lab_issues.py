@@ -94,7 +94,8 @@ def test_reduction_matches_independent_native_full_enumeration(text, passed, red
     c = km.Circuit(text)
     reduced = exhaustive(c, IDENTITY, REFERENCE, batch_size=7)
     full = exhaustive(c, IDENTITY, REFERENCE, branch_strategy='full', batch_size=19)
-    assert reduced.passed is full.passed is passed
+    symbolic = exhaustive(c, IDENTITY, REFERENCE, branch_strategy='symbolic')
+    assert reduced.passed is full.passed is symbolic.passed is passed
     assert reduced.reduction == reduction
     if passed:
         validate_lab_receipt(asdict(reduced))
@@ -194,10 +195,14 @@ def test_native_segments_are_cached_and_metadata_keeps_quoting():
     assert exhaustive(circuit, IDENTITY, REFERENCE).passed
 
 
-def test_unsupported_many_branch_program_fails_budget_without_integer_overflow():
+def test_many_branch_program_uses_bounded_symbolic_proof_without_integer_overflow():
     c = km.Circuit(repeated(70) + '\nX q0 if b0\nX q0 if b0')
+    result = exhaustive(c, IDENTITY, REFERENCE)
+    assert result.passed and result.reduction == 'symbolic_hmr'
+    assert result.branches == 1 << 70 and result.tested == result.cases == 2
+    validate_lab_receipt(asdict(result))
     with pytest.raises(StrataError, match='budget'):
-        exhaustive(c, IDENTITY, REFERENCE)
+        exhaustive(c, IDENTITY, REFERENCE, branch_strategy='full')
 
 
 def test_scaled_bundle_component_lab_keeps_frozen_bytes_and_exact_coverage():

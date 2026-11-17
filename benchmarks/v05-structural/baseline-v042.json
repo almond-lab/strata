@@ -1,0 +1,670 @@
+{
+  "frozen": {
+    "objective": "Q*toffoli",
+    "budgets": {
+      "rounds": 1,
+      "beam": 4,
+      "max_candidates": 12,
+      "max_operations": 200,
+      "max_variables": 32,
+      "max_terms": 65536,
+      "max_product_terms": 65536
+    },
+    "inputs": [
+      {
+        "name": "distributed_twolevel",
+        "family": "nested_distributed_products",
+        "sha256": "36da7b6c8300539f6ec48a8053f806595011389761b22da6f17b1288c6441134",
+        "clean": [
+          6,
+          7,
+          8,
+          9
+        ]
+      },
+      {
+        "name": "shared_factor_outputs",
+        "family": "linear_consumer_of_nonlinear_vector",
+        "sha256": "dce16e06ebf787067436b72c2bb4dd6bf19fa00f0e3471fea34c193e6484ed7f",
+        "clean": [
+          6,
+          7,
+          8,
+          9
+        ]
+      },
+      {
+        "name": "mixed_basis_twolevel",
+        "family": "nested_distributed_products",
+        "sha256": "734a4137b56aee6af651e0e640951fa7bd6e471bc53549384ed475a4ee80a371",
+        "clean": [
+          6,
+          7,
+          8,
+          9
+        ]
+      },
+      {
+        "name": "permuted_schedule",
+        "family": "nested_distributed_products",
+        "sha256": "c56dcb4f0f062e0f1fac0c1721d60b3bd2c4934c477965afaf3c1e45b98f82fb",
+        "clean": [
+          6,
+          7,
+          8,
+          9
+        ]
+      },
+      {
+        "name": "parity_product",
+        "family": "nonlinear_consumer_of_encoded_vector",
+        "sha256": "f9b13a18d29c7ff633f956535fd7b0f752fd39b462e408e19f9878f613a736d9",
+        "clean": [
+          5,
+          6,
+          7,
+          8,
+          9,
+          10
+        ]
+      },
+      {
+        "name": "duplicated_reencoding",
+        "family": "nonlinear_consumer_of_encoded_vector",
+        "sha256": "09080673a3ed510aabd99450e269f0ba4702e2900136bfa5701066f01dd1af90",
+        "clean": [
+          5,
+          6,
+          7,
+          8
+        ]
+      },
+      {
+        "name": "high_support_bound",
+        "family": "out_of_default_truth_budget",
+        "sha256": "5513a72ef65ee3cb4e6b558d217ba1136a49938b36439dc09402cd8850e89e34",
+        "clean": [
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18
+        ]
+      }
+    ]
+  },
+  "results": [
+    {
+      "name": "distributed_twolevel",
+      "family": "nested_distributed_products",
+      "source_sha256": "36da7b6c8300539f6ec48a8053f806595011389761b22da6f17b1288c6441134",
+      "status": "no_gain",
+      "independent_native_equal": true,
+      "before": {
+        "Q": 10,
+        "toffoli": 8,
+        "t": 0,
+        "rotations": 0,
+        "instructions": 12,
+        "accounting": "static_emitted",
+        "reaction_depth": 2
+      },
+      "after": {
+        "Q": 10,
+        "toffoli": 8,
+        "t": 0,
+        "rotations": 0,
+        "instructions": 12,
+        "accounting": "static_emitted",
+        "reaction_depth": 2
+      },
+      "before_cost": 80.0,
+      "after_cost": 80.0,
+      "physical_clean_wires_retired": [],
+      "deep_bank_retirement": false,
+      "mechanisms": [
+        {
+          "name": "observable_phase_elimination",
+          "status": "not_constructed",
+          "reason": "nonidentity output outside clean phase reconstruction family",
+          "delta": null,
+          "structural_witness": null
+        },
+        {
+          "name": "direct_consumer_synthesis",
+          "status": "not_constructed",
+          "reason": "output_delta_degree_exceeds_two",
+          "delta": null,
+          "structural_witness": null
+        },
+        {
+          "name": "bilinear_tensor_decomposition",
+          "status": "not_constructed",
+          "reason": "no complete bilinear accumulator contract",
+          "delta": null,
+          "structural_witness": null
+        },
+        {
+          "name": "guided_bilinear_candidate_search",
+          "status": "not_constructed",
+          "reason": "no exact phase-free bilinear boundary",
+          "delta": null,
+          "structural_witness": null
+        },
+        {
+          "name": "measured_lookup_resynthesis",
+          "status": "not_constructed",
+          "reason": "no measurement-based lookup cleanup",
+          "delta": null,
+          "structural_witness": null
+        }
+      ],
+      "discovery_seconds": 0.06194058107212186,
+      "attempt_count": 5,
+      "code_hashes": {
+        "restructure.py": "eefc344bc5034f8ab603a388b2b08a25b6fd4dc8e2d6f5f452ce7aab6001715c",
+        "semantic.py": "6f2a1f7589570a1d7b9973bce547b1cedcc1be811e6cfa8a1968a9bb4f482e50",
+        "factored.py": "baf6d482f51a8a1d1216c23cbfbafc84e1d10ec0246968ddd07eabf8e4f24cef",
+        "factored_semantic.py": "0fcde83449d918233fb0c51d2e82866cab1bbd71e60a163a6668350b070a30cf",
+        "inference.py": "639ae5a001c0cf3c5283e0a3f8327239ced9567c736c1857e44f902069f89879",
+        "tensor.py": "6833d1b939cc9d07109d8c6caabd2c3344e7bf1e10f2708d025c3e31b1e9ec17",
+        "candidate_search.py": "5cfcd03a7f81e7f81425e4fefc8d5b1239521e105009a991dc298080ad97212f",
+        "domains.py": "3bbfc013ad7875ee7734b856e81b55ba8c8b0ffb2875b0f9da5ef2aa842c45e2",
+        "lookup.py": "635ff426587ba7ff159d0d1eb64f155649f46e607dc62e5a07008bb946e8cb7e"
+      }
+    },
+    {
+      "name": "shared_factor_outputs",
+      "family": "linear_consumer_of_nonlinear_vector",
+      "source_sha256": "dce16e06ebf787067436b72c2bb4dd6bf19fa00f0e3471fea34c193e6484ed7f",
+      "status": "no_gain",
+      "independent_native_equal": true,
+      "before": {
+        "Q": 10,
+        "toffoli": 8,
+        "t": 0,
+        "rotations": 0,
+        "instructions": 10,
+        "accounting": "static_emitted",
+        "reaction_depth": 2
+      },
+      "after": {
+        "Q": 10,
+        "toffoli": 8,
+        "t": 0,
+        "rotations": 0,
+        "instructions": 10,
+        "accounting": "static_emitted",
+        "reaction_depth": 2
+      },
+      "before_cost": 80.0,
+      "after_cost": 80.0,
+      "physical_clean_wires_retired": [],
+      "deep_bank_retirement": false,
+      "mechanisms": [
+        {
+          "name": "observable_phase_elimination",
+          "status": "not_constructed",
+          "reason": "nonidentity output outside clean phase reconstruction family",
+          "delta": null,
+          "structural_witness": null
+        },
+        {
+          "name": "direct_consumer_synthesis",
+          "status": "not_constructed",
+          "reason": "output_delta_degree_exceeds_two",
+          "delta": null,
+          "structural_witness": null
+        },
+        {
+          "name": "bilinear_tensor_decomposition",
+          "status": "not_constructed",
+          "reason": "no complete bilinear accumulator contract",
+          "delta": null,
+          "structural_witness": null
+        },
+        {
+          "name": "guided_bilinear_candidate_search",
+          "status": "not_constructed",
+          "reason": "no exact phase-free bilinear boundary",
+          "delta": null,
+          "structural_witness": null
+        },
+        {
+          "name": "measured_lookup_resynthesis",
+          "status": "not_constructed",
+          "reason": "no measurement-based lookup cleanup",
+          "delta": null,
+          "structural_witness": null
+        }
+      ],
+      "discovery_seconds": 0.01142669701948762,
+      "attempt_count": 5,
+      "code_hashes": {
+        "restructure.py": "eefc344bc5034f8ab603a388b2b08a25b6fd4dc8e2d6f5f452ce7aab6001715c",
+        "semantic.py": "6f2a1f7589570a1d7b9973bce547b1cedcc1be811e6cfa8a1968a9bb4f482e50",
+        "factored.py": "baf6d482f51a8a1d1216c23cbfbafc84e1d10ec0246968ddd07eabf8e4f24cef",
+        "factored_semantic.py": "0fcde83449d918233fb0c51d2e82866cab1bbd71e60a163a6668350b070a30cf",
+        "inference.py": "639ae5a001c0cf3c5283e0a3f8327239ced9567c736c1857e44f902069f89879",
+        "tensor.py": "6833d1b939cc9d07109d8c6caabd2c3344e7bf1e10f2708d025c3e31b1e9ec17",
+        "candidate_search.py": "5cfcd03a7f81e7f81425e4fefc8d5b1239521e105009a991dc298080ad97212f",
+        "domains.py": "3bbfc013ad7875ee7734b856e81b55ba8c8b0ffb2875b0f9da5ef2aa842c45e2",
+        "lookup.py": "635ff426587ba7ff159d0d1eb64f155649f46e607dc62e5a07008bb946e8cb7e"
+      }
+    },
+    {
+      "name": "mixed_basis_twolevel",
+      "family": "nested_distributed_products",
+      "source_sha256": "734a4137b56aee6af651e0e640951fa7bd6e471bc53549384ed475a4ee80a371",
+      "status": "no_gain",
+      "independent_native_equal": true,
+      "before": {
+        "Q": 10,
+        "toffoli": 8,
+        "t": 0,
+        "rotations": 0,
+        "instructions": 20,
+        "accounting": "static_emitted",
+        "reaction_depth": 2
+      },
+      "after": {
+        "Q": 10,
+        "toffoli": 8,
+        "t": 0,
+        "rotations": 0,
+        "instructions": 20,
+        "accounting": "static_emitted",
+        "reaction_depth": 2
+      },
+      "before_cost": 80.0,
+      "after_cost": 80.0,
+      "physical_clean_wires_retired": [],
+      "deep_bank_retirement": false,
+      "mechanisms": [
+        {
+          "name": "observable_phase_elimination",
+          "status": "not_constructed",
+          "reason": "nonidentity output outside clean phase reconstruction family",
+          "delta": null,
+          "structural_witness": null
+        },
+        {
+          "name": "direct_consumer_synthesis",
+          "status": "not_constructed",
+          "reason": "output_delta_degree_exceeds_two",
+          "delta": null,
+          "structural_witness": null
+        },
+        {
+          "name": "bilinear_tensor_decomposition",
+          "status": "not_constructed",
+          "reason": "no complete bilinear accumulator contract",
+          "delta": null,
+          "structural_witness": null
+        },
+        {
+          "name": "guided_bilinear_candidate_search",
+          "status": "not_constructed",
+          "reason": "no exact phase-free bilinear boundary",
+          "delta": null,
+          "structural_witness": null
+        },
+        {
+          "name": "measured_lookup_resynthesis",
+          "status": "not_constructed",
+          "reason": "no measurement-based lookup cleanup",
+          "delta": null,
+          "structural_witness": null
+        }
+      ],
+      "discovery_seconds": 0.022783658001571894,
+      "attempt_count": 5,
+      "code_hashes": {
+        "restructure.py": "eefc344bc5034f8ab603a388b2b08a25b6fd4dc8e2d6f5f452ce7aab6001715c",
+        "semantic.py": "6f2a1f7589570a1d7b9973bce547b1cedcc1be811e6cfa8a1968a9bb4f482e50",
+        "factored.py": "baf6d482f51a8a1d1216c23cbfbafc84e1d10ec0246968ddd07eabf8e4f24cef",
+        "factored_semantic.py": "0fcde83449d918233fb0c51d2e82866cab1bbd71e60a163a6668350b070a30cf",
+        "inference.py": "639ae5a001c0cf3c5283e0a3f8327239ced9567c736c1857e44f902069f89879",
+        "tensor.py": "6833d1b939cc9d07109d8c6caabd2c3344e7bf1e10f2708d025c3e31b1e9ec17",
+        "candidate_search.py": "5cfcd03a7f81e7f81425e4fefc8d5b1239521e105009a991dc298080ad97212f",
+        "domains.py": "3bbfc013ad7875ee7734b856e81b55ba8c8b0ffb2875b0f9da5ef2aa842c45e2",
+        "lookup.py": "635ff426587ba7ff159d0d1eb64f155649f46e607dc62e5a07008bb946e8cb7e"
+      }
+    },
+    {
+      "name": "permuted_schedule",
+      "family": "nested_distributed_products",
+      "source_sha256": "c56dcb4f0f062e0f1fac0c1721d60b3bd2c4934c477965afaf3c1e45b98f82fb",
+      "status": "no_gain",
+      "independent_native_equal": true,
+      "before": {
+        "Q": 10,
+        "toffoli": 8,
+        "t": 0,
+        "rotations": 0,
+        "instructions": 12,
+        "accounting": "static_emitted",
+        "reaction_depth": 2
+      },
+      "after": {
+        "Q": 10,
+        "toffoli": 8,
+        "t": 0,
+        "rotations": 0,
+        "instructions": 12,
+        "accounting": "static_emitted",
+        "reaction_depth": 2
+      },
+      "before_cost": 80.0,
+      "after_cost": 80.0,
+      "physical_clean_wires_retired": [],
+      "deep_bank_retirement": false,
+      "mechanisms": [
+        {
+          "name": "observable_phase_elimination",
+          "status": "not_constructed",
+          "reason": "nonidentity output outside clean phase reconstruction family",
+          "delta": null,
+          "structural_witness": null
+        },
+        {
+          "name": "direct_consumer_synthesis",
+          "status": "not_constructed",
+          "reason": "output_delta_degree_exceeds_two",
+          "delta": null,
+          "structural_witness": null
+        },
+        {
+          "name": "bilinear_tensor_decomposition",
+          "status": "not_constructed",
+          "reason": "no complete bilinear accumulator contract",
+          "delta": null,
+          "structural_witness": null
+        },
+        {
+          "name": "guided_bilinear_candidate_search",
+          "status": "not_constructed",
+          "reason": "no exact phase-free bilinear boundary",
+          "delta": null,
+          "structural_witness": null
+        },
+        {
+          "name": "measured_lookup_resynthesis",
+          "status": "not_constructed",
+          "reason": "no measurement-based lookup cleanup",
+          "delta": null,
+          "structural_witness": null
+        }
+      ],
+      "discovery_seconds": 0.009378541028127074,
+      "attempt_count": 5,
+      "code_hashes": {
+        "restructure.py": "eefc344bc5034f8ab603a388b2b08a25b6fd4dc8e2d6f5f452ce7aab6001715c",
+        "semantic.py": "6f2a1f7589570a1d7b9973bce547b1cedcc1be811e6cfa8a1968a9bb4f482e50",
+        "factored.py": "baf6d482f51a8a1d1216c23cbfbafc84e1d10ec0246968ddd07eabf8e4f24cef",
+        "factored_semantic.py": "0fcde83449d918233fb0c51d2e82866cab1bbd71e60a163a6668350b070a30cf",
+        "inference.py": "639ae5a001c0cf3c5283e0a3f8327239ced9567c736c1857e44f902069f89879",
+        "tensor.py": "6833d1b939cc9d07109d8c6caabd2c3344e7bf1e10f2708d025c3e31b1e9ec17",
+        "candidate_search.py": "5cfcd03a7f81e7f81425e4fefc8d5b1239521e105009a991dc298080ad97212f",
+        "domains.py": "3bbfc013ad7875ee7734b856e81b55ba8c8b0ffb2875b0f9da5ef2aa842c45e2",
+        "lookup.py": "635ff426587ba7ff159d0d1eb64f155649f46e607dc62e5a07008bb946e8cb7e"
+      }
+    },
+    {
+      "name": "parity_product",
+      "family": "nonlinear_consumer_of_encoded_vector",
+      "source_sha256": "f9b13a18d29c7ff633f956535fd7b0f752fd39b462e408e19f9878f613a736d9",
+      "status": "verified_improvement",
+      "independent_native_equal": true,
+      "before": {
+        "Q": 11,
+        "toffoli": 9,
+        "t": 0,
+        "rotations": 0,
+        "instructions": 21,
+        "accounting": "static_emitted",
+        "reaction_depth": 2
+      },
+      "after": {
+        "Q": 7,
+        "toffoli": 1,
+        "t": 0,
+        "rotations": 0,
+        "instructions": 9,
+        "accounting": "static_emitted",
+        "reaction_depth": 1
+      },
+      "before_cost": 99.0,
+      "after_cost": 7.0,
+      "physical_clean_wires_retired": [
+        7,
+        8,
+        9,
+        10
+      ],
+      "deep_bank_retirement": true,
+      "mechanisms": [
+        {
+          "name": "observable_phase_elimination",
+          "status": "not_constructed",
+          "reason": "nonidentity output outside clean phase reconstruction family",
+          "delta": null,
+          "structural_witness": null
+        },
+        {
+          "name": "direct_consumer_synthesis",
+          "status": "verified",
+          "reason": null,
+          "delta": -55.0,
+          "structural_witness": null
+        },
+        {
+          "name": "bilinear_tensor_decomposition",
+          "status": "verified",
+          "reason": null,
+          "delta": -92.0,
+          "structural_witness": null
+        },
+        {
+          "name": "guided_bilinear_candidate_search",
+          "status": "verified",
+          "reason": null,
+          "delta": -79.0,
+          "structural_witness": null
+        },
+        {
+          "name": "measured_lookup_resynthesis",
+          "status": "not_constructed",
+          "reason": "no measurement-based lookup cleanup",
+          "delta": null,
+          "structural_witness": null
+        }
+      ],
+      "discovery_seconds": 0.11400656285695732,
+      "attempt_count": 5,
+      "code_hashes": {
+        "restructure.py": "eefc344bc5034f8ab603a388b2b08a25b6fd4dc8e2d6f5f452ce7aab6001715c",
+        "semantic.py": "6f2a1f7589570a1d7b9973bce547b1cedcc1be811e6cfa8a1968a9bb4f482e50",
+        "factored.py": "baf6d482f51a8a1d1216c23cbfbafc84e1d10ec0246968ddd07eabf8e4f24cef",
+        "factored_semantic.py": "0fcde83449d918233fb0c51d2e82866cab1bbd71e60a163a6668350b070a30cf",
+        "inference.py": "639ae5a001c0cf3c5283e0a3f8327239ced9567c736c1857e44f902069f89879",
+        "tensor.py": "6833d1b939cc9d07109d8c6caabd2c3344e7bf1e10f2708d025c3e31b1e9ec17",
+        "candidate_search.py": "5cfcd03a7f81e7f81425e4fefc8d5b1239521e105009a991dc298080ad97212f",
+        "domains.py": "3bbfc013ad7875ee7734b856e81b55ba8c8b0ffb2875b0f9da5ef2aa842c45e2",
+        "lookup.py": "635ff426587ba7ff159d0d1eb64f155649f46e607dc62e5a07008bb946e8cb7e"
+      }
+    },
+    {
+      "name": "duplicated_reencoding",
+      "family": "nonlinear_consumer_of_encoded_vector",
+      "source_sha256": "09080673a3ed510aabd99450e269f0ba4702e2900136bfa5701066f01dd1af90",
+      "status": "no_gain",
+      "independent_native_equal": true,
+      "before": {
+        "Q": 9,
+        "toffoli": 5,
+        "t": 0,
+        "rotations": 0,
+        "instructions": 11,
+        "accounting": "static_emitted",
+        "reaction_depth": 3
+      },
+      "after": {
+        "Q": 9,
+        "toffoli": 5,
+        "t": 0,
+        "rotations": 0,
+        "instructions": 11,
+        "accounting": "static_emitted",
+        "reaction_depth": 3
+      },
+      "before_cost": 45.0,
+      "after_cost": 45.0,
+      "physical_clean_wires_retired": [],
+      "deep_bank_retirement": false,
+      "mechanisms": [
+        {
+          "name": "observable_phase_elimination",
+          "status": "not_constructed",
+          "reason": "nonidentity output outside clean phase reconstruction family",
+          "delta": null,
+          "structural_witness": null
+        },
+        {
+          "name": "direct_consumer_synthesis",
+          "status": "not_constructed",
+          "reason": "output_delta_degree_exceeds_two",
+          "delta": null,
+          "structural_witness": null
+        },
+        {
+          "name": "bilinear_tensor_decomposition",
+          "status": "not_constructed",
+          "reason": "no complete bilinear accumulator contract",
+          "delta": null,
+          "structural_witness": null
+        },
+        {
+          "name": "guided_bilinear_candidate_search",
+          "status": "not_constructed",
+          "reason": "no exact phase-free bilinear boundary",
+          "delta": null,
+          "structural_witness": null
+        },
+        {
+          "name": "measured_lookup_resynthesis",
+          "status": "not_constructed",
+          "reason": "no measurement-based lookup cleanup",
+          "delta": null,
+          "structural_witness": null
+        }
+      ],
+      "discovery_seconds": 0.017117321025580168,
+      "attempt_count": 5,
+      "code_hashes": {
+        "restructure.py": "eefc344bc5034f8ab603a388b2b08a25b6fd4dc8e2d6f5f452ce7aab6001715c",
+        "semantic.py": "6f2a1f7589570a1d7b9973bce547b1cedcc1be811e6cfa8a1968a9bb4f482e50",
+        "factored.py": "baf6d482f51a8a1d1216c23cbfbafc84e1d10ec0246968ddd07eabf8e4f24cef",
+        "factored_semantic.py": "0fcde83449d918233fb0c51d2e82866cab1bbd71e60a163a6668350b070a30cf",
+        "inference.py": "639ae5a001c0cf3c5283e0a3f8327239ced9567c736c1857e44f902069f89879",
+        "tensor.py": "6833d1b939cc9d07109d8c6caabd2c3344e7bf1e10f2708d025c3e31b1e9ec17",
+        "candidate_search.py": "5cfcd03a7f81e7f81425e4fefc8d5b1239521e105009a991dc298080ad97212f",
+        "domains.py": "3bbfc013ad7875ee7734b856e81b55ba8c8b0ffb2875b0f9da5ef2aa842c45e2",
+        "lookup.py": "635ff426587ba7ff159d0d1eb64f155649f46e607dc62e5a07008bb946e8cb7e"
+      }
+    },
+    {
+      "name": "high_support_bound",
+      "family": "out_of_default_truth_budget",
+      "source_sha256": "5513a72ef65ee3cb4e6b558d217ba1136a49938b36439dc09402cd8850e89e34",
+      "status": "no_gain",
+      "independent_native_equal": true,
+      "before": {
+        "Q": 19,
+        "toffoli": 17,
+        "t": 0,
+        "rotations": 0,
+        "instructions": 17,
+        "accounting": "static_emitted",
+        "reaction_depth": 9
+      },
+      "after": {
+        "Q": 19,
+        "toffoli": 17,
+        "t": 0,
+        "rotations": 0,
+        "instructions": 17,
+        "accounting": "static_emitted",
+        "reaction_depth": 9
+      },
+      "before_cost": 323.0,
+      "after_cost": 323.0,
+      "physical_clean_wires_retired": [],
+      "deep_bank_retirement": false,
+      "mechanisms": [
+        {
+          "name": "observable_phase_elimination",
+          "status": "not_constructed",
+          "reason": "nonidentity output outside clean phase reconstruction family",
+          "delta": null,
+          "structural_witness": null
+        },
+        {
+          "name": "direct_consumer_synthesis",
+          "status": "not_constructed",
+          "reason": "output_delta_degree_exceeds_two",
+          "delta": null,
+          "structural_witness": null
+        },
+        {
+          "name": "bilinear_tensor_decomposition",
+          "status": "not_constructed",
+          "reason": "no complete bilinear accumulator contract",
+          "delta": null,
+          "structural_witness": null
+        },
+        {
+          "name": "guided_bilinear_candidate_search",
+          "status": "not_constructed",
+          "reason": "no exact phase-free bilinear boundary",
+          "delta": null,
+          "structural_witness": null
+        },
+        {
+          "name": "measured_lookup_resynthesis",
+          "status": "not_constructed",
+          "reason": "no measurement-based lookup cleanup",
+          "delta": null,
+          "structural_witness": null
+        }
+      ],
+      "discovery_seconds": 0.025052994955331087,
+      "attempt_count": 5,
+      "code_hashes": {
+        "restructure.py": "eefc344bc5034f8ab603a388b2b08a25b6fd4dc8e2d6f5f452ce7aab6001715c",
+        "semantic.py": "6f2a1f7589570a1d7b9973bce547b1cedcc1be811e6cfa8a1968a9bb4f482e50",
+        "factored.py": "baf6d482f51a8a1d1216c23cbfbafc84e1d10ec0246968ddd07eabf8e4f24cef",
+        "factored_semantic.py": "0fcde83449d918233fb0c51d2e82866cab1bbd71e60a163a6668350b070a30cf",
+        "inference.py": "639ae5a001c0cf3c5283e0a3f8327239ced9567c736c1857e44f902069f89879",
+        "tensor.py": "6833d1b939cc9d07109d8c6caabd2c3344e7bf1e10f2708d025c3e31b1e9ec17",
+        "candidate_search.py": "5cfcd03a7f81e7f81425e4fefc8d5b1239521e105009a991dc298080ad97212f",
+        "domains.py": "3bbfc013ad7875ee7734b856e81b55ba8c8b0ffb2875b0f9da5ef2aa842c45e2",
+        "lookup.py": "635ff426587ba7ff159d0d1eb64f155649f46e607dc62e5a07008bb946e8cb7e"
+      }
+    }
+  ],
+  "deep_bank_retirements": 1,
+  "bounded_or_no_gain": 6,
+  "independent_native_checks_passed": 7,
+  "discovery_seconds": 0.261706355959177,
+  "provenance": {
+    "version": "0.4.2",
+    "frozen_before_first_search": true,
+    "fixture_origin": "independent collaborating agent; generated for this release task, not a blind historical benchmark",
+    "runtime_scope": "sum of discovery wall times; native acceptance replay and process startup excluded",
+    "equal_cpu_time_claim": false
+  }
+}

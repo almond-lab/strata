@@ -1,0 +1,849 @@
+{
+  "frozen": {
+    "objective": "Q*toffoli",
+    "budgets": {
+      "rounds": 1,
+      "beam": 4,
+      "max_candidates": 12,
+      "max_operations": 200,
+      "max_variables": 32,
+      "max_terms": 65536,
+      "max_product_terms": 65536
+    },
+    "inputs": [
+      {
+        "name": "distributed_twolevel",
+        "family": "nested_distributed_products",
+        "sha256": "36da7b6c8300539f6ec48a8053f806595011389761b22da6f17b1288c6441134",
+        "clean": [
+          6,
+          7,
+          8,
+          9
+        ]
+      },
+      {
+        "name": "shared_factor_outputs",
+        "family": "linear_consumer_of_nonlinear_vector",
+        "sha256": "dce16e06ebf787067436b72c2bb4dd6bf19fa00f0e3471fea34c193e6484ed7f",
+        "clean": [
+          6,
+          7,
+          8,
+          9
+        ]
+      },
+      {
+        "name": "mixed_basis_twolevel",
+        "family": "nested_distributed_products",
+        "sha256": "734a4137b56aee6af651e0e640951fa7bd6e471bc53549384ed475a4ee80a371",
+        "clean": [
+          6,
+          7,
+          8,
+          9
+        ]
+      },
+      {
+        "name": "permuted_schedule",
+        "family": "nested_distributed_products",
+        "sha256": "c56dcb4f0f062e0f1fac0c1721d60b3bd2c4934c477965afaf3c1e45b98f82fb",
+        "clean": [
+          6,
+          7,
+          8,
+          9
+        ]
+      },
+      {
+        "name": "parity_product",
+        "family": "nonlinear_consumer_of_encoded_vector",
+        "sha256": "f9b13a18d29c7ff633f956535fd7b0f752fd39b462e408e19f9878f613a736d9",
+        "clean": [
+          5,
+          6,
+          7,
+          8,
+          9,
+          10
+        ]
+      },
+      {
+        "name": "duplicated_reencoding",
+        "family": "nonlinear_consumer_of_encoded_vector",
+        "sha256": "09080673a3ed510aabd99450e269f0ba4702e2900136bfa5701066f01dd1af90",
+        "clean": [
+          5,
+          6,
+          7,
+          8
+        ]
+      },
+      {
+        "name": "high_support_bound",
+        "family": "out_of_default_truth_budget",
+        "sha256": "5513a72ef65ee3cb4e6b558d217ba1136a49938b36439dc09402cd8850e89e34",
+        "clean": [
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18
+        ]
+      }
+    ]
+  },
+  "results": [
+    {
+      "name": "distributed_twolevel",
+      "family": "nested_distributed_products",
+      "source_sha256": "36da7b6c8300539f6ec48a8053f806595011389761b22da6f17b1288c6441134",
+      "status": "verified_improvement",
+      "independent_native_equal": true,
+      "before": {
+        "Q": 10,
+        "toffoli": 8,
+        "t": 0,
+        "rotations": 0,
+        "instructions": 12,
+        "accounting": "static_emitted",
+        "reaction_depth": 2
+      },
+      "after": {
+        "Q": 7,
+        "toffoli": 3,
+        "t": 0,
+        "rotations": 0,
+        "instructions": 8,
+        "accounting": "static_emitted",
+        "reaction_depth": 2
+      },
+      "before_cost": 80.0,
+      "after_cost": 21.0,
+      "physical_clean_wires_retired": [
+        7,
+        8,
+        9
+      ],
+      "deep_bank_retirement": true,
+      "mechanisms": [
+        {
+          "name": "joint_boundary_synthesis",
+          "status": "verified",
+          "reason": null,
+          "delta": -59.0,
+          "structural_witness": {
+            "source_nonlinear_dataflow_depth": 2,
+            "materialized_clean_wires": [
+              6,
+              7,
+              8,
+              9
+            ],
+            "depth_scope": "syntactic dependency depth including restoration; not a circuit-depth minimum",
+            "retired_scratch_wires": [
+              7,
+              8,
+              9
+            ],
+            "retained_product_wires": [
+              6
+            ],
+            "final_products_materialized": false,
+            "boundary_outputs_synthesized_jointly": [
+              4,
+              5
+            ],
+            "removed_materialization_bank": true
+          }
+        },
+        {
+          "name": "joint_storage_recomputation",
+          "status": "verified",
+          "reason": null,
+          "delta": -59.0,
+          "structural_witness": null
+        },
+        {
+          "name": "observable_phase_elimination",
+          "status": "not_constructed",
+          "reason": "nonidentity output outside clean phase reconstruction family",
+          "delta": null,
+          "structural_witness": null
+        },
+        {
+          "name": "direct_consumer_synthesis",
+          "status": "not_constructed",
+          "reason": "output_delta_degree_exceeds_two",
+          "delta": null,
+          "structural_witness": null
+        },
+        {
+          "name": "bilinear_tensor_decomposition",
+          "status": "not_constructed",
+          "reason": "no complete bilinear accumulator contract",
+          "delta": null,
+          "structural_witness": null
+        },
+        {
+          "name": "guided_bilinear_candidate_search",
+          "status": "not_constructed",
+          "reason": "no exact phase-free bilinear boundary",
+          "delta": null,
+          "structural_witness": null
+        },
+        {
+          "name": "measured_lookup_resynthesis",
+          "status": "not_constructed",
+          "reason": "no measurement-based lookup cleanup",
+          "delta": null,
+          "structural_witness": null
+        }
+      ],
+      "discovery_seconds": 0.20671373698860407,
+      "attempt_count": 7,
+      "code_hashes": {
+        "restructure.py": "e5b347b864081382bb8e1ea7c4375c330b79dd841964833109866cb4cc50d40b",
+        "semantic.py": "d6718172c962dc76026f6cc54b6daabe604bed94fe3505f4d3ebc61017127f4c",
+        "factored.py": "baf6d482f51a8a1d1216c23cbfbafc84e1d10ec0246968ddd07eabf8e4f24cef",
+        "factored_semantic.py": "2b15259324c607b7b7721e93f0c736beb2d2b3164c10cc942fbba972d248928e",
+        "inference.py": "6c7523dfb0f7a019879fb86084eb14438358a37d59f179389544bf1e5000e33c",
+        "tensor.py": "6833d1b939cc9d07109d8c6caabd2c3344e7bf1e10f2708d025c3e31b1e9ec17",
+        "candidate_search.py": "ba2989d7554b38329721e908b5cc3e0912742cd36d8340eab4bc5ba191e93571",
+        "domains.py": "d80e3624e3c04167b367619b15b7c7de3e40d8baed59e760647c57906f7632e8",
+        "lookup.py": "6d17a8a83facd2746a9bac8763a8b241e5ebc70055b499509159ebf1ff5831d3"
+      }
+    },
+    {
+      "name": "shared_factor_outputs",
+      "family": "linear_consumer_of_nonlinear_vector",
+      "source_sha256": "dce16e06ebf787067436b72c2bb4dd6bf19fa00f0e3471fea34c193e6484ed7f",
+      "status": "no_gain",
+      "independent_native_equal": true,
+      "before": {
+        "Q": 10,
+        "toffoli": 8,
+        "t": 0,
+        "rotations": 0,
+        "instructions": 10,
+        "accounting": "static_emitted",
+        "reaction_depth": 2
+      },
+      "after": {
+        "Q": 10,
+        "toffoli": 8,
+        "t": 0,
+        "rotations": 0,
+        "instructions": 10,
+        "accounting": "static_emitted",
+        "reaction_depth": 2
+      },
+      "before_cost": 80.0,
+      "after_cost": 80.0,
+      "physical_clean_wires_retired": [],
+      "deep_bank_retirement": false,
+      "mechanisms": [
+        {
+          "name": "joint_boundary_synthesis",
+          "status": "not_constructed",
+          "reason": "joint XOR/AND search did not establish a minimum",
+          "delta": null,
+          "structural_witness": null
+        },
+        {
+          "name": "joint_storage_recomputation",
+          "status": "not_constructed",
+          "reason": "no synthesized joint function DAG to schedule",
+          "delta": null,
+          "structural_witness": null
+        },
+        {
+          "name": "observable_phase_elimination",
+          "status": "not_constructed",
+          "reason": "nonidentity output outside clean phase reconstruction family",
+          "delta": null,
+          "structural_witness": null
+        },
+        {
+          "name": "direct_consumer_synthesis",
+          "status": "not_constructed",
+          "reason": "output_delta_degree_exceeds_two",
+          "delta": null,
+          "structural_witness": null
+        },
+        {
+          "name": "bilinear_tensor_decomposition",
+          "status": "not_constructed",
+          "reason": "no complete bilinear accumulator contract",
+          "delta": null,
+          "structural_witness": null
+        },
+        {
+          "name": "guided_bilinear_candidate_search",
+          "status": "not_constructed",
+          "reason": "no exact phase-free bilinear boundary",
+          "delta": null,
+          "structural_witness": null
+        },
+        {
+          "name": "measured_lookup_resynthesis",
+          "status": "not_constructed",
+          "reason": "no measurement-based lookup cleanup",
+          "delta": null,
+          "structural_witness": null
+        }
+      ],
+      "discovery_seconds": 1.0178555690217763,
+      "attempt_count": 7,
+      "code_hashes": {
+        "restructure.py": "e5b347b864081382bb8e1ea7c4375c330b79dd841964833109866cb4cc50d40b",
+        "semantic.py": "d6718172c962dc76026f6cc54b6daabe604bed94fe3505f4d3ebc61017127f4c",
+        "factored.py": "baf6d482f51a8a1d1216c23cbfbafc84e1d10ec0246968ddd07eabf8e4f24cef",
+        "factored_semantic.py": "2b15259324c607b7b7721e93f0c736beb2d2b3164c10cc942fbba972d248928e",
+        "inference.py": "6c7523dfb0f7a019879fb86084eb14438358a37d59f179389544bf1e5000e33c",
+        "tensor.py": "6833d1b939cc9d07109d8c6caabd2c3344e7bf1e10f2708d025c3e31b1e9ec17",
+        "candidate_search.py": "ba2989d7554b38329721e908b5cc3e0912742cd36d8340eab4bc5ba191e93571",
+        "domains.py": "d80e3624e3c04167b367619b15b7c7de3e40d8baed59e760647c57906f7632e8",
+        "lookup.py": "6d17a8a83facd2746a9bac8763a8b241e5ebc70055b499509159ebf1ff5831d3"
+      }
+    },
+    {
+      "name": "mixed_basis_twolevel",
+      "family": "nested_distributed_products",
+      "source_sha256": "734a4137b56aee6af651e0e640951fa7bd6e471bc53549384ed475a4ee80a371",
+      "status": "verified_improvement",
+      "independent_native_equal": true,
+      "before": {
+        "Q": 10,
+        "toffoli": 8,
+        "t": 0,
+        "rotations": 0,
+        "instructions": 20,
+        "accounting": "static_emitted",
+        "reaction_depth": 2
+      },
+      "after": {
+        "Q": 7,
+        "toffoli": 3,
+        "t": 0,
+        "rotations": 0,
+        "instructions": 9,
+        "accounting": "static_emitted",
+        "reaction_depth": 2
+      },
+      "before_cost": 80.0,
+      "after_cost": 21.0,
+      "physical_clean_wires_retired": [
+        7,
+        8,
+        9
+      ],
+      "deep_bank_retirement": true,
+      "mechanisms": [
+        {
+          "name": "joint_boundary_synthesis",
+          "status": "verified",
+          "reason": null,
+          "delta": -59.0,
+          "structural_witness": {
+            "source_nonlinear_dataflow_depth": 2,
+            "materialized_clean_wires": [
+              6,
+              7,
+              8,
+              9
+            ],
+            "depth_scope": "syntactic dependency depth including restoration; not a circuit-depth minimum",
+            "retired_scratch_wires": [
+              7,
+              8,
+              9
+            ],
+            "retained_product_wires": [
+              6
+            ],
+            "final_products_materialized": false,
+            "boundary_outputs_synthesized_jointly": [
+              4,
+              5
+            ],
+            "removed_materialization_bank": true
+          }
+        },
+        {
+          "name": "joint_storage_recomputation",
+          "status": "verified",
+          "reason": null,
+          "delta": -59.0,
+          "structural_witness": null
+        },
+        {
+          "name": "observable_phase_elimination",
+          "status": "not_constructed",
+          "reason": "nonidentity output outside clean phase reconstruction family",
+          "delta": null,
+          "structural_witness": null
+        },
+        {
+          "name": "direct_consumer_synthesis",
+          "status": "not_constructed",
+          "reason": "output_delta_degree_exceeds_two",
+          "delta": null,
+          "structural_witness": null
+        },
+        {
+          "name": "bilinear_tensor_decomposition",
+          "status": "not_constructed",
+          "reason": "no complete bilinear accumulator contract",
+          "delta": null,
+          "structural_witness": null
+        },
+        {
+          "name": "guided_bilinear_candidate_search",
+          "status": "not_constructed",
+          "reason": "no exact phase-free bilinear boundary",
+          "delta": null,
+          "structural_witness": null
+        },
+        {
+          "name": "measured_lookup_resynthesis",
+          "status": "not_constructed",
+          "reason": "no measurement-based lookup cleanup",
+          "delta": null,
+          "structural_witness": null
+        }
+      ],
+      "discovery_seconds": 0.0665191060397774,
+      "attempt_count": 7,
+      "code_hashes": {
+        "restructure.py": "e5b347b864081382bb8e1ea7c4375c330b79dd841964833109866cb4cc50d40b",
+        "semantic.py": "d6718172c962dc76026f6cc54b6daabe604bed94fe3505f4d3ebc61017127f4c",
+        "factored.py": "baf6d482f51a8a1d1216c23cbfbafc84e1d10ec0246968ddd07eabf8e4f24cef",
+        "factored_semantic.py": "2b15259324c607b7b7721e93f0c736beb2d2b3164c10cc942fbba972d248928e",
+        "inference.py": "6c7523dfb0f7a019879fb86084eb14438358a37d59f179389544bf1e5000e33c",
+        "tensor.py": "6833d1b939cc9d07109d8c6caabd2c3344e7bf1e10f2708d025c3e31b1e9ec17",
+        "candidate_search.py": "ba2989d7554b38329721e908b5cc3e0912742cd36d8340eab4bc5ba191e93571",
+        "domains.py": "d80e3624e3c04167b367619b15b7c7de3e40d8baed59e760647c57906f7632e8",
+        "lookup.py": "6d17a8a83facd2746a9bac8763a8b241e5ebc70055b499509159ebf1ff5831d3"
+      }
+    },
+    {
+      "name": "permuted_schedule",
+      "family": "nested_distributed_products",
+      "source_sha256": "c56dcb4f0f062e0f1fac0c1721d60b3bd2c4934c477965afaf3c1e45b98f82fb",
+      "status": "no_gain",
+      "independent_native_equal": true,
+      "before": {
+        "Q": 10,
+        "toffoli": 8,
+        "t": 0,
+        "rotations": 0,
+        "instructions": 12,
+        "accounting": "static_emitted",
+        "reaction_depth": 2
+      },
+      "after": {
+        "Q": 10,
+        "toffoli": 8,
+        "t": 0,
+        "rotations": 0,
+        "instructions": 12,
+        "accounting": "static_emitted",
+        "reaction_depth": 2
+      },
+      "before_cost": 80.0,
+      "after_cost": 80.0,
+      "physical_clean_wires_retired": [],
+      "deep_bank_retirement": false,
+      "mechanisms": [
+        {
+          "name": "joint_boundary_synthesis",
+          "status": "not_constructed",
+          "reason": "joint XOR/AND search did not establish a minimum",
+          "delta": null,
+          "structural_witness": null
+        },
+        {
+          "name": "joint_storage_recomputation",
+          "status": "not_constructed",
+          "reason": "no synthesized joint function DAG to schedule",
+          "delta": null,
+          "structural_witness": null
+        },
+        {
+          "name": "observable_phase_elimination",
+          "status": "not_constructed",
+          "reason": "nonidentity output outside clean phase reconstruction family",
+          "delta": null,
+          "structural_witness": null
+        },
+        {
+          "name": "direct_consumer_synthesis",
+          "status": "not_constructed",
+          "reason": "output_delta_degree_exceeds_two",
+          "delta": null,
+          "structural_witness": null
+        },
+        {
+          "name": "bilinear_tensor_decomposition",
+          "status": "not_constructed",
+          "reason": "no complete bilinear accumulator contract",
+          "delta": null,
+          "structural_witness": null
+        },
+        {
+          "name": "guided_bilinear_candidate_search",
+          "status": "not_constructed",
+          "reason": "no exact phase-free bilinear boundary",
+          "delta": null,
+          "structural_witness": null
+        },
+        {
+          "name": "measured_lookup_resynthesis",
+          "status": "not_constructed",
+          "reason": "no measurement-based lookup cleanup",
+          "delta": null,
+          "structural_witness": null
+        }
+      ],
+      "discovery_seconds": 1.029587156837806,
+      "attempt_count": 7,
+      "code_hashes": {
+        "restructure.py": "e5b347b864081382bb8e1ea7c4375c330b79dd841964833109866cb4cc50d40b",
+        "semantic.py": "d6718172c962dc76026f6cc54b6daabe604bed94fe3505f4d3ebc61017127f4c",
+        "factored.py": "baf6d482f51a8a1d1216c23cbfbafc84e1d10ec0246968ddd07eabf8e4f24cef",
+        "factored_semantic.py": "2b15259324c607b7b7721e93f0c736beb2d2b3164c10cc942fbba972d248928e",
+        "inference.py": "6c7523dfb0f7a019879fb86084eb14438358a37d59f179389544bf1e5000e33c",
+        "tensor.py": "6833d1b939cc9d07109d8c6caabd2c3344e7bf1e10f2708d025c3e31b1e9ec17",
+        "candidate_search.py": "ba2989d7554b38329721e908b5cc3e0912742cd36d8340eab4bc5ba191e93571",
+        "domains.py": "d80e3624e3c04167b367619b15b7c7de3e40d8baed59e760647c57906f7632e8",
+        "lookup.py": "6d17a8a83facd2746a9bac8763a8b241e5ebc70055b499509159ebf1ff5831d3"
+      }
+    },
+    {
+      "name": "parity_product",
+      "family": "nonlinear_consumer_of_encoded_vector",
+      "source_sha256": "f9b13a18d29c7ff633f956535fd7b0f752fd39b462e408e19f9878f613a736d9",
+      "status": "verified_improvement",
+      "independent_native_equal": true,
+      "before": {
+        "Q": 11,
+        "toffoli": 9,
+        "t": 0,
+        "rotations": 0,
+        "instructions": 21,
+        "accounting": "static_emitted",
+        "reaction_depth": 2
+      },
+      "after": {
+        "Q": 5,
+        "toffoli": 1,
+        "t": 0,
+        "rotations": 0,
+        "instructions": 5,
+        "accounting": "static_emitted",
+        "reaction_depth": 1
+      },
+      "before_cost": 99.0,
+      "after_cost": 5.0,
+      "physical_clean_wires_retired": [
+        5,
+        6,
+        7,
+        8,
+        9,
+        10
+      ],
+      "deep_bank_retirement": true,
+      "mechanisms": [
+        {
+          "name": "joint_boundary_synthesis",
+          "status": "verified",
+          "reason": null,
+          "delta": -94.0,
+          "structural_witness": {
+            "source_nonlinear_dataflow_depth": 2,
+            "materialized_clean_wires": [
+              5,
+              6,
+              7,
+              8,
+              9,
+              10
+            ],
+            "depth_scope": "syntactic dependency depth including restoration; not a circuit-depth minimum",
+            "retired_scratch_wires": [
+              5,
+              6,
+              7,
+              8,
+              9,
+              10
+            ],
+            "retained_product_wires": [],
+            "final_products_materialized": false,
+            "boundary_outputs_synthesized_jointly": [
+              4
+            ],
+            "removed_materialization_bank": true
+          }
+        },
+        {
+          "name": "joint_storage_recomputation",
+          "status": "verified",
+          "reason": null,
+          "delta": -94.0,
+          "structural_witness": null
+        },
+        {
+          "name": "observable_phase_elimination",
+          "status": "not_constructed",
+          "reason": "nonidentity output outside clean phase reconstruction family",
+          "delta": null,
+          "structural_witness": null
+        },
+        {
+          "name": "direct_consumer_synthesis",
+          "status": "verified",
+          "reason": null,
+          "delta": -55.0,
+          "structural_witness": null
+        },
+        {
+          "name": "bilinear_tensor_decomposition",
+          "status": "verified",
+          "reason": null,
+          "delta": -92.0,
+          "structural_witness": null
+        },
+        {
+          "name": "guided_bilinear_candidate_search",
+          "status": "verified",
+          "reason": null,
+          "delta": -79.0,
+          "structural_witness": null
+        },
+        {
+          "name": "measured_lookup_resynthesis",
+          "status": "not_constructed",
+          "reason": "no measurement-based lookup cleanup",
+          "delta": null,
+          "structural_witness": null
+        }
+      ],
+      "discovery_seconds": 0.34364668489433825,
+      "attempt_count": 7,
+      "code_hashes": {
+        "restructure.py": "e5b347b864081382bb8e1ea7c4375c330b79dd841964833109866cb4cc50d40b",
+        "semantic.py": "d6718172c962dc76026f6cc54b6daabe604bed94fe3505f4d3ebc61017127f4c",
+        "factored.py": "baf6d482f51a8a1d1216c23cbfbafc84e1d10ec0246968ddd07eabf8e4f24cef",
+        "factored_semantic.py": "2b15259324c607b7b7721e93f0c736beb2d2b3164c10cc942fbba972d248928e",
+        "inference.py": "6c7523dfb0f7a019879fb86084eb14438358a37d59f179389544bf1e5000e33c",
+        "tensor.py": "6833d1b939cc9d07109d8c6caabd2c3344e7bf1e10f2708d025c3e31b1e9ec17",
+        "candidate_search.py": "ba2989d7554b38329721e908b5cc3e0912742cd36d8340eab4bc5ba191e93571",
+        "domains.py": "d80e3624e3c04167b367619b15b7c7de3e40d8baed59e760647c57906f7632e8",
+        "lookup.py": "6d17a8a83facd2746a9bac8763a8b241e5ebc70055b499509159ebf1ff5831d3"
+      }
+    },
+    {
+      "name": "duplicated_reencoding",
+      "family": "nonlinear_consumer_of_encoded_vector",
+      "source_sha256": "09080673a3ed510aabd99450e269f0ba4702e2900136bfa5701066f01dd1af90",
+      "status": "no_gain",
+      "independent_native_equal": true,
+      "before": {
+        "Q": 9,
+        "toffoli": 5,
+        "t": 0,
+        "rotations": 0,
+        "instructions": 11,
+        "accounting": "static_emitted",
+        "reaction_depth": 3
+      },
+      "after": {
+        "Q": 9,
+        "toffoli": 5,
+        "t": 0,
+        "rotations": 0,
+        "instructions": 11,
+        "accounting": "static_emitted",
+        "reaction_depth": 3
+      },
+      "before_cost": 45.0,
+      "after_cost": 45.0,
+      "physical_clean_wires_retired": [],
+      "deep_bank_retirement": false,
+      "mechanisms": [
+        {
+          "name": "joint_boundary_synthesis",
+          "status": "not_constructed",
+          "reason": "joint XOR/AND search did not establish a minimum",
+          "delta": null,
+          "structural_witness": null
+        },
+        {
+          "name": "joint_storage_recomputation",
+          "status": "not_constructed",
+          "reason": "no synthesized joint function DAG to schedule",
+          "delta": null,
+          "structural_witness": null
+        },
+        {
+          "name": "observable_phase_elimination",
+          "status": "not_constructed",
+          "reason": "nonidentity output outside clean phase reconstruction family",
+          "delta": null,
+          "structural_witness": null
+        },
+        {
+          "name": "direct_consumer_synthesis",
+          "status": "not_constructed",
+          "reason": "output_delta_degree_exceeds_two",
+          "delta": null,
+          "structural_witness": null
+        },
+        {
+          "name": "bilinear_tensor_decomposition",
+          "status": "not_constructed",
+          "reason": "no complete bilinear accumulator contract",
+          "delta": null,
+          "structural_witness": null
+        },
+        {
+          "name": "guided_bilinear_candidate_search",
+          "status": "not_constructed",
+          "reason": "no exact phase-free bilinear boundary",
+          "delta": null,
+          "structural_witness": null
+        },
+        {
+          "name": "measured_lookup_resynthesis",
+          "status": "not_constructed",
+          "reason": "no measurement-based lookup cleanup",
+          "delta": null,
+          "structural_witness": null
+        }
+      ],
+      "discovery_seconds": 1.0272534489631653,
+      "attempt_count": 7,
+      "code_hashes": {
+        "restructure.py": "e5b347b864081382bb8e1ea7c4375c330b79dd841964833109866cb4cc50d40b",
+        "semantic.py": "d6718172c962dc76026f6cc54b6daabe604bed94fe3505f4d3ebc61017127f4c",
+        "factored.py": "baf6d482f51a8a1d1216c23cbfbafc84e1d10ec0246968ddd07eabf8e4f24cef",
+        "factored_semantic.py": "2b15259324c607b7b7721e93f0c736beb2d2b3164c10cc942fbba972d248928e",
+        "inference.py": "6c7523dfb0f7a019879fb86084eb14438358a37d59f179389544bf1e5000e33c",
+        "tensor.py": "6833d1b939cc9d07109d8c6caabd2c3344e7bf1e10f2708d025c3e31b1e9ec17",
+        "candidate_search.py": "ba2989d7554b38329721e908b5cc3e0912742cd36d8340eab4bc5ba191e93571",
+        "domains.py": "d80e3624e3c04167b367619b15b7c7de3e40d8baed59e760647c57906f7632e8",
+        "lookup.py": "6d17a8a83facd2746a9bac8763a8b241e5ebc70055b499509159ebf1ff5831d3"
+      }
+    },
+    {
+      "name": "high_support_bound",
+      "family": "out_of_default_truth_budget",
+      "source_sha256": "5513a72ef65ee3cb4e6b558d217ba1136a49938b36439dc09402cd8850e89e34",
+      "status": "no_gain",
+      "independent_native_equal": true,
+      "before": {
+        "Q": 19,
+        "toffoli": 17,
+        "t": 0,
+        "rotations": 0,
+        "instructions": 17,
+        "accounting": "static_emitted",
+        "reaction_depth": 9
+      },
+      "after": {
+        "Q": 19,
+        "toffoli": 17,
+        "t": 0,
+        "rotations": 0,
+        "instructions": 17,
+        "accounting": "static_emitted",
+        "reaction_depth": 9
+      },
+      "before_cost": 323.0,
+      "after_cost": 323.0,
+      "physical_clean_wires_retired": [],
+      "deep_bank_retirement": false,
+      "mechanisms": [
+        {
+          "name": "joint_boundary_synthesis",
+          "status": "not_constructed",
+          "reason": "joint synthesis truth-table input budget",
+          "delta": null,
+          "structural_witness": null
+        },
+        {
+          "name": "joint_storage_recomputation",
+          "status": "not_constructed",
+          "reason": "no synthesized joint function DAG to schedule",
+          "delta": null,
+          "structural_witness": null
+        },
+        {
+          "name": "observable_phase_elimination",
+          "status": "not_constructed",
+          "reason": "nonidentity output outside clean phase reconstruction family",
+          "delta": null,
+          "structural_witness": null
+        },
+        {
+          "name": "direct_consumer_synthesis",
+          "status": "not_constructed",
+          "reason": "output_delta_degree_exceeds_two",
+          "delta": null,
+          "structural_witness": null
+        },
+        {
+          "name": "bilinear_tensor_decomposition",
+          "status": "not_constructed",
+          "reason": "no complete bilinear accumulator contract",
+          "delta": null,
+          "structural_witness": null
+        },
+        {
+          "name": "guided_bilinear_candidate_search",
+          "status": "not_constructed",
+          "reason": "no exact phase-free bilinear boundary",
+          "delta": null,
+          "structural_witness": null
+        },
+        {
+          "name": "measured_lookup_resynthesis",
+          "status": "not_constructed",
+          "reason": "no measurement-based lookup cleanup",
+          "delta": null,
+          "structural_witness": null
+        }
+      ],
+      "discovery_seconds": 0.03435231698676944,
+      "attempt_count": 7,
+      "code_hashes": {
+        "restructure.py": "e5b347b864081382bb8e1ea7c4375c330b79dd841964833109866cb4cc50d40b",
+        "semantic.py": "d6718172c962dc76026f6cc54b6daabe604bed94fe3505f4d3ebc61017127f4c",
+        "factored.py": "baf6d482f51a8a1d1216c23cbfbafc84e1d10ec0246968ddd07eabf8e4f24cef",
+        "factored_semantic.py": "2b15259324c607b7b7721e93f0c736beb2d2b3164c10cc942fbba972d248928e",
+        "inference.py": "6c7523dfb0f7a019879fb86084eb14438358a37d59f179389544bf1e5000e33c",
+        "tensor.py": "6833d1b939cc9d07109d8c6caabd2c3344e7bf1e10f2708d025c3e31b1e9ec17",
+        "candidate_search.py": "ba2989d7554b38329721e908b5cc3e0912742cd36d8340eab4bc5ba191e93571",
+        "domains.py": "d80e3624e3c04167b367619b15b7c7de3e40d8baed59e760647c57906f7632e8",
+        "lookup.py": "6d17a8a83facd2746a9bac8763a8b241e5ebc70055b499509159ebf1ff5831d3"
+      }
+    }
+  ],
+  "deep_bank_retirements": 3,
+  "bounded_or_no_gain": 4,
+  "independent_native_checks_passed": 7,
+  "discovery_seconds": 3.725928019732237,
+  "provenance": {
+    "version": "unreleased worktree preflight",
+    "frozen_before_first_search": true,
+    "fixture_origin": "independent collaborating agent; generated for this release task, not a blind historical benchmark",
+    "runtime_scope": "sum of discovery wall times; native acceptance replay and process startup excluded",
+    "equal_cpu_time_claim": false
+  }
+}

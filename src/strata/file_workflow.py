@@ -104,23 +104,21 @@ def inspect_file(path, out, *, cost='Q*(toffoli+t/4)', max_window=256, max_varia
     return result
 
 
-def optimize_file(path, out, *, cost='Q*(toffoli+t/4)', max_window=256, max_variables=64, max_terms=4096,max_candidates=64,clean_inputs=()):
-    if clean_inputs:
-        from .restructure import restructure_file
-        return restructure_file(path,out,cost=cost,clean_inputs=clean_inputs,max_operations=max_window,
-                                max_variables=max_variables,max_terms=max_terms,max_candidates=max_candidates)
+def optimize_file(path, out, *, cost='Q*(toffoli+t/4)', max_window=256, max_variables=64, max_terms=4096,max_candidates=64,clean_inputs=(),accounting='static',external_distribution=None):
     from .semantic import lift_regions
     from .file_profile import profile_regions
     from .file_optimizer import optimize_circuit, verify_optimization
     source, root, circuit = _source(path, out,writes_candidate=True)
-    lift = lift_regions(circuit, max_window=max_window, max_variables=max_variables, max_terms=max_terms)
+    lift = lift_regions(circuit, max_window=max_window, max_variables=max_variables, max_terms=max_terms,clean_inputs=clean_inputs)
     tree = contract_tree(circuit, lift)
     profile=profile_regions(circuit,lift,root/'analysis',formula=cost)
     candidate, result = optimize_circuit(circuit, cost, max_operations=max_window,
                                           max_wires=max_variables, max_terms=max_terms,
-                                          region_order=profile['candidate_order'],max_candidates=max_candidates)
+                                          region_order=profile['candidate_order'],max_candidates=max_candidates,clean_inputs=clean_inputs,
+                                          accounting=accounting,external_distribution=external_distribution)
     replay = verify_optimization(circuit, candidate, result, max_operations=max_window,
-                                 max_wires=max_variables, max_terms=max_terms)
+                                 max_wires=max_variables, max_terms=max_terms,clean_inputs=clean_inputs,
+                                 accounting=accounting,external_distribution=external_distribution)
     if replay.get('equivalent') is not True:
         raise StrataError('candidate failed independent replacement replay; no output candidate retained')
     store = Store(root / '.strata')

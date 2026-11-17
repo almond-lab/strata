@@ -1,0 +1,170 @@
+{
+  "fixture_binding": "474639c8ea85e3752ee75defd7f00e303daa939663f3a30da4a6ca360f82d1de",
+  "source_code": {
+    "released": "06817b0dc02dd833e2185ec8f8b7204cc57006e8d5b6b059495144c5036bc1dc",
+    "full": "76fa40cd16054c0f4a8e7319b8d2abbb300465cf7da80791824b434f946689d3",
+    "ablation": "76fa40cd16054c0f4a8e7319b8d2abbb300465cf7da80791824b434f946689d3"
+  },
+  "results": [
+    {
+      "name": "field_difference_0",
+      "family": "gf4_polynomial_difference",
+      "role": "opportunity",
+      "source_cost": 1440,
+      "released_cost": 16,
+      "full_cost": 16,
+      "ablation_cost": 16,
+      "full_old_narrow_cost": 16.0,
+      "ablation_old_narrow_cost": 16.0,
+      "full_mechanism": "joint_boundary_synthesis",
+      "full_vs_released": "tie",
+      "full_vs_ablation": "tie"
+    },
+    {
+      "name": "field_difference_1",
+      "family": "gf4_polynomial_difference",
+      "role": "opportunity",
+      "source_cost": 1560,
+      "released_cost": 22,
+      "full_cost": 20,
+      "ablation_cost": 20,
+      "full_old_narrow_cost": 20.0,
+      "ablation_old_narrow_cost": 20.0,
+      "full_mechanism": "algebraic_boundary_synthesis",
+      "full_vs_released": "win",
+      "full_vs_ablation": "tie"
+    },
+    {
+      "name": "modular_difference_3",
+      "family": "modular_word_difference_table",
+      "role": "opportunity",
+      "source_cost": 704,
+      "released_cost": 0,
+      "full_cost": 0,
+      "ablation_cost": 0,
+      "full_old_narrow_cost": 0.0,
+      "ablation_old_narrow_cost": 0.0,
+      "full_mechanism": "joint_boundary_synthesis",
+      "full_vs_released": "tie",
+      "full_vs_ablation": "tie"
+    },
+    {
+      "name": "modular_difference_4",
+      "family": "modular_word_difference_table",
+      "role": "opportunity",
+      "source_cost": 5376,
+      "released_cost": 9,
+      "full_cost": 8,
+      "ablation_cost": 8,
+      "full_old_narrow_cost": 8.0,
+      "ablation_old_narrow_cost": 8.0,
+      "full_mechanism": "joint_boundary_synthesis",
+      "full_vs_released": "win",
+      "full_vs_ablation": "tie"
+    },
+    {
+      "name": "table_difference_0",
+      "family": "paired_boolean_table_evaluators",
+      "role": "opportunity",
+      "source_cost": 2432,
+      "released_cost": 0,
+      "full_cost": 0,
+      "ablation_cost": 0,
+      "full_old_narrow_cost": 0.0,
+      "ablation_old_narrow_cost": 0.0,
+      "full_mechanism": "joint_boundary_synthesis",
+      "full_vs_released": "tie",
+      "full_vs_ablation": "tie"
+    },
+    {
+      "name": "table_difference_1",
+      "family": "paired_boolean_table_evaluators",
+      "role": "opportunity",
+      "source_cost": 2560,
+      "released_cost": 8,
+      "full_cost": 8,
+      "ablation_cost": 16,
+      "full_old_narrow_cost": 16.0,
+      "ablation_old_narrow_cost": 16.0,
+      "full_mechanism": "output_basis_search",
+      "full_vs_released": "tie",
+      "full_vs_ablation": "win"
+    },
+    {
+      "name": "phase_obligation",
+      "family": "gf4_polynomial_difference",
+      "role": "phase_guard",
+      "source_cost": 1440,
+      "released_cost": 48,
+      "full_cost": 1440,
+      "ablation_cost": 1440,
+      "full_old_narrow_cost": 1440.0,
+      "ablation_old_narrow_cost": 1440.0,
+      "full_mechanism": "supplied_baseline",
+      "full_vs_released": "loss",
+      "full_vs_ablation": "tie"
+    },
+    {
+      "name": "dirty_workspace_obligation",
+      "family": "modular_word_difference_table",
+      "role": "dirty_guard",
+      "source_cost": 704,
+      "released_cost": 7,
+      "full_cost": 7,
+      "ablation_cost": 14,
+      "full_old_narrow_cost": 14.0,
+      "ablation_old_narrow_cost": 14.0,
+      "full_mechanism": "output_basis_search",
+      "full_vs_released": "tie",
+      "full_vs_ablation": "win"
+    },
+    {
+      "name": "public_classical_obligation",
+      "family": "modular_word_difference_table",
+      "role": "classical_guard",
+      "source_cost": 704,
+      "released_cost": 704,
+      "full_cost": 704,
+      "ablation_cost": 704,
+      "full_old_narrow_cost": 704.0,
+      "ablation_old_narrow_cost": 704.0,
+      "full_mechanism": "supplied_baseline",
+      "full_vs_released": "tie",
+      "full_vs_ablation": "tie"
+    }
+  ],
+  "all_selected_bytes_replayed": true,
+  "physical_layouts_checked": true,
+  "selected_native_boundaries": 27,
+  "mutation_rejections": 54,
+  "discovery_wall_seconds": {
+    "released": 2.7827382599934936,
+    "full": 29.86938452371396,
+    "ablation": 23.46956382598728
+  },
+  "max_worker_peak_rss_bytes": {
+    "released": 48697344,
+    "full": 55504896,
+    "ablation": 55107584
+  },
+  "comparisons": {
+    "released": {
+      "win": 2,
+      "tie": 6,
+      "loss": 1
+    },
+    "ablation": {
+      "win": 2,
+      "tie": 7,
+      "loss": 0
+    }
+  },
+  "caveats": [
+    "The three runs ran concurrently; actual discovery wall times are recorded, not equal CPU time.",
+    "Released v0.4.2 lacks deep-only mode and retains its broad default catalog.",
+    "Ablation removes only the three new families but retains current eligibility; old narrow bank-only selection is separately reported.",
+    "The released engine has no removed_materialization_bank annotation; its raw old-narrow fields are unavailable as a comparable criterion.",
+    "All selected holdout winners happened to be measurement-free; forced-outcome coverage is exercised by the oracle self-check, not evidence of measured holdout discovery.",
+    "This prospective independent-agent suite is not a blind historical or official score benchmark. No global optimality claim."
+  ]
+}

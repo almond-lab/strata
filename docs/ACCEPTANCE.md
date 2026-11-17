@@ -1,9 +1,13 @@
-# Acceptance ledger — v0.4
+# Acceptance ledger — v0.5.0
 
 Implemented APIs and passing fixtures do not establish historical competition
 acceptance. This ledger records the distinction; detailed issue-by-issue scope
 is in [V0.3-ISSUES.md](V0.3-ISSUES.md) and the
 [v0.4 workflow](V0.4-WORKFLOW.md). The product specification is unchanged.
+
+See the [v0.5 algorithm](V0.5-DISCOVERY.md), [issue coverage](POST-0.4.2-FIXES.md)
+and [transfer sweep](../benchmarks/v05-transfer/README.md). Historical milestones
+remain open until their own acceptance tests pass.
 
 | Area | State | Evidence and limits |
 |---|---|---|
@@ -21,7 +25,7 @@ is in [V0.3-ISSUES.md](V0.3-ISSUES.md) and the
 | File-preserving staging and retention | Implemented v0.4.1 | Source basenames/siblings, artifact/checkpoint extensions, valid empty logs, private reflinks where available and verified duplicate-copy compaction; temporary disk peaks remain |
 | Cross-worker and draw-matched comparisons | Implemented v0.4.1, hardened v0.4.2 | Pinned verifier source closure/objective identities and complete predeclared finite draw aggregates; no minimum-over-draw winner or population expectation claim; infrastructure correction history and comparison filters cannot hide scientific conflicts |
 | Small-first agent workflow | Implemented v0.4.2 | Structured default ladder and explicit decision preflight: exact tiny evidence, resource models, full-build budgets and final artifact binding. Legacy calls remain advisory; opaque script scale is not inferred. Tiny exactness does not establish full-size correctness |
-| Classical exhaustive lab inputs | Implemented v0.4.2 | Separate classical register namespace, exhaustive initialization and through/clean restoration. True nonlinear HMR controls still require bounded full branch enumeration and may return unknown |
+| Classical exhaustive lab inputs | Implemented, extended in v0.5 development | Separate classical register namespace, exhaustive initialization and through/clean restoration. Nonlinear HMR controls can use bounded symbolic outcome checks; oversized decision graphs still return unknown |
 | Bounded sweeps | Implemented single-host coordinator | Cardinality checks, explicit seeds/replicates, transactional identity, owned attempts and retained budgets; host reservations are cooperative |
 | Shared experiment board | Implemented local ownership | Atomic claims, event cursors, cancellation requests and conservative reconciliation; no remote cluster daemon or hard aggregate cgroup backend |
 | Stage/checkpoint resume | Implemented scoped protocol | Hash-bound checkpoints, stage input lineage, explicit resume command and original charged budgets; scripts without checkpoints cannot resume mid-stage |
@@ -34,10 +38,10 @@ is in [V0.3-ISSUES.md](V0.3-ISSUES.md) and the
 | Width accounting | Implemented | `Q` is emitted width, `Q_total` host width, bundle component widths/caps checked |
 | Promised-input lab | Implemented finite domains | Explicit canonical domain hash bound to promise, artifact and scale; all-input contracts cannot be weakened |
 | Reset legality and batched lab | Implemented supported subset | `R` active-target zero checks, cached segments, bit-sliced input batches; dirty/clean/phase checks preserved |
-| HMR branch reduction | Implemented affine subset | Executed versus represented branches separated; nonlinear classical dependencies fall back to exhaustive enumeration; independent whole-native audit covers 768 trajectories across 24 conditional-HMR programs |
+| HMR branch reduction | Affine and bounded symbolic backends | Executed versus represented branches separated; nonlinear controls and exact dyadic phase supported by per-input symbolic checking. Actual GF(4) BM fixture passes256 inputs/all72-outcome branches; original inverse remains node-bounded and expanded BM has a native-confirmed restoration failure |
 | Lab sharding | Implemented partial-run facility | Deterministic shards labeled `sample`; partial receipts cannot certify designs |
 | Full-size lab performance | Bounded engineering improvement | One million actual small native programs,256m input trajectories,595.85s; this is not full-contest-circuit throughput |
-| Source-less exact checks | Implemented bounded symbolic receipts | Fixed-region Boolean/sign-phase and classical/HMR maps bound to source/contract/code; forced-outcome native regressions; unproved branch alignment, fractional phases and oversized spans stay unknown |
+| Source-less exact checks | Implemented bounded symbolic receipts | Fixed-region Boolean/sign-phase and classical/HMR maps bound to source/contract/code; forced-outcome native regressions; independent public measurement maps and unconditional native dyadic phases have separate exact checkers; mixed fractional/measurement and oversized spans can remain unknown |
 | Factored complete boundaries and XOR tables | Implemented bounded v0.4.1 path | Canonical Boolean decisions for supported controls/HMR, formal target/workspace/phase obligations and narrow-address table extraction; higher-level arithmetic typing and a profitable global table compiler remain separate |
 | Untagged semantic lift | Partial, required core | Exact algebraic functions and bounded episodes; full arithmetic-stage architecture recovery incomplete |
 | Functional dependency / slack | Implemented bounded APIs | Exact polynomial family, affine rank or bounded distinct-state checks; unsupported/budget cases return unknown; no free-scratch inference |
@@ -48,10 +52,18 @@ is in [V0.3-ISSUES.md](V0.3-ISSUES.md) and the
 | Structural research rounds | Implemented orchestration | Dependency/debt closure, mechanism diversity, configured scales, structural witness and replay quarantine |
 | File discovery and synthesis | Implemented bounded subset | Native-profile ranked algebraic synthesis; connected-agent hypothesis/candidate/note feedback; no standalone AI-provider invocation |
 | Generic constructor search | Implemented bounded subset | Observable phase, composed output updates and bilinear products; verified nonwinning states, resource frontier and replay-checked learned native templates; no universal novelty guarantee |
+| Automatic structural candidate generation | Implemented bounded v0.5 path | `search` recovers joint XOR-output maps, searches factorizations/affine encodings/schedules and checks full boundaries; generated fixtures, not historical discovery acceptance |
+| Thousandfold discovery yield | Open research target | Measure cases solved, verified cheaper designs, distinct nonlinear function sets and best previous versus new cost on frozen sources. The joint representation and factorization portfolio implements broad proposal generation and bounded independent native verification. Its hypothesis budget is separate from yield |
+| Symbolic large-support synthesis | Implemented bounded algebraic path | Shared cofactor DAGs without truth tables;12/24input scale regressions have complete polynomial/equivalence proofs. Sparse polynomial or decision explosion remains possible |
+| Reversible storage and recomputation | Implemented bounded fixed-DAG Pareto search | Explicit asymmetric costs/transient width, native lowering and replay; no arbitrary-program storage optimum |
+| Measurement-debt-aware lowering | Implemented guarded product cleanup | Proved product identity, rebuilt operand basis, fresh private bits, conditional phase repair and full accounting. Unavailable parents/remaining phase are rejected; no generic instrument equivalence |
+| Representation rewrite language | Partial executable foundation | Boolean affine X/CX encodings with checked inverse and fully priced adapters. Integer offsets, field towers, projective state and general typed DSL remain future work |
+| CEGIS repair | NOT IMPLEMENTED as a general solver | Exact construction/replay and rejection records exist; solver reinjection and automatic algebraic-program repair remain distinct work |
+| Independent small domain-family discovery suite | Run on generated holdouts | [Nine original cases](../benchmarks/v05-holdout/comparison.json) plus [three newly frozen mixed cases](../benchmarks/v05-holdout/mixed/comparison.json). Exact independent boundary replay. Separate the original trial and the later exposed-case rerun. Historical host score and broad discovery coverage remain open |
 | Constructive support compression | Implemented exact small witnesses | Joint reachable support, executable encoder/decoder and priced native circuits for small widths; a consumer adapter is still required before a whole-task width gain |
 | Tensor bounds and synthesis | Implemented explicitly restricted model | Three flattenings, certified bounded slice-substitution, exact small search and reversible dirty-output lowering; no general quantum floor claim |
 | Large-file discovery | Implemented bounded Python analysis | Native load plus text spool and SQLite grouped kernels; 500k-line synthetic timing published; full 50M host circuit not benchmarked |
-| File finite promises and interior boundaries | Implemented | Complete assignments and canonical domain hashes; equal physical layouts; symbolic and concrete evidence remain separately scoped |
+| File finite promises and interior boundaries | Implemented | Explicit rows or compact address promises plus arbitrary dirty words; costed domain specialization, independent boundary checks and canonical hashes. Interior cut reachability must be established separately |
 | Verifier failure retention | Implemented | Valid rejection, invalid scope and postcheck failure retained separately; native binary width preflight and configurable runtime limits |
 | Fresh no-hypothesis file trial | Passed original fixture | Untagged eight-bit file, no adapter or hypotheses: two automatic rewrites, static cost 32→16, exact independent lab over 256 arbitrary dirty inputs and replay; not historical/competition acceptance |
 | Negative-result memory | Implemented conservative import/apply | Direct and imported strong evidence requires valid blobs; contract/scale changes reopen scoped claims |

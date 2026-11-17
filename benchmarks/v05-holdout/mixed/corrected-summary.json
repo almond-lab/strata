@@ -1,0 +1,486 @@
+{
+  "manifest": {
+    "label": "frozen-mixed-extension-fast-false",
+    "package": "/home/dev/algorithms/strata/benchmarks/v05-holdout/work/package-mixed/strata",
+    "code": {
+      "sha256": "7bad01fef642b7b3696672d3b4ec8c1d7eeb8e80b1844da593769b60385af310",
+      "files": {
+        "__init__.py": "d8daf0b8fc5265804d5729e50d9a1b6e5cdeb45341ae1edabb9ac06f307dbbf5",
+        "__main__.py": "57224c899e9a2b143b8a69a2c2724b8b18e12a8f988e6e8620930ff979ff5331",
+        "acceptance.py": "c3fdf22443d066dd50244807c5058b19e94fb91cff7b7bf22374d20f55fdea43",
+        "accounting.py": "aa9d40906d762085df2c437416e890ef975ca73ad2dedfc6b83d2076d921646b",
+        "algebraic_synthesis.py": "ee064df22e2ff616ee143310242693872ca63df59eb087c6123ce3b1d41ace2b",
+        "artifacts.py": "d8f56ca3b645f54fd2256d0726d72a4e6f294044f885bdbaca5cdf53bf3a96f5",
+        "blocks.py": "6d10e59eab00bd31afed519135371a4ce360d875e321be4a04839ee3c0787697",
+        "boolean_synthesis.py": "8c182cdb6bfb0ba7edf657ff0b57c106861fb3ef4995dd802bc7874bd20fbe84",
+        "boundary_observations.py": "a64e4a38c23e96978abc7db44cdd6d88e367ec399700dfde5ef836c328de30e0",
+        "bundle.py": "887cf68778bb8044bd88b1ff7361f5e0323c4624a88bf11e5a3fb0ab130e2cb8",
+        "callbacks.py": "bc7a94aa801bbb88f04722beb23a5bc7da63a861405fc18ddcd27a6ec70670db",
+        "candidate_search.py": "ba2989d7554b38329721e908b5cc3e0912742cd36d8340eab4bc5ba191e93571",
+        "circuit_tape.py": "f4accf25d6108dc2004418b6efb5a48121b8574311888fdaa18c7d3f67830d13",
+        "cli.py": "12c5a42f2ae2b5c494a7e6977312f53da3baa9a77f0a5d97d6c6f028f1b41df7",
+        "component_lab.py": "49336e17d4ce8be6f5c10e0eafbfd520df01d471c79dab2f4a6960dd625ba4cb",
+        "cost.py": "56aa40d278a5146ba8567c1a2e15e751addf3844726dc7b589279d9c29f0c1d9",
+        "declarative.py": "ee9329012564e53acfe86332ad8970844caac1fa279bcb52987243520e41d2ec",
+        "demo.py": "b7ef2818401bd9d1b4809408e2bc334e39aef9bf5173e6a1db5a3a7867530dbd",
+        "discovery.py": "718e58631656278b0bb804714555c3f82322a8076971c3501dcb8f2efbac9dd1",
+        "domains.py": "9ef115db06b9f53246ea325dbc77bed5da5851172a2a02a47725d4995fb5f210",
+        "engine.py": "62e6747e8093711caedf0c84dea87fb83f5d16fba3e21304648434d7e7b66304",
+        "episode_search.py": "d5672ce0b93a5db85ea436b7bb25c58d35fd3a4ef5168fcd0af67a71bf67c0e4",
+        "experiment_board.py": "b4689d6b74cc987a28d56f0cc711b7c72375036e360121a5d6c5a38275fbf7d5",
+        "experiment_cli.py": "837cb837345ab962363e21338880924677c19cb19601506bae0c701aa5e0a547",
+        "experiment_comparisons.py": "77d7924a0952c1d0aa45e68c5871393873274a83019169fe34ac078641aedc77",
+        "experiment_observations.py": "8121eaaca318fe986e1491f50c56ef23b5544a2b3fb40a900d8b64e7a86cae4e",
+        "experiment_policy.py": "768d348f6efc224e5d71f5d3f2cd492b53e9bbc2327a55960f7aaabbee57232b",
+        "experiment_reports.py": "5b8d1fbe4b4bccbfe2c1aaa1cffdf55a32e9f027a831683812fff028dda4bea6",
+        "experiments.py": "c6c869341502dce8161a8aa878284a79bf52524ac3b0061de0ba8e95ecbf3611",
+        "factored.py": "baf6d482f51a8a1d1216c23cbfbafc84e1d10ec0246968ddd07eabf8e4f24cef",
+        "factored_semantic.py": "2b15259324c607b7b7721e93f0c736beb2d2b3164c10cc942fbba972d248928e",
+        "file_optimizer.py": "73e600c2518f5e7120b28f7fcf266738befb61febd4a7c3611e4702cd1619928",
+        "file_profile.py": "730fc9cf207ca1b6e27ffd9bca096fe950a896417d9f4fb13ac5e64b49f6a4ed",
+        "file_workflow.py": "d913ad06fed97695c20fce21c468e8357874590995bbd9bfae556284e796c5d9",
+        "floors.py": "8b65f9da7e69683dff9706b637e93dd407ef8ad9280b7be69e655016ec0908b9",
+        "frontends.py": "0fcb46fabc26b3fff9a46ff06252096539cc6c38895eda15debc58166815f29d",
+        "functional_decomposition.py": "3ac2fa42332571036ad0f5e2fcb4f47bacc0650860aeb37dc433f6179d5d36bb",
+        "inference.py": "df9d82725e23a2c0398394b323827d08b7fe9a20b247506f15af5253c4158bd8",
+        "kickmix.py": "26e104d3d58a2c8f18c4261451ba663d0719bac1f6a6b860abfa3f865410b9c0",
+        "lab.py": "b142069d1b5bc16c60a2866e69acc69f1e1a22461e97c1336ebcf3178f10fd8c",
+        "lab_program.py": "77d8882e13306b9981f6d9842b1ae591dccf02236b29eae97608c32fb114f7ea",
+        "lab_symbolic.py": "90d6d055327e8b254f2c7167e6d278818f844f251821897ea4ccd4b324c0b01e",
+        "lookup.py": "6d17a8a83facd2746a9bac8763a8b241e5ebc70055b499509159ebf1ff5831d3",
+        "measured_boolean_synthesis.py": "ec90f2bd3b5482adea52c3c6fa0e7001779fde8c71d95d1e800464248a8ec481",
+        "measurement_equivalence.py": "5496609020f3d10d2173530d6117e25cf999e03b1601f5c06aeb2389179e431d",
+        "memory.py": "80ac287b4041d06fc59ecf3825255a439d1a713aa17c7f6d5a1f6dd2b3e2d057",
+        "mixed_observable.py": "3f01dd0b5851f100959081facda093d05d4a4778dd400dc4d70666ca3c5aeb7c",
+        "model.py": "168b2e3baab4cce4b353f26d286fd1227242031719e64c84988e0ec3cd657e63",
+        "numeric.py": "44e3dc8de973757dc5e89fff95922743d760e8f59fdf1ed20aff87858c03f12e",
+        "numeric_candidates.py": "723c3999074e1818df08e8ddbf020c336cf3ce0b03b5270cf62fd00497feb14f",
+        "numeric_jobs.py": "40c557ed08766fd5b1808da3ea732459f42e08c2b3f8e3090587bd2485ab990a",
+        "numeric_models.py": "48c24833a292fd804d21c708b760d4775cb3d7f9abc2e7cf038df1fce3acef2b",
+        "observable_search.py": "6068a9e4f3b74560b0aa48330e07a76b51f63631e41517b9f57432d1a0fc0157",
+        "output_basis_search.py": "b3d85aed440c666563a8f4204a215eaac63fedcf84a08984f0c06d6cfe492ef6",
+        "pebbling.py": "83477bd2c037a3ed5d8b216296a8d2f046ce86a10cfa4f00c1052a712a200cda",
+        "probability.py": "cb91fde7925824d1db47e74af05f173c1e506d022d09d27c45d36b2311183974",
+        "project.py": "70dbf11ae6e5cd444dad90a2b437e5619254a1d6ed21dc48eac3b03f8f97894c",
+        "protocols.py": "ec95195a8639433b89670f5d2cc8810dbae6ffe02241f4ed5e1295940fd68645",
+        "queries.py": "bc52925aacda9439648f62ed7fdf6ea0d36c59419561a5dc55126ee8068b704a",
+        "region_evidence.py": "0253cca7f1130b758230c4d5502af9c63ad406e5236d075bb0a22188e2133eb1",
+        "reports.py": "6652b2df08c7e16ae19a4e61d2095027ee1f4251d9f8f9268ed190659a749ceb",
+        "representation_synthesis.py": "653611da9848b07f6d5b51926be4e5e35eaf77648955492bef8227104a33cfa2",
+        "research.py": "fe98677869015f3ee65a131c4d2335cd5259830ba9c64b93c8115a99c4568907",
+        "research_ladder.py": "be55a1b37932851531269d1cfdb59b0639c04108129a964dd515f3e4b616ef03",
+        "restructure.py": "9842fae9d55b3d5aec429fed77cf2667ab233bdd30ba4709079d7bddee19a9fe",
+        "sandbox.py": "e207fd596c6536c02f58f3f138cd54c9f4028ab1ec3e4d47913d02e80f0c7055",
+        "scheduled_boolean_synthesis.py": "3abb6226e4e8fafc7b2a4f3b1f0317e2b1b1748f94662a2903e6749898ee8c81",
+        "screening_evidence.py": "4bd944fe62ac6087b0bb53a1346826c4a4738751c384a509607c44601c4e1860",
+        "search_screen.py": "ee86f7b65657fba1ab29d96865834ef3a5618acb0429f58d8c32b62652a7e071",
+        "search_worker.py": "821a2c77496f270aa6cf0136e8213a87de16c20a11e3eacfee418ceecae2c600",
+        "semantic.py": "d6718172c962dc76026f6cc54b6daabe604bed94fe3505f4d3ebc61017127f4c",
+        "store.py": "4c2065b8c97bbc6b8546415dac993de09fc1197ae9c5776008054669839a73d5",
+        "streaming.py": "a1b0ee25124d13d415d7490360dae8e646e306030568152b4b8854ed444621fa",
+        "supervision.py": "ae18e406adaa42a6bbae3a7d83b27ac77bf4a8a79be0482e563cb6f58b6f8e9e",
+        "symbolic_boolean_graph.py": "2444035bad82ff88babdda542473d25c3286772c6d01078aedd3f91fa20b4c72",
+        "tensor.py": "6833d1b939cc9d07109d8c6caabd2c3344e7bf1e10f2708d025c3e31b1e9ec17",
+        "trace.py": "f03820931815be5ed6c4a66a7bbe8e263742b14cccb89170f48ae7d54c2f1e3d"
+      }
+    },
+    "contract": {
+      "generator_seed": 731809,
+      "generator_sha256": "e7bb47e5d628813156c4e3a16d6254db8c0ac9fdda95286c6d40b43355654018",
+      "fixtures_sha256": "088c6a164350a7743be9656bd6a1de4e39676fb4dc4de16352b0ca7cf0d75fee",
+      "fixture_count": 3,
+      "frozen_before_first_search": true,
+      "no_replacement_or_region_supplied": true,
+      "provenance": "New independent composed value/phase cases, frozen after the original nine-case phase failure was exposed and before any corrected-engine candidate result. Parent received no fixture details before freeze.",
+      "objective": "Q*toffoli",
+      "budgets": {
+        "rounds": 1,
+        "beam": 4,
+        "max_candidates": 12,
+        "max_operations": 128,
+        "max_variables": 32,
+        "max_terms": 65536,
+        "max_product_terms": 65536
+      },
+      "fixture_timeout_seconds": 45,
+      "native_case_cap": 65536,
+      "source_hashes": {
+        "updated_dirty_target_phase": "990259891409f99cfa06a0c3858b865e25024d3d3631e313406863edcd205246",
+        "dependent_observable_then_adapter": "19361b85b30398fc0432f43a8bf315dbf661cb3a60f673721ebe9107a18e3b8e",
+        "fractional_observable_guard": "754d52a54c4fe422db84ce803923aa70a2272b1114439d222b9e510db9c8ae26"
+      }
+    },
+    "fixture_binding": "088c6a164350a7743be9656bd6a1de4e39676fb4dc4de16352b0ca7cf0d75fee",
+    "runner_sha256": "f4c7d954e7cef7b45c01229def48e1de38acbe0b8d78c33da18daeac98f88b20",
+    "base_runner_sha256": "00fed8bd7c0945925b6b252241b769a343c466a6445992a8672d3f0c683fb163",
+    "oracle_selfcheck": {
+      "repaired": true,
+      "missing_repair": false,
+      "wrong_classical": false
+    },
+    "phase_comparison": "exact native Fraction modulo two; no sign-only projection for unmeasured programs",
+    "no_supplied_region_or_replacement": true,
+    "no_custom_constructor_implementation": true,
+    "provenance": "New mixed holdouts frozen before any corrected-engine candidate result; earlier nine-case failure was known."
+  },
+  "results": [
+    {
+      "name": "updated_dirty_target_phase",
+      "family": "composed_dirty_value_and_observable",
+      "role": "mixed_opportunity",
+      "source_sha256": "990259891409f99cfa06a0c3858b865e25024d3d3631e313406863edcd205246",
+      "candidate_sha256": "e653c04cbd92463ea9ee85227a6c5954a4adf23546ddd4070eff74f3ff48990f",
+      "search_mode": "native_structural",
+      "status": "verified_improvement",
+      "before_cost": 88,
+      "after_cost": 32,
+      "before": {
+        "Q": 11,
+        "toffoli": 8,
+        "instructions": 15
+      },
+      "after": {
+        "Q": 8,
+        "toffoli": 4,
+        "instructions": 20
+      },
+      "retired_clean_wires": [
+        8,
+        9,
+        10
+      ],
+      "private_bits": [],
+      "independent_native_check": {
+        "scope": "all physical public quantum inputs, all initial classical bits, every HMR/R outcome",
+        "quantum_input_bits": 7,
+        "classical_input_bits": 0,
+        "formal_outcome_bits": 0,
+        "total_cases": 128,
+        "primitive_adapter": "native HMR/R plus exact local outcome/sign forcing",
+        "introduced_bits_initial_values": "also exhaustively arbitrary",
+        "equivalent": true,
+        "status": "exhaustive_equal"
+      },
+      "oracle_mutations": {
+        "changed_value": false,
+        "changed_phase": false
+      },
+      "complete_parent_cost_checked": true,
+      "bank_retirement_gain": true,
+      "engine_structural_qualification": "separated_value_and_phase",
+      "old_narrow_criterion": {
+        "cost": 88.0,
+        "candidate": "b274999c79dd3af5d81cd1bf988751061a16ca67ecb40ac97ad7f02b731ab205",
+        "interpretation": "baseline or verified descendant of removed_materialization_bank witness only",
+        "native_equivalent": true
+      },
+      "discovery_seconds": 0.7591476968955249,
+      "total_seconds": 0.7688292479142547,
+      "process_peak_rss_bytes": 53100544,
+      "selected_mechanism": "mixed_observable_search",
+      "attempts": [
+        {
+          "mechanism": "mixed_observable_search",
+          "status": "verified",
+          "reason": null,
+          "cost_delta": -56.0,
+          "check": true
+        },
+        {
+          "mechanism": "factored_observable_search",
+          "status": "not_constructed",
+          "reason": "observable synthesis requires every quantum output restored and a reversible quantum-only boundary",
+          "cost_delta": null,
+          "check": null
+        },
+        {
+          "mechanism": "joint_boundary_synthesis",
+          "status": "not_constructed",
+          "reason": "joint Boolean synthesis requires an exactly phase-free boundary",
+          "cost_delta": null,
+          "check": null
+        },
+        {
+          "mechanism": "joint_storage_recomputation",
+          "status": "not_constructed",
+          "reason": "no synthesized joint function DAG to schedule",
+          "cost_delta": null,
+          "check": null
+        },
+        {
+          "mechanism": "algebraic_boundary_synthesis",
+          "status": "not_constructed",
+          "reason": "algebraic synthesis requires exact zero boundary phase",
+          "cost_delta": null,
+          "check": null
+        },
+        {
+          "mechanism": "affine_representation_search",
+          "status": "not_constructed",
+          "reason": "affine representation synthesis requires an exactly phase-free boundary",
+          "cost_delta": null,
+          "check": null
+        },
+        {
+          "mechanism": "measurement_debt_lowering",
+          "status": "not_constructed",
+          "reason": "no synthesized joint function for phase-debt-safe lowering",
+          "cost_delta": null,
+          "check": null
+        },
+        {
+          "mechanism": "consumer_functional_decomposition",
+          "status": "not_constructed",
+          "reason": "nonzero observable phase",
+          "cost_delta": null,
+          "check": null
+        },
+        {
+          "mechanism": "output_basis_search",
+          "status": "not_constructed",
+          "reason": "nonzero observable phase",
+          "cost_delta": null,
+          "check": null
+        }
+      ]
+    },
+    {
+      "name": "dependent_observable_then_adapter",
+      "family": "composed_dirty_value_and_observable",
+      "role": "mixed_opportunity",
+      "source_sha256": "19361b85b30398fc0432f43a8bf315dbf661cb3a60f673721ebe9107a18e3b8e",
+      "candidate_sha256": "4be8a25074c268d5816ccc0c7602f70a238eb8797d01de24b8cf312b72a30947",
+      "search_mode": "native_structural",
+      "status": "no_gain",
+      "before_cost": 72,
+      "after_cost": 72,
+      "before": {
+        "Q": 9,
+        "toffoli": 8,
+        "instructions": 14
+      },
+      "after": {
+        "Q": 9,
+        "toffoli": 8,
+        "instructions": 14
+      },
+      "retired_clean_wires": [],
+      "private_bits": [],
+      "independent_native_check": {
+        "scope": "all physical public quantum inputs, all initial classical bits, every HMR/R outcome",
+        "quantum_input_bits": 5,
+        "classical_input_bits": 0,
+        "formal_outcome_bits": 0,
+        "total_cases": 32,
+        "primitive_adapter": "native HMR/R plus exact local outcome/sign forcing",
+        "introduced_bits_initial_values": "also exhaustively arbitrary",
+        "equivalent": true,
+        "status": "exhaustive_equal"
+      },
+      "oracle_mutations": {
+        "changed_value": false,
+        "changed_phase": false
+      },
+      "complete_parent_cost_checked": true,
+      "bank_retirement_gain": false,
+      "engine_structural_qualification": null,
+      "old_narrow_criterion": {
+        "cost": 72.0,
+        "candidate": "4be8a25074c268d5816ccc0c7602f70a238eb8797d01de24b8cf312b72a30947",
+        "interpretation": "baseline or verified descendant of removed_materialization_bank witness only",
+        "native_equivalent": true
+      },
+      "discovery_seconds": 0.19533415487967432,
+      "total_seconds": 0.19905183394439518,
+      "process_peak_rss_bytes": 46551040,
+      "selected_mechanism": "supplied_baseline",
+      "attempts": [
+        {
+          "mechanism": "mixed_observable_search",
+          "status": "verified",
+          "reason": null,
+          "cost_delta": 0.0,
+          "check": true
+        },
+        {
+          "mechanism": "factored_observable_search",
+          "status": "not_constructed",
+          "reason": "observable synthesis requires every quantum output restored and a reversible quantum-only boundary",
+          "cost_delta": null,
+          "check": null
+        },
+        {
+          "mechanism": "joint_boundary_synthesis",
+          "status": "not_constructed",
+          "reason": "joint Boolean synthesis requires an exactly phase-free boundary",
+          "cost_delta": null,
+          "check": null
+        },
+        {
+          "mechanism": "joint_storage_recomputation",
+          "status": "not_constructed",
+          "reason": "no synthesized joint function DAG to schedule",
+          "cost_delta": null,
+          "check": null
+        },
+        {
+          "mechanism": "algebraic_boundary_synthesis",
+          "status": "not_constructed",
+          "reason": "algebraic synthesis requires exact zero boundary phase",
+          "cost_delta": null,
+          "check": null
+        },
+        {
+          "mechanism": "affine_representation_search",
+          "status": "not_constructed",
+          "reason": "affine representation synthesis requires an exactly phase-free boundary",
+          "cost_delta": null,
+          "check": null
+        },
+        {
+          "mechanism": "measurement_debt_lowering",
+          "status": "not_constructed",
+          "reason": "no synthesized joint function for phase-debt-safe lowering",
+          "cost_delta": null,
+          "check": null
+        },
+        {
+          "mechanism": "consumer_functional_decomposition",
+          "status": "not_constructed",
+          "reason": "nonzero observable phase",
+          "cost_delta": null,
+          "check": null
+        },
+        {
+          "mechanism": "output_basis_search",
+          "status": "not_constructed",
+          "reason": "nonzero observable phase",
+          "cost_delta": null,
+          "check": null
+        }
+      ]
+    },
+    {
+      "name": "fractional_observable_guard",
+      "family": "composed_dirty_value_and_observable",
+      "role": "unsupported_fractional_guard",
+      "source_sha256": "754d52a54c4fe422db84ce803923aa70a2272b1114439d222b9e510db9c8ae26",
+      "candidate_sha256": "d5eca2b5a9ed15ca999781fc6fbdab5db3cf503320171e422fbfbc44799dc96c",
+      "search_mode": "native_structural",
+      "status": "no_gain",
+      "before_cost": 80,
+      "after_cost": 80,
+      "before": {
+        "Q": 10,
+        "toffoli": 8,
+        "instructions": 15
+      },
+      "after": {
+        "Q": 10,
+        "toffoli": 8,
+        "instructions": 15
+      },
+      "retired_clean_wires": [],
+      "private_bits": [],
+      "independent_native_check": {
+        "scope": "all physical public quantum inputs, all initial classical bits, every HMR/R outcome",
+        "quantum_input_bits": 6,
+        "classical_input_bits": 0,
+        "formal_outcome_bits": 0,
+        "total_cases": 64,
+        "primitive_adapter": "native HMR/R plus exact local outcome/sign forcing",
+        "introduced_bits_initial_values": "also exhaustively arbitrary",
+        "equivalent": true,
+        "status": "exhaustive_equal"
+      },
+      "oracle_mutations": {
+        "changed_value": false,
+        "changed_phase": false
+      },
+      "complete_parent_cost_checked": true,
+      "bank_retirement_gain": false,
+      "engine_structural_qualification": null,
+      "old_narrow_criterion": {
+        "cost": 80.0,
+        "candidate": "d5eca2b5a9ed15ca999781fc6fbdab5db3cf503320171e422fbfbc44799dc96c",
+        "interpretation": "baseline or verified descendant of removed_materialization_bank witness only",
+        "native_equivalent": true
+      },
+      "discovery_seconds": 0.15245861583389342,
+      "total_seconds": 0.16232415288686752,
+      "process_peak_rss_bytes": 46665728,
+      "selected_mechanism": "supplied_baseline",
+      "attempts": [
+        {
+          "mechanism": "joint_boundary_synthesis",
+          "status": "not_constructed",
+          "reason": "unsupported_fractional_phase",
+          "cost_delta": null,
+          "check": null
+        },
+        {
+          "mechanism": "joint_storage_recomputation",
+          "status": "not_constructed",
+          "reason": "no synthesized joint function DAG to schedule",
+          "cost_delta": null,
+          "check": null
+        },
+        {
+          "mechanism": "algebraic_boundary_synthesis",
+          "status": "not_constructed",
+          "reason": "unsupported_fractional_phase",
+          "cost_delta": null,
+          "check": null
+        },
+        {
+          "mechanism": "affine_representation_search",
+          "status": "not_constructed",
+          "reason": "unsupported_fractional_phase",
+          "cost_delta": null,
+          "check": null
+        },
+        {
+          "mechanism": "measurement_debt_lowering",
+          "status": "not_constructed",
+          "reason": "no synthesized joint function for phase-debt-safe lowering",
+          "cost_delta": null,
+          "check": null
+        },
+        {
+          "mechanism": "consumer_functional_decomposition",
+          "status": "not_constructed",
+          "reason": "requires exact zero-phase Boolean output functions",
+          "cost_delta": null,
+          "check": null
+        },
+        {
+          "mechanism": "output_basis_search",
+          "status": "not_constructed",
+          "reason": "output basis requires a quantum permutation boundary",
+          "cost_delta": null,
+          "check": null
+        },
+        {
+          "mechanism": "factored_observable_search",
+          "status": "not_constructed",
+          "reason": "unsupported_fractional_phase",
+          "cost_delta": null,
+          "check": null
+        },
+        {
+          "mechanism": "mixed_observable_search",
+          "status": "not_constructed",
+          "reason": "unsupported_fractional_phase",
+          "cost_delta": null,
+          "check": null
+        }
+      ]
+    }
+  ],
+  "all_failures_retained": true,
+  "independent_exhaustive_passes": 3,
+  "errors_or_timeouts": 0,
+  "discovery_wall_seconds": 1.1069404676090926,
+  "process_wall_seconds": 2.6071797320619226,
+  "max_worker_peak_rss_bytes": 53100544
+}

@@ -81,9 +81,11 @@ def assert_matches_native(text):
     auto = exhaustive(km.Circuit(text), CONTRACT, reference, batch_size=3)
     full = exhaustive(km.Circuit(text), CONTRACT, reference,
                       branch_strategy='full', batch_size=11)
-    assert auto.passed is full.passed is passed
+    symbolic = exhaustive(km.Circuit(text), CONTRACT, reference, branch_strategy='symbolic')
+    assert auto.passed is full.passed is symbolic.passed is passed
     if passed:
         validate_lab_receipt(asdict(auto))
+        validate_lab_receipt(asdict(symbolic))
     return auto
 
 

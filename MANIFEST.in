@@ -5,3 +5,8 @@ recursive-include examples *.toml *.kmx
 recursive-include examples/workflow *.py *.json *.csv *.txt
 recursive-include scripts *.py
 recursive-include tests *.py
+include benchmarks/v05-structural/*.md benchmarks/v05-structural/*.py benchmarks/v05-structural/*.json benchmarks/v05-structural/*.kmx
+include benchmarks/v05-holdout/*.md benchmarks/v05-holdout/*.py benchmarks/v05-holdout/*.json
+include benchmarks/v05-holdout/mixed/*.md benchmarks/v05-holdout/mixed/*.py benchmarks/v05-holdout/mixed/*.json
+include benchmarks/v05-holdout/yield_fresh/*.md benchmarks/v05-holdout/yield_fresh/*.py benchmarks/v05-holdout/yield_fresh/*.json
+include benchmarks/v05-transfer/*.md benchmarks/v05-transfer/*.py benchmarks/v05-transfer/*.json

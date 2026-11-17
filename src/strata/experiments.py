@@ -272,16 +272,18 @@ def load_manifest(path):
         if not isinstance(metric.get('selector', ''), (str, list)):
             raise StrataError('metric selector must be a dotted path, JSON pointer or path list')
     from .sandbox import effective_limits
+    resources = spec.setdefault('resources', {})
+    if not isinstance(resources, dict):
+        raise StrataError('resources must be a named mapping')
     limit_keys = {'timeout', 'max_output', 'memory_bytes', 'max_file_bytes', 'cpu_seconds'}
     def limits(overrides, defaults=None):
         if not isinstance(overrides, dict) or set(overrides) - limit_keys:
             raise StrataError('unsupported command limit; use timeout, max_output, memory_bytes, max_file_bytes or cpu_seconds')
-        return effective_limits(**{**(defaults or {}), **overrides})
+        return effective_limits(threads=resources.get('threads',1), **{**(defaults or {}), **overrides})
     declared_limits = spec.get('limits', {})
     spec['limits'] = limits(declared_limits)
     for stage in stages:
         stage['limits'] = limits(stage.get('limits', {}), declared_limits)
-    resources = spec.setdefault('resources', {})
     explicit_memory = 'memory_bytes' in resources
     stage_memory = max(stage['limits']['memory_bytes'] for stage in stages)
     for key, default in (('threads', 1), ('memory_bytes', stage_memory), ('storage_bytes', max(stage['limits']['max_file_bytes'] for stage in stages))):
@@ -495,7 +497,16 @@ def experiment_status(store, handle):
     completed = {row['attempt']: row for _, row in finishes}
     charges = _records(store, 'experiment_charge', handle)
     settled = {row['charge']: row['seconds'] for _, row in _records(store, 'experiment_charge_finish', handle)}
-    spent = sum(completed[row['attempt']]['seconds'] if row['attempt'] in completed else _attempt_charge(row, charges, settled) for _, row in starts)
+    unfinished = [row for _, row in starts if row['attempt'] not in completed]
+    active = [_attempt_activity(store, handle, row, charges, settled) for row in unfinished]
+    live = {row['attempt']: row for row in active if row['supervisor_state'] == 'alive'
+            and row['board_state'] in {'claimed', 'running', 'unreconciled'}}
+    charged = sum(completed[row['attempt']]['seconds'] if row['attempt'] in completed else
+                  _attempt_charge(row, charges, settled) for _, row in starts)
+    spent = sum(completed[row['attempt']]['seconds'] if row['attempt'] in completed else
+                live[row['attempt']]['elapsed_wall_seconds'] if row['attempt'] in live else
+                _attempt_charge(row, charges, settled) for _, row in starts)
+    charged = max(charged, spent)
     latest = dict(handle=finishes[-1][0], **finishes[-1][1]) if finishes else None
     checkpoints = _records(store, 'experiment_checkpoint', handle)
     stages = _records(store, 'experiment_stage', handle)
@@ -504,13 +515,58 @@ def experiment_status(store, handle):
         gates = _records(store, 'experiment_gate', handle)
         if gates and gates[-1][1]['decision'].get('action') == 'prune':
             state = 'screened_out'
-    if any(row['attempt'] not in completed for _, row in starts):
-        state = 'reconciliation_required'
+    if unfinished:
+        state = 'running' if len(live) == len(unfinished) else 'reconciliation_required'
     elif state not in _SUCCESS and spent >= experiment['manifest']['max_wall_seconds']:
         state = 'budget_exhausted'
     elif state not in _SUCCESS and len(starts) >= experiment['manifest']['max_attempts']:
         state = 'attempt_budget_exhausted'
-    return dict(experiment=handle, identity=experiment['identity'], status=state, attempts=len(starts), attempt_budget_exhausted=len(starts) >= experiment['manifest']['max_attempts'], wall_budget_exhausted=spent >= experiment['manifest']['max_wall_seconds'], completed_stages=len({r['index'] for _, r in stages}), spent_wall_seconds=spent, remaining_wall_seconds=max(0, experiment['manifest']['max_wall_seconds'] - spent), latest=latest, checkpoint=dict(handle=checkpoints[-1][0], **checkpoints[-1][1]) if checkpoints else None, accounting='unfinished stages conservatively charge their reserved timeout and require board reconciliation')
+    return dict(experiment=handle, identity=experiment['identity'], status=state, attempts=len(starts),
+                attempt_budget_exhausted=len(starts) >= experiment['manifest']['max_attempts'],
+                wall_budget_exhausted=spent >= experiment['manifest']['max_wall_seconds'],
+                completed_stages=len({r['index'] for _, r in stages}), spent_wall_seconds=spent,
+                budget_charged_wall_seconds=charged,
+                reserved_wall_seconds=sum(row['reserved_wall_seconds'] for row in active),
+                remaining_wall_seconds=max(0, experiment['manifest']['max_wall_seconds'] - charged),
+                active_attempts=active, latest=latest,
+                checkpoint=dict(handle=checkpoints[-1][0], **checkpoints[-1][1]) if checkpoints else None,
+                accounting='live attempts report observed wall time; unfinished reservations remain budget-charged; '
+                           'dead or unknown supervisors require reconciliation and retain conservative charges')
+
+
+def _attempt_activity(store, experiment, attempt, charges, settled):
+    """Read process identity without constructing or mutating the shared board."""
+    from .sandbox import process_state
+    now, job = time.time(), None
+    if store.db.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='experiment_board_jobs'").fetchone():
+        cursor = store.db.execute('SELECT * FROM experiment_board_jobs WHERE job_id=? AND experiment_id=?',
+                                  (attempt.get('job'), experiment))
+        row = cursor.fetchone()
+        if row is not None:
+            job = dict(zip((column[0] for column in cursor.description), row))
+    job = job or {}
+    def identity_state(field):
+        try:
+            return process_state(json.loads(job[field])) if job.get(field) else 'unknown'
+        except (TypeError, ValueError):
+            return 'unknown'
+    rows = [(key, row) for key, row in charges if row['attempt'] == attempt['attempt']]
+    pending = [(key, row) for key, row in rows if key not in settled]
+    current = pending[-1][1] if pending else None
+    known = sum(settled[key] for key, _ in rows if key in settled)
+    started = attempt.get('started_at')
+    elapsed = max(known, max(0, now - started)) if type(started) in (int, float) else known
+    return dict(attempt=attempt['attempt'], job=attempt.get('job'), board_state=job.get('state'),
+                supervisor_state=identity_state('owner_identity'), process_state=identity_state('process_identity'),
+                process_phase=job.get('process_phase'), lease_until=job.get('lease_until'),
+                lease_expired=job.get('lease_until') is not None and job['lease_until'] <= now,
+                cancel_requested=bool(job.get('cancel_requested')),
+                current_operation=current.get('operation') if current else None,
+                elapsed_wall_seconds=elapsed,
+                current_operation_elapsed_seconds=max(0, now - current['started_at'])
+                    if current and type(current.get('started_at')) in (int, float) else None,
+                reserved_wall_seconds=sum(row['reserved_seconds'] for _, row in pending)
+                    if rows else attempt['reserved_seconds'])
 
 
 def _attempt_charge(attempt, charges, settled):
@@ -955,7 +1011,7 @@ def run_experiment(store, handle, owner='local', board=None, *, resume=True, ove
             for artifact in state['latest']['artifacts'].values():
                 store.verify_blob(artifact['sha256'])
             return dict(state['latest'], reused=True)
-        if state['status'] in {'reconciliation_required', 'budget_exhausted', 'attempt_budget_exhausted'}:
+        if state['status'] in {'running', 'reconciliation_required', 'budget_exhausted', 'attempt_budget_exhausted'}:
             return state
         if state['status'] in {'paused_by_forecast_policy', 'screened_out'} and not override_policy:
             return state
@@ -1229,7 +1285,10 @@ def sweep_status(store, handle):
     counts = {}
     for row in experiments:
         counts[row['status']] = counts.get(row['status'], 0) + 1
-    return dict(sweep=handle, planned=len(experiments), counts=counts, spent_wall_seconds=sum(row['spent_wall_seconds'] for row in experiments), max_wall_seconds=sweep['max_wall_seconds'], experiments=experiments)
+    return dict(sweep=handle, planned=len(experiments), counts=counts,
+                spent_wall_seconds=sum(row['spent_wall_seconds'] for row in experiments),
+                budget_charged_wall_seconds=sum(row['budget_charged_wall_seconds'] for row in experiments),
+                max_wall_seconds=sweep['max_wall_seconds'], experiments=experiments)
 
 
 def run_sweep(store, handle, workers=None, *, owner='sweep', override_policy=False):
@@ -1242,7 +1301,7 @@ def run_sweep(store, handle, workers=None, *, owner='sweep', override_policy=Fal
     # Each run_experiment checks the frozen identity before executing or reusing
     # work, and reports per-experiment source drift without dropping other rows.
     started = time.monotonic()
-    remaining = max(0, sweep['max_wall_seconds'] - sweep_status(store, handle)['spent_wall_seconds'])
+    remaining = max(0, sweep['max_wall_seconds'] - sweep_status(store, handle)['budget_charged_wall_seconds'])
     deadline = started + remaining
     # Construct before threads so initial schema/capacity has one writer.
     board = ExperimentBoard(store, capacity=sweep['capacity'])

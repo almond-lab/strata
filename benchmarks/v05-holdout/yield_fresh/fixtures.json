@@ -1,0 +1,63 @@
+[
+  {
+    "name": "selector_shared_consumer",
+    "family": "selector_cross_output_composition",
+    "role": "opportunity",
+    "seed": 260493,
+    "text": "CX q2 q0\nX q1\nCX q3 q6\nCCX q3 q0 q8\nCCX q6 q2 q9\nCCX q3 q6 q10\nCCX q8 q1 q12\nCCX q9 q1 q7\nCCX q10 q2 q11\nCX q8 q5\nCX q12 q5\nCX q7 q5\nCX q12 q4\nCX q11 q4\nCCX q10 q2 q11\nCCX q9 q1 q7\nCCX q8 q1 q12\nCCX q3 q6 q10\nCCX q6 q2 q9\nCCX q3 q0 q8\nCX q3 q6\nX q1\nCX q2 q0\n",
+    "sha256": "95dc06c1803e50b9cb33d59ca7245e89512d16a2abca5b19f35fb2d0de798331",
+    "clean_inputs": [
+      7,
+      8,
+      9,
+      10,
+      11,
+      12
+    ],
+    "output_wires": [
+      5,
+      4
+    ],
+    "internal_bits": []
+  },
+  {
+    "name": "selector_dirty_observable",
+    "family": "selector_cross_output_composition",
+    "role": "mixed_opportunity",
+    "seed": 260494,
+    "text": "CX q6 q4\nX q5\nCX q2 q1\nCCX q2 q4 q11\nCCX q1 q6 q7\nCCX q2 q1 q12\nCCX q11 q5 q10\nCCX q7 q5 q8\nCCX q12 q6 q9\nCX q11 q0\nCX q10 q0\nCX q8 q0\nCX q10 q3\nCX q9 q3\nCZ q0 q6\nZ q3\nCCX q12 q6 q9\nCCX q7 q5 q8\nCCX q11 q5 q10\nCCX q2 q1 q12\nCCX q1 q6 q7\nCCX q2 q4 q11\nCX q2 q1\nX q5\nCX q6 q4\n",
+    "sha256": "c891758488ebe3d955777d0b5048a5c47f2236f75f622ff2631fbd6d7340761c",
+    "clean_inputs": [
+      7,
+      8,
+      9,
+      10,
+      11,
+      12
+    ],
+    "output_wires": [
+      0,
+      3
+    ],
+    "internal_bits": []
+  },
+  {
+    "name": "alias_multiplicity_canary",
+    "family": "duplicate_materialization_consumer",
+    "role": "deduplication_canary",
+    "seed": 260495,
+    "text": "CCX q4 q2 q8\nCCX q2 q4 q5\nCCX q8 q0 q6\nCCX q5 q0 q7\nCX q6 q1\nCX q7 q1\nCX q8 q1\nCX q8 q3\nCX q5 q3\nCCX q5 q0 q7\nCCX q8 q0 q6\nCCX q2 q4 q5\nCCX q4 q2 q8\n",
+    "sha256": "63fcea7eee4b17c318e754659920fa05dd9d490a19884f46919d4c97311a6253",
+    "clean_inputs": [
+      5,
+      6,
+      7,
+      8
+    ],
+    "output_wires": [
+      1,
+      3
+    ],
+    "internal_bits": []
+  }
+]

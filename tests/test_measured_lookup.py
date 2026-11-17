@@ -94,12 +94,27 @@ def test_measured_lookup_restructures_table_and_preserves_all_outcomes(tmp_path)
     assert report['official_verifier_run']is False
 
 
-def test_measured_lookup_rejects_missing_clean_promise_or_phase_repair():
+def test_measured_lookup_preserves_unresolved_phase_and_requires_clean_promise():
     assert resynthesize_measured_lookup(km.Circuit(LOADER))['status']=='unknown'
     broken=LOADER.replace('CZ q0 q1 if b0\n','')
-    assert resynthesize_measured_lookup(km.Circuit(broken),clean_inputs=[4])['reason']=='lookup has unresolved phase debt or a nonzero boundary phase'
+    result=resynthesize_measured_lookup(km.Circuit(broken),clean_inputs=[4])
+    assert result['status']=='constructed',result
+    assert result['check']['equivalent'] is True
+    assert any(d['status']=='outstanding' for d in result['phase_preservation']['original_phase_debts'])
+    assert analyze_window(result['candidate'],clean_inputs=[4])['phase']==analyze_window(broken,clean_inputs=[4])['phase']
+    for outcomes in itertools.product((0,1),repeat=2):
+        assert _native(broken,outcomes)==_native(result['candidate'],outcomes)
     fixed=resynthesize_measured_lookup(km.Circuit(LOADER),clean_inputs=[4])['candidate']
     assert equivalent_windows(LOADER,fixed.replace('CZ q0 q1 if b0\n',''),clean_inputs=[4])['equivalent']is False
+
+
+def test_measured_lookup_preserves_nonzero_external_phase():
+    original=LOADER+'Z q0\n'
+    result=resynthesize_measured_lookup(km.Circuit(original),clean_inputs=[4])
+    assert result['status']=='constructed',result
+    assert analyze_window(result['candidate'],clean_inputs=[4])['phase']['monomials']==[[0]]
+    for outcomes in itertools.product((0,1),repeat=2):
+        assert _native(original,outcomes)==_native(result['candidate'],outcomes)
 
 
 def test_measured_lookup_conditional_writes_do_not_create_clean_leases():

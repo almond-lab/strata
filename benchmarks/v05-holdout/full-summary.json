@@ -1,0 +1,1301 @@
+{
+  "manifest": {
+    "label": "ready-current-full",
+    "mode": "structural",
+    "package": "/home/dev/algorithms/strata/benchmarks/v05-holdout/work/package-ready/strata",
+    "code": {
+      "sha256": "76fa40cd16054c0f4a8e7319b8d2abbb300465cf7da80791824b434f946689d3",
+      "files": {
+        "__init__.py": "d8daf0b8fc5265804d5729e50d9a1b6e5cdeb45341ae1edabb9ac06f307dbbf5",
+        "__main__.py": "57224c899e9a2b143b8a69a2c2724b8b18e12a8f988e6e8620930ff979ff5331",
+        "acceptance.py": "c3fdf22443d066dd50244807c5058b19e94fb91cff7b7bf22374d20f55fdea43",
+        "accounting.py": "aa9d40906d762085df2c437416e890ef975ca73ad2dedfc6b83d2076d921646b",
+        "algebraic_synthesis.py": "ee064df22e2ff616ee143310242693872ca63df59eb087c6123ce3b1d41ace2b",
+        "artifacts.py": "d8f56ca3b645f54fd2256d0726d72a4e6f294044f885bdbaca5cdf53bf3a96f5",
+        "blocks.py": "6d10e59eab00bd31afed519135371a4ce360d875e321be4a04839ee3c0787697",
+        "boolean_synthesis.py": "8c182cdb6bfb0ba7edf657ff0b57c106861fb3ef4995dd802bc7874bd20fbe84",
+        "boundary_observations.py": "a64e4a38c23e96978abc7db44cdd6d88e367ec399700dfde5ef836c328de30e0",
+        "bundle.py": "887cf68778bb8044bd88b1ff7361f5e0323c4624a88bf11e5a3fb0ab130e2cb8",
+        "callbacks.py": "bc7a94aa801bbb88f04722beb23a5bc7da63a861405fc18ddcd27a6ec70670db",
+        "candidate_search.py": "ba2989d7554b38329721e908b5cc3e0912742cd36d8340eab4bc5ba191e93571",
+        "circuit_tape.py": "f4accf25d6108dc2004418b6efb5a48121b8574311888fdaa18c7d3f67830d13",
+        "cli.py": "0d8119f56a1325eab3d5587a65b0c1bb777866b2ec262a6dc270c5329e044e99",
+        "component_lab.py": "49336e17d4ce8be6f5c10e0eafbfd520df01d471c79dab2f4a6960dd625ba4cb",
+        "cost.py": "56aa40d278a5146ba8567c1a2e15e751addf3844726dc7b589279d9c29f0c1d9",
+        "declarative.py": "ee9329012564e53acfe86332ad8970844caac1fa279bcb52987243520e41d2ec",
+        "demo.py": "b7ef2818401bd9d1b4809408e2bc334e39aef9bf5173e6a1db5a3a7867530dbd",
+        "discovery.py": "718e58631656278b0bb804714555c3f82322a8076971c3501dcb8f2efbac9dd1",
+        "domains.py": "9ef115db06b9f53246ea325dbc77bed5da5851172a2a02a47725d4995fb5f210",
+        "engine.py": "62e6747e8093711caedf0c84dea87fb83f5d16fba3e21304648434d7e7b66304",
+        "episode_search.py": "0efe2e419836941d7ad0e43f698896dbf2ac540b0c7274ec2b1b7f65700129ae",
+        "experiment_board.py": "b4689d6b74cc987a28d56f0cc711b7c72375036e360121a5d6c5a38275fbf7d5",
+        "experiment_cli.py": "837cb837345ab962363e21338880924677c19cb19601506bae0c701aa5e0a547",
+        "experiment_comparisons.py": "77d7924a0952c1d0aa45e68c5871393873274a83019169fe34ac078641aedc77",
+        "experiment_observations.py": "8121eaaca318fe986e1491f50c56ef23b5544a2b3fb40a900d8b64e7a86cae4e",
+        "experiment_policy.py": "768d348f6efc224e5d71f5d3f2cd492b53e9bbc2327a55960f7aaabbee57232b",
+        "experiment_reports.py": "5b8d1fbe4b4bccbfe2c1aaa1cffdf55a32e9f027a831683812fff028dda4bea6",
+        "experiments.py": "c6c869341502dce8161a8aa878284a79bf52524ac3b0061de0ba8e95ecbf3611",
+        "factored.py": "baf6d482f51a8a1d1216c23cbfbafc84e1d10ec0246968ddd07eabf8e4f24cef",
+        "factored_semantic.py": "2b15259324c607b7b7721e93f0c736beb2d2b3164c10cc942fbba972d248928e",
+        "file_optimizer.py": "73e600c2518f5e7120b28f7fcf266738befb61febd4a7c3611e4702cd1619928",
+        "file_profile.py": "730fc9cf207ca1b6e27ffd9bca096fe950a896417d9f4fb13ac5e64b49f6a4ed",
+        "file_workflow.py": "d913ad06fed97695c20fce21c468e8357874590995bbd9bfae556284e796c5d9",
+        "floors.py": "8b65f9da7e69683dff9706b637e93dd407ef8ad9280b7be69e655016ec0908b9",
+        "frontends.py": "0fcb46fabc26b3fff9a46ff06252096539cc6c38895eda15debc58166815f29d",
+        "functional_decomposition.py": "cbed15aae8615bfb092f2d3979c762969fd7fb54ea4e2e8cce9651f0856e8be0",
+        "inference.py": "df9d82725e23a2c0398394b323827d08b7fe9a20b247506f15af5253c4158bd8",
+        "kickmix.py": "26e104d3d58a2c8f18c4261451ba663d0719bac1f6a6b860abfa3f865410b9c0",
+        "lab.py": "b142069d1b5bc16c60a2866e69acc69f1e1a22461e97c1336ebcf3178f10fd8c",
+        "lab_program.py": "77d8882e13306b9981f6d9842b1ae591dccf02236b29eae97608c32fb114f7ea",
+        "lab_symbolic.py": "90d6d055327e8b254f2c7167e6d278818f844f251821897ea4ccd4b324c0b01e",
+        "lookup.py": "6d17a8a83facd2746a9bac8763a8b241e5ebc70055b499509159ebf1ff5831d3",
+        "measured_boolean_synthesis.py": "ec90f2bd3b5482adea52c3c6fa0e7001779fde8c71d95d1e800464248a8ec481",
+        "measurement_equivalence.py": "5496609020f3d10d2173530d6117e25cf999e03b1601f5c06aeb2389179e431d",
+        "memory.py": "80ac287b4041d06fc59ecf3825255a439d1a713aa17c7f6d5a1f6dd2b3e2d057",
+        "model.py": "168b2e3baab4cce4b353f26d286fd1227242031719e64c84988e0ec3cd657e63",
+        "numeric.py": "44e3dc8de973757dc5e89fff95922743d760e8f59fdf1ed20aff87858c03f12e",
+        "numeric_candidates.py": "723c3999074e1818df08e8ddbf020c336cf3ce0b03b5270cf62fd00497feb14f",
+        "numeric_jobs.py": "40c557ed08766fd5b1808da3ea732459f42e08c2b3f8e3090587bd2485ab990a",
+        "numeric_models.py": "48c24833a292fd804d21c708b760d4775cb3d7f9abc2e7cf038df1fce3acef2b",
+        "observable_search.py": "a2f612b1edaf78c935d1cc0d3cc1d18e936fdfefb3dc779d7468ef38d7820dc4",
+        "output_basis_search.py": "b29daf8d05b29c52341dd9d89c07226b5f3638a933a5755df2626d636ba18606",
+        "pebbling.py": "83477bd2c037a3ed5d8b216296a8d2f046ce86a10cfa4f00c1052a712a200cda",
+        "probability.py": "cb91fde7925824d1db47e74af05f173c1e506d022d09d27c45d36b2311183974",
+        "project.py": "70dbf11ae6e5cd444dad90a2b437e5619254a1d6ed21dc48eac3b03f8f97894c",
+        "protocols.py": "ec95195a8639433b89670f5d2cc8810dbae6ffe02241f4ed5e1295940fd68645",
+        "queries.py": "bc52925aacda9439648f62ed7fdf6ea0d36c59419561a5dc55126ee8068b704a",
+        "region_evidence.py": "0253cca7f1130b758230c4d5502af9c63ad406e5236d075bb0a22188e2133eb1",
+        "reports.py": "6652b2df08c7e16ae19a4e61d2095027ee1f4251d9f8f9268ed190659a749ceb",
+        "representation_synthesis.py": "653611da9848b07f6d5b51926be4e5e35eaf77648955492bef8227104a33cfa2",
+        "research.py": "fe98677869015f3ee65a131c4d2335cd5259830ba9c64b93c8115a99c4568907",
+        "research_ladder.py": "be55a1b37932851531269d1cfdb59b0639c04108129a964dd515f3e4b616ef03",
+        "restructure.py": "0cd4ad9c4172e8b5ca58bc6280a7c8a4ae6c72efc68ed83acc9c44987d0683ce",
+        "sandbox.py": "e207fd596c6536c02f58f3f138cd54c9f4028ab1ec3e4d47913d02e80f0c7055",
+        "scheduled_boolean_synthesis.py": "3abb6226e4e8fafc7b2a4f3b1f0317e2b1b1748f94662a2903e6749898ee8c81",
+        "screening_evidence.py": "4bd944fe62ac6087b0bb53a1346826c4a4738751c384a509607c44601c4e1860",
+        "semantic.py": "d6718172c962dc76026f6cc54b6daabe604bed94fe3505f4d3ebc61017127f4c",
+        "store.py": "4c2065b8c97bbc6b8546415dac993de09fc1197ae9c5776008054669839a73d5",
+        "streaming.py": "a1b0ee25124d13d415d7490360dae8e646e306030568152b4b8854ed444621fa",
+        "supervision.py": "ae18e406adaa42a6bbae3a7d83b27ac77bf4a8a79be0482e563cb6f58b6f8e9e",
+        "symbolic_boolean_graph.py": "2444035bad82ff88babdda542473d25c3286772c6d01078aedd3f91fa20b4c72",
+        "tensor.py": "6833d1b939cc9d07109d8c6caabd2c3344e7bf1e10f2708d025c3e31b1e9ec17",
+        "trace.py": "f03820931815be5ed6c4a66a7bbe8e263742b14cccb89170f48ae7d54c2f1e3d"
+      }
+    },
+    "fixture_binding": "474639c8ea85e3752ee75defd7f00e303daa939663f3a30da4a6ca360f82d1de",
+    "runner_sha256": "00fed8bd7c0945925b6b252241b769a343c466a6445992a8672d3f0c683fb163",
+    "contract": {
+      "generator_seed": 914027,
+      "generator_sha256": "576f8ed0587f25047ff5f30de8f60cc2db5226d6ba70b9d3043317e797bb38c6",
+      "fixtures_sha256": "474639c8ea85e3752ee75defd7f00e303daa939663f3a30da4a6ca360f82d1de",
+      "fixture_count": 9,
+      "frozen_before_first_search": true,
+      "no_replacement_or_region_supplied": true,
+      "provenance": "Independent review-agent generators; frozen after existing development suites were read, before any holdout search. This is not a blind historical benchmark.",
+      "objective": "Q*toffoli",
+      "budgets": {
+        "rounds": 1,
+        "beam": 4,
+        "max_candidates": 12,
+        "max_operations": 512,
+        "max_variables": 128,
+        "max_terms": 65536,
+        "max_product_terms": 65536
+      },
+      "fixture_timeout_seconds": 45,
+      "native_case_cap": 1048576,
+      "source_hashes": {
+        "field_difference_0": "81551e8babedabd102fab45bdbf06db37f8a3cdba59640a7c916f591973f84da",
+        "field_difference_1": "0cd2efa242aa9ddd9c7e59d3962fece04aec75c608d5d711192f79cd4fe7fd73",
+        "modular_difference_3": "464674bcc8110eea5a66ba998aabbc8e9df9d2a8c52d98845bed15f78b5f6f07",
+        "modular_difference_4": "652a0f374dcc18ba1eb7f9ee4002d157fb816a6569066557fbdc2dfe4a08d6f0",
+        "table_difference_0": "36df6cefc6d9d6212f5c517a3029bc259acce6f7070fa4f1412bc105ddc6958d",
+        "table_difference_1": "17720a26fb2b83c04888318f6cf8c0b946a6dfcf1df0436ff90979e09426d099",
+        "phase_obligation": "9c641886351de20b0005a1db663448c76f32b855c2eb45a0e3eef7cd33617b41",
+        "dirty_workspace_obligation": "464674bcc8110eea5a66ba998aabbc8e9df9d2a8c52d98845bed15f78b5f6f07",
+        "public_classical_obligation": "f40916b2b351a6ec46a8f57e76ed2c5b46914cfdb91ad53906933b62709e08af"
+      }
+    },
+    "oracle_selfcheck": {
+      "repaired": true,
+      "missing_repair": false,
+      "wrong_classical": false
+    },
+    "discovery_inputs": "source bytes, zero-input contract, frozen budget and cost only",
+    "no_supplied_region_or_replacement": true,
+    "no_custom_constructor_implementation": true,
+    "ablation_semantics": null,
+    "equal_wall_time_or_cpu_claim": false
+  },
+  "results": [
+    {
+      "name": "field_difference_0",
+      "family": "gf4_polynomial_difference",
+      "role": "opportunity",
+      "source_sha256": "81551e8babedabd102fab45bdbf06db37f8a3cdba59640a7c916f591973f84da",
+      "candidate_sha256": "295a8abf99f1b5f2e4c56423a5981303134ff6dacb9d1be7d64016de30202e60",
+      "search_mode": "native_structural",
+      "status": "verified_improvement",
+      "before_cost": 1440,
+      "after_cost": 16,
+      "before": {
+        "Q": 24,
+        "toffoli": 60,
+        "instructions": 82
+      },
+      "after": {
+        "Q": 8,
+        "toffoli": 2,
+        "instructions": 6
+      },
+      "retired_clean_wires": [
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23
+      ],
+      "private_bits": [],
+      "independent_native_check": {
+        "scope": "all physical public quantum inputs, all initial classical bits, every HMR/R outcome",
+        "quantum_input_bits": 8,
+        "classical_input_bits": 0,
+        "formal_outcome_bits": 0,
+        "total_cases": 256,
+        "primitive_adapter": "native HMR/R plus exact local outcome/sign forcing",
+        "introduced_bits_initial_values": "also exhaustively arbitrary",
+        "equivalent": true,
+        "status": "exhaustive_equal"
+      },
+      "oracle_mutations": {
+        "changed_value": false,
+        "changed_phase": false
+      },
+      "complete_parent_cost_checked": true,
+      "bank_retirement_gain": true,
+      "engine_structural_qualification": "removed_materialization_bank",
+      "old_narrow_criterion": {
+        "cost": 16.0,
+        "candidate": "295a8abf99f1b5f2e4c56423a5981303134ff6dacb9d1be7d64016de30202e60",
+        "interpretation": "baseline or verified descendant of removed_materialization_bank witness only",
+        "native_equivalent": true
+      },
+      "discovery_seconds": 3.6953283038455993,
+      "total_seconds": 3.7096222729887813,
+      "process_peak_rss_bytes": 55504896,
+      "selected_mechanism": "joint_boundary_synthesis",
+      "attempts": [
+        {
+          "mechanism": "joint_boundary_synthesis",
+          "status": "verified",
+          "reason": null,
+          "cost_delta": -1424.0,
+          "check": true
+        },
+        {
+          "mechanism": "joint_storage_recomputation",
+          "status": "verified",
+          "reason": null,
+          "cost_delta": -1424.0,
+          "check": true
+        },
+        {
+          "mechanism": "algebraic_boundary_synthesis",
+          "status": "verified",
+          "reason": null,
+          "cost_delta": -1424.0,
+          "check": true
+        },
+        {
+          "mechanism": "affine_representation_search",
+          "status": "verified",
+          "reason": null,
+          "cost_delta": -1424.0,
+          "check": true
+        },
+        {
+          "mechanism": "measurement_debt_lowering",
+          "status": "verified",
+          "reason": null,
+          "cost_delta": -1424.0,
+          "check": true
+        },
+        {
+          "mechanism": "consumer_functional_decomposition",
+          "status": "not_constructed",
+          "reason": "no verified nonlinear two-class lowering among tested partitions",
+          "cost_delta": null,
+          "check": null
+        },
+        {
+          "mechanism": "output_basis_search",
+          "status": "verified",
+          "reason": null,
+          "cost_delta": -1424.0,
+          "check": true
+        },
+        {
+          "mechanism": "factored_observable_search",
+          "status": "not_constructed",
+          "reason": "exact zero boundary sign",
+          "cost_delta": null,
+          "check": null
+        }
+      ]
+    },
+    {
+      "name": "field_difference_1",
+      "family": "gf4_polynomial_difference",
+      "role": "opportunity",
+      "source_sha256": "0cd2efa242aa9ddd9c7e59d3962fece04aec75c608d5d711192f79cd4fe7fd73",
+      "candidate_sha256": "4fe522a2b24599d0e3a025111239cd6757d77178f7cf365606d165557c63960d",
+      "search_mode": "native_structural",
+      "status": "verified_improvement",
+      "before_cost": 1560,
+      "after_cost": 20,
+      "before": {
+        "Q": 26,
+        "toffoli": 60,
+        "instructions": 84
+      },
+      "after": {
+        "Q": 10,
+        "toffoli": 2,
+        "instructions": 13
+      },
+      "retired_clean_wires": [
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25
+      ],
+      "private_bits": [],
+      "independent_native_check": {
+        "scope": "all physical public quantum inputs, all initial classical bits, every HMR/R outcome",
+        "quantum_input_bits": 10,
+        "classical_input_bits": 0,
+        "formal_outcome_bits": 0,
+        "total_cases": 1024,
+        "primitive_adapter": "native HMR/R plus exact local outcome/sign forcing",
+        "introduced_bits_initial_values": "also exhaustively arbitrary",
+        "equivalent": true,
+        "status": "exhaustive_equal"
+      },
+      "oracle_mutations": {
+        "changed_value": false,
+        "changed_phase": false
+      },
+      "complete_parent_cost_checked": true,
+      "bank_retirement_gain": true,
+      "engine_structural_qualification": "removed_materialization_bank",
+      "old_narrow_criterion": {
+        "cost": 20.0,
+        "candidate": "4fe522a2b24599d0e3a025111239cd6757d77178f7cf365606d165557c63960d",
+        "interpretation": "baseline or verified descendant of removed_materialization_bank witness only",
+        "native_equivalent": true
+      },
+      "discovery_seconds": 4.812589823966846,
+      "total_seconds": 4.8286947179585695,
+      "process_peak_rss_bytes": 52432896,
+      "selected_mechanism": "algebraic_boundary_synthesis",
+      "attempts": [
+        {
+          "mechanism": "joint_boundary_synthesis",
+          "status": "not_constructed",
+          "reason": "joint XOR/AND search did not establish a minimum",
+          "cost_delta": null,
+          "check": null
+        },
+        {
+          "mechanism": "joint_storage_recomputation",
+          "status": "not_constructed",
+          "reason": "no synthesized joint function DAG to schedule",
+          "cost_delta": null,
+          "check": null
+        },
+        {
+          "mechanism": "algebraic_boundary_synthesis",
+          "status": "verified",
+          "reason": null,
+          "cost_delta": -1540.0,
+          "check": true
+        },
+        {
+          "mechanism": "affine_representation_search",
+          "status": "verified",
+          "reason": null,
+          "cost_delta": -1540.0,
+          "check": true
+        },
+        {
+          "mechanism": "measurement_debt_lowering",
+          "status": "verified",
+          "reason": null,
+          "cost_delta": -1540.0,
+          "check": true
+        },
+        {
+          "mechanism": "consumer_functional_decomposition",
+          "status": "not_constructed",
+          "reason": "no verified nonlinear two-class lowering among tested partitions",
+          "cost_delta": null,
+          "check": null
+        },
+        {
+          "mechanism": "output_basis_search",
+          "status": "verified",
+          "reason": null,
+          "cost_delta": -1540.0,
+          "check": true
+        },
+        {
+          "mechanism": "factored_observable_search",
+          "status": "not_constructed",
+          "reason": "exact zero boundary sign",
+          "cost_delta": null,
+          "check": null
+        }
+      ]
+    },
+    {
+      "name": "modular_difference_3",
+      "family": "modular_word_difference_table",
+      "role": "opportunity",
+      "source_sha256": "464674bcc8110eea5a66ba998aabbc8e9df9d2a8c52d98845bed15f78b5f6f07",
+      "candidate_sha256": "5b4cbc8a1e2e30608e0db74d219a5ef1671ddb3ea8db28b09dc1537fe0259f59",
+      "search_mode": "native_structural",
+      "status": "verified_improvement",
+      "before_cost": 704,
+      "after_cost": 0,
+      "before": {
+        "Q": 22,
+        "toffoli": 32,
+        "instructions": 88
+      },
+      "after": {
+        "Q": 6,
+        "toffoli": 0,
+        "instructions": 4
+      },
+      "retired_clean_wires": [
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21
+      ],
+      "private_bits": [],
+      "independent_native_check": {
+        "scope": "all physical public quantum inputs, all initial classical bits, every HMR/R outcome",
+        "quantum_input_bits": 6,
+        "classical_input_bits": 0,
+        "formal_outcome_bits": 0,
+        "total_cases": 64,
+        "primitive_adapter": "native HMR/R plus exact local outcome/sign forcing",
+        "introduced_bits_initial_values": "also exhaustively arbitrary",
+        "equivalent": true,
+        "status": "exhaustive_equal"
+      },
+      "oracle_mutations": {
+        "changed_value": false,
+        "changed_phase": false
+      },
+      "complete_parent_cost_checked": true,
+      "bank_retirement_gain": true,
+      "engine_structural_qualification": "removed_materialization_bank",
+      "old_narrow_criterion": {
+        "cost": 0.0,
+        "candidate": "5b4cbc8a1e2e30608e0db74d219a5ef1671ddb3ea8db28b09dc1537fe0259f59",
+        "interpretation": "baseline or verified descendant of removed_materialization_bank witness only",
+        "native_equivalent": true
+      },
+      "discovery_seconds": 2.1667712519410998,
+      "total_seconds": 2.1785032090265304,
+      "process_peak_rss_bytes": 51449856,
+      "selected_mechanism": "joint_boundary_synthesis",
+      "attempts": [
+        {
+          "mechanism": "joint_boundary_synthesis",
+          "status": "verified",
+          "reason": null,
+          "cost_delta": -704.0,
+          "check": true
+        },
+        {
+          "mechanism": "joint_storage_recomputation",
+          "status": "verified",
+          "reason": null,
+          "cost_delta": -704.0,
+          "check": true
+        },
+        {
+          "mechanism": "algebraic_boundary_synthesis",
+          "status": "verified",
+          "reason": null,
+          "cost_delta": -704.0,
+          "check": true
+        },
+        {
+          "mechanism": "affine_representation_search",
+          "status": "verified",
+          "reason": null,
+          "cost_delta": -704.0,
+          "check": true
+        },
+        {
+          "mechanism": "measurement_debt_lowering",
+          "status": "verified",
+          "reason": null,
+          "cost_delta": -704.0,
+          "check": true
+        },
+        {
+          "mechanism": "consumer_functional_decomposition",
+          "status": "not_constructed",
+          "reason": "requires preserved inputs and a separable XOR-output boundary",
+          "cost_delta": null,
+          "check": null
+        },
+        {
+          "mechanism": "output_basis_search",
+          "status": "verified",
+          "reason": null,
+          "cost_delta": -704.0,
+          "check": true
+        },
+        {
+          "mechanism": "factored_observable_search",
+          "status": "not_constructed",
+          "reason": "exact zero boundary sign",
+          "cost_delta": null,
+          "check": null
+        }
+      ]
+    },
+    {
+      "name": "modular_difference_4",
+      "family": "modular_word_difference_table",
+      "role": "opportunity",
+      "source_sha256": "652a0f374dcc18ba1eb7f9ee4002d157fb816a6569066557fbdc2dfe4a08d6f0",
+      "candidate_sha256": "263ebe06051aca264032e9934f0f173fa8d7fcd5c03d9d2dcf5272fd5cace944",
+      "search_mode": "native_structural",
+      "status": "verified_improvement",
+      "before_cost": 5376,
+      "after_cost": 8,
+      "before": {
+        "Q": 56,
+        "toffoli": 96,
+        "instructions": 248
+      },
+      "after": {
+        "Q": 8,
+        "toffoli": 1,
+        "instructions": 11
+      },
+      "retired_clean_wires": [
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47,
+        48,
+        49,
+        50,
+        51,
+        52,
+        53,
+        54,
+        55
+      ],
+      "private_bits": [],
+      "independent_native_check": {
+        "scope": "all physical public quantum inputs, all initial classical bits, every HMR/R outcome",
+        "quantum_input_bits": 8,
+        "classical_input_bits": 0,
+        "formal_outcome_bits": 0,
+        "total_cases": 256,
+        "primitive_adapter": "native HMR/R plus exact local outcome/sign forcing",
+        "introduced_bits_initial_values": "also exhaustively arbitrary",
+        "equivalent": true,
+        "status": "exhaustive_equal"
+      },
+      "oracle_mutations": {
+        "changed_value": false,
+        "changed_phase": false
+      },
+      "complete_parent_cost_checked": true,
+      "bank_retirement_gain": true,
+      "engine_structural_qualification": "removed_materialization_bank",
+      "old_narrow_criterion": {
+        "cost": 8.0,
+        "candidate": "263ebe06051aca264032e9934f0f173fa8d7fcd5c03d9d2dcf5272fd5cace944",
+        "interpretation": "baseline or verified descendant of removed_materialization_bank witness only",
+        "native_equivalent": true
+      },
+      "discovery_seconds": 9.650980012025684,
+      "total_seconds": 9.660902060102671,
+      "process_peak_rss_bytes": 54177792,
+      "selected_mechanism": "joint_boundary_synthesis",
+      "attempts": [
+        {
+          "mechanism": "joint_boundary_synthesis",
+          "status": "verified",
+          "reason": null,
+          "cost_delta": -5368.0,
+          "check": true
+        },
+        {
+          "mechanism": "joint_storage_recomputation",
+          "status": "verified",
+          "reason": null,
+          "cost_delta": -5368.0,
+          "check": true
+        },
+        {
+          "mechanism": "algebraic_boundary_synthesis",
+          "status": "verified",
+          "reason": null,
+          "cost_delta": -5368.0,
+          "check": true
+        },
+        {
+          "mechanism": "affine_representation_search",
+          "status": "verified",
+          "reason": null,
+          "cost_delta": -5368.0,
+          "check": true
+        },
+        {
+          "mechanism": "measurement_debt_lowering",
+          "status": "verified",
+          "reason": null,
+          "cost_delta": -5368.0,
+          "check": true
+        },
+        {
+          "mechanism": "consumer_functional_decomposition",
+          "status": "not_constructed",
+          "reason": "no verified nonlinear two-class lowering among tested partitions",
+          "cost_delta": null,
+          "check": null
+        },
+        {
+          "mechanism": "output_basis_search",
+          "status": "verified",
+          "reason": null,
+          "cost_delta": -5368.0,
+          "check": true
+        },
+        {
+          "mechanism": "factored_observable_search",
+          "status": "not_constructed",
+          "reason": "exact zero boundary sign",
+          "cost_delta": null,
+          "check": null
+        }
+      ]
+    },
+    {
+      "name": "table_difference_0",
+      "family": "paired_boolean_table_evaluators",
+      "role": "opportunity",
+      "source_sha256": "36df6cefc6d9d6212f5c517a3029bc259acce6f7070fa4f1412bc105ddc6958d",
+      "candidate_sha256": "c2f64ee61e7c22623929ece15302d90f80da05406a05bebfc050aeca30a27754",
+      "search_mode": "native_structural",
+      "status": "verified_improvement",
+      "before_cost": 2432,
+      "after_cost": 0,
+      "before": {
+        "Q": 38,
+        "toffoli": 64,
+        "instructions": 184
+      },
+      "after": {
+        "Q": 6,
+        "toffoli": 0,
+        "instructions": 9
+      },
+      "retired_clean_wires": [
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37
+      ],
+      "private_bits": [],
+      "independent_native_check": {
+        "scope": "all physical public quantum inputs, all initial classical bits, every HMR/R outcome",
+        "quantum_input_bits": 6,
+        "classical_input_bits": 0,
+        "formal_outcome_bits": 0,
+        "total_cases": 64,
+        "primitive_adapter": "native HMR/R plus exact local outcome/sign forcing",
+        "introduced_bits_initial_values": "also exhaustively arbitrary",
+        "equivalent": true,
+        "status": "exhaustive_equal"
+      },
+      "oracle_mutations": {
+        "changed_value": false,
+        "changed_phase": false
+      },
+      "complete_parent_cost_checked": true,
+      "bank_retirement_gain": true,
+      "engine_structural_qualification": "removed_materialization_bank",
+      "old_narrow_criterion": {
+        "cost": 0.0,
+        "candidate": "c2f64ee61e7c22623929ece15302d90f80da05406a05bebfc050aeca30a27754",
+        "interpretation": "baseline or verified descendant of removed_materialization_bank witness only",
+        "native_equivalent": true
+      },
+      "discovery_seconds": 6.572220091940835,
+      "total_seconds": 6.57877848809585,
+      "process_peak_rss_bytes": 53579776,
+      "selected_mechanism": "joint_boundary_synthesis",
+      "attempts": [
+        {
+          "mechanism": "joint_boundary_synthesis",
+          "status": "verified",
+          "reason": null,
+          "cost_delta": -2432.0,
+          "check": true
+        },
+        {
+          "mechanism": "joint_storage_recomputation",
+          "status": "verified",
+          "reason": null,
+          "cost_delta": -2432.0,
+          "check": true
+        },
+        {
+          "mechanism": "algebraic_boundary_synthesis",
+          "status": "verified",
+          "reason": null,
+          "cost_delta": -2432.0,
+          "check": true
+        },
+        {
+          "mechanism": "affine_representation_search",
+          "status": "verified",
+          "reason": null,
+          "cost_delta": -2432.0,
+          "check": true
+        },
+        {
+          "mechanism": "measurement_debt_lowering",
+          "status": "verified",
+          "reason": null,
+          "cost_delta": -2432.0,
+          "check": true
+        },
+        {
+          "mechanism": "consumer_functional_decomposition",
+          "status": "not_constructed",
+          "reason": "no verified nonlinear two-class lowering among tested partitions",
+          "cost_delta": null,
+          "check": null
+        },
+        {
+          "mechanism": "output_basis_search",
+          "status": "verified",
+          "reason": null,
+          "cost_delta": -2432.0,
+          "check": true
+        },
+        {
+          "mechanism": "factored_observable_search",
+          "status": "not_constructed",
+          "reason": "exact zero boundary sign",
+          "cost_delta": null,
+          "check": null
+        }
+      ]
+    },
+    {
+      "name": "table_difference_1",
+      "family": "paired_boolean_table_evaluators",
+      "role": "opportunity",
+      "source_sha256": "17720a26fb2b83c04888318f6cf8c0b946a6dfcf1df0436ff90979e09426d099",
+      "candidate_sha256": "dbb563785968e297a8a0409c91b497620170dffd3e58cb74d8c817365d17515f",
+      "search_mode": "native_structural",
+      "status": "verified_improvement",
+      "before_cost": 2560,
+      "after_cost": 8,
+      "before": {
+        "Q": 40,
+        "toffoli": 64,
+        "instructions": 188
+      },
+      "after": {
+        "Q": 8,
+        "toffoli": 1,
+        "instructions": 6
+      },
+      "retired_clean_wires": [
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39
+      ],
+      "private_bits": [],
+      "independent_native_check": {
+        "scope": "all physical public quantum inputs, all initial classical bits, every HMR/R outcome",
+        "quantum_input_bits": 8,
+        "classical_input_bits": 0,
+        "formal_outcome_bits": 0,
+        "total_cases": 256,
+        "primitive_adapter": "native HMR/R plus exact local outcome/sign forcing",
+        "introduced_bits_initial_values": "also exhaustively arbitrary",
+        "equivalent": true,
+        "status": "exhaustive_equal"
+      },
+      "oracle_mutations": {
+        "changed_value": false,
+        "changed_phase": false
+      },
+      "complete_parent_cost_checked": true,
+      "bank_retirement_gain": true,
+      "engine_structural_qualification": "paid_output_basis_change",
+      "old_narrow_criterion": {
+        "cost": 16.0,
+        "candidate": "afa29f524c116dcf75031752d1170fcb2aca04c2049fff857618aebaaf762f59",
+        "interpretation": "baseline or verified descendant of removed_materialization_bank witness only",
+        "native_equivalent": true
+      },
+      "discovery_seconds": 1.4824147180188447,
+      "total_seconds": 1.496065614046529,
+      "process_peak_rss_bytes": 52002816,
+      "selected_mechanism": "output_basis_search",
+      "attempts": [
+        {
+          "mechanism": "joint_boundary_synthesis",
+          "status": "verified",
+          "reason": null,
+          "cost_delta": -2544.0,
+          "check": true
+        },
+        {
+          "mechanism": "joint_storage_recomputation",
+          "status": "verified",
+          "reason": null,
+          "cost_delta": -2544.0,
+          "check": true
+        },
+        {
+          "mechanism": "algebraic_boundary_synthesis",
+          "status": "verified",
+          "reason": null,
+          "cost_delta": -2544.0,
+          "check": true
+        },
+        {
+          "mechanism": "affine_representation_search",
+          "status": "verified",
+          "reason": null,
+          "cost_delta": -2544.0,
+          "check": true
+        },
+        {
+          "mechanism": "measurement_debt_lowering",
+          "status": "verified",
+          "reason": null,
+          "cost_delta": -2544.0,
+          "check": true
+        },
+        {
+          "mechanism": "consumer_functional_decomposition",
+          "status": "not_constructed",
+          "reason": "requires preserved inputs and a separable XOR-output boundary",
+          "cost_delta": null,
+          "check": null
+        },
+        {
+          "mechanism": "output_basis_search",
+          "status": "verified",
+          "reason": null,
+          "cost_delta": -2552.0,
+          "check": true
+        },
+        {
+          "mechanism": "factored_observable_search",
+          "status": "not_constructed",
+          "reason": "exact zero boundary sign",
+          "cost_delta": null,
+          "check": null
+        }
+      ]
+    },
+    {
+      "name": "phase_obligation",
+      "family": "gf4_polynomial_difference",
+      "role": "phase_guard",
+      "source_sha256": "9c641886351de20b0005a1db663448c76f32b855c2eb45a0e3eef7cd33617b41",
+      "candidate_sha256": "d2301e7561fab62e6c278ca8f63c66af70102b6b5efcd81259fe381732244fa2",
+      "search_mode": "native_structural",
+      "status": "no_gain",
+      "before_cost": 1440,
+      "after_cost": 1440,
+      "before": {
+        "Q": 24,
+        "toffoli": 60,
+        "instructions": 83
+      },
+      "after": {
+        "Q": 24,
+        "toffoli": 60,
+        "instructions": 83
+      },
+      "retired_clean_wires": [],
+      "private_bits": [],
+      "independent_native_check": {
+        "scope": "all physical public quantum inputs, all initial classical bits, every HMR/R outcome",
+        "quantum_input_bits": 8,
+        "classical_input_bits": 0,
+        "formal_outcome_bits": 0,
+        "total_cases": 256,
+        "primitive_adapter": "native HMR/R plus exact local outcome/sign forcing",
+        "introduced_bits_initial_values": "also exhaustively arbitrary",
+        "equivalent": true,
+        "status": "exhaustive_equal"
+      },
+      "oracle_mutations": {
+        "changed_value": false,
+        "changed_phase": false
+      },
+      "complete_parent_cost_checked": true,
+      "bank_retirement_gain": false,
+      "engine_structural_qualification": null,
+      "old_narrow_criterion": {
+        "cost": 1440.0,
+        "candidate": "d2301e7561fab62e6c278ca8f63c66af70102b6b5efcd81259fe381732244fa2",
+        "interpretation": "baseline or verified descendant of removed_materialization_bank witness only",
+        "native_equivalent": true
+      },
+      "discovery_seconds": 0.3096144062001258,
+      "total_seconds": 0.3173393930774182,
+      "process_peak_rss_bytes": 47898624,
+      "selected_mechanism": "supplied_baseline",
+      "attempts": [
+        {
+          "mechanism": "factored_observable_search",
+          "status": "not_constructed",
+          "reason": "observable synthesis requires every quantum output restored and a reversible quantum-only boundary",
+          "cost_delta": null,
+          "check": null
+        },
+        {
+          "mechanism": "joint_boundary_synthesis",
+          "status": "not_constructed",
+          "reason": "joint Boolean synthesis requires an exactly phase-free boundary",
+          "cost_delta": null,
+          "check": null
+        },
+        {
+          "mechanism": "joint_storage_recomputation",
+          "status": "not_constructed",
+          "reason": "no synthesized joint function DAG to schedule",
+          "cost_delta": null,
+          "check": null
+        },
+        {
+          "mechanism": "algebraic_boundary_synthesis",
+          "status": "not_constructed",
+          "reason": "algebraic synthesis requires exact zero boundary phase",
+          "cost_delta": null,
+          "check": null
+        },
+        {
+          "mechanism": "affine_representation_search",
+          "status": "not_constructed",
+          "reason": "affine representation synthesis requires an exactly phase-free boundary",
+          "cost_delta": null,
+          "check": null
+        },
+        {
+          "mechanism": "measurement_debt_lowering",
+          "status": "not_constructed",
+          "reason": "no synthesized joint function for phase-debt-safe lowering",
+          "cost_delta": null,
+          "check": null
+        },
+        {
+          "mechanism": "consumer_functional_decomposition",
+          "status": "not_constructed",
+          "reason": "nonzero observable phase",
+          "cost_delta": null,
+          "check": null
+        },
+        {
+          "mechanism": "output_basis_search",
+          "status": "not_constructed",
+          "reason": "nonzero observable phase",
+          "cost_delta": null,
+          "check": null
+        }
+      ]
+    },
+    {
+      "name": "dirty_workspace_obligation",
+      "family": "modular_word_difference_table",
+      "role": "dirty_guard",
+      "source_sha256": "464674bcc8110eea5a66ba998aabbc8e9df9d2a8c52d98845bed15f78b5f6f07",
+      "candidate_sha256": "8628b2f554f5a3de8368f65b38841eca25a8c720cb06f686f6928160e5ffa53a",
+      "search_mode": "native_structural",
+      "status": "verified_improvement",
+      "before_cost": 704,
+      "after_cost": 7,
+      "before": {
+        "Q": 22,
+        "toffoli": 32,
+        "instructions": 88
+      },
+      "after": {
+        "Q": 7,
+        "toffoli": 1,
+        "instructions": 9
+      },
+      "retired_clean_wires": [
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21
+      ],
+      "private_bits": [],
+      "independent_native_check": {
+        "scope": "all physical public quantum inputs, all initial classical bits, every HMR/R outcome",
+        "quantum_input_bits": 7,
+        "classical_input_bits": 0,
+        "formal_outcome_bits": 0,
+        "total_cases": 128,
+        "primitive_adapter": "native HMR/R plus exact local outcome/sign forcing",
+        "introduced_bits_initial_values": "also exhaustively arbitrary",
+        "equivalent": true,
+        "status": "exhaustive_equal"
+      },
+      "oracle_mutations": {
+        "changed_value": false,
+        "changed_phase": false
+      },
+      "complete_parent_cost_checked": true,
+      "bank_retirement_gain": true,
+      "engine_structural_qualification": "paid_output_basis_change",
+      "old_narrow_criterion": {
+        "cost": 14.0,
+        "candidate": "4c88206115a153ea551a6f4298c307bc47815f0e775b0bbbd796e4207a56e3c3",
+        "interpretation": "baseline or verified descendant of removed_materialization_bank witness only",
+        "native_equivalent": true
+      },
+      "discovery_seconds": 1.0709999799728394,
+      "total_seconds": 1.0765029608737677,
+      "process_peak_rss_bytes": 51933184,
+      "selected_mechanism": "output_basis_search",
+      "attempts": [
+        {
+          "mechanism": "joint_boundary_synthesis",
+          "status": "verified",
+          "reason": null,
+          "cost_delta": -690.0,
+          "check": true
+        },
+        {
+          "mechanism": "joint_storage_recomputation",
+          "status": "verified",
+          "reason": null,
+          "cost_delta": -690.0,
+          "check": true
+        },
+        {
+          "mechanism": "algebraic_boundary_synthesis",
+          "status": "verified",
+          "reason": null,
+          "cost_delta": -690.0,
+          "check": true
+        },
+        {
+          "mechanism": "affine_representation_search",
+          "status": "verified",
+          "reason": null,
+          "cost_delta": -690.0,
+          "check": true
+        },
+        {
+          "mechanism": "measurement_debt_lowering",
+          "status": "verified",
+          "reason": null,
+          "cost_delta": -690.0,
+          "check": true
+        },
+        {
+          "mechanism": "consumer_functional_decomposition",
+          "status": "not_constructed",
+          "reason": "no verified nonlinear two-class lowering among tested partitions",
+          "cost_delta": null,
+          "check": null
+        },
+        {
+          "mechanism": "output_basis_search",
+          "status": "verified",
+          "reason": null,
+          "cost_delta": -697.0,
+          "check": true
+        },
+        {
+          "mechanism": "factored_observable_search",
+          "status": "not_constructed",
+          "reason": "exact zero boundary sign",
+          "cost_delta": null,
+          "check": null
+        }
+      ]
+    },
+    {
+      "name": "public_classical_obligation",
+      "family": "modular_word_difference_table",
+      "role": "classical_guard",
+      "source_sha256": "f40916b2b351a6ec46a8f57e76ed2c5b46914cfdb91ad53906933b62709e08af",
+      "candidate_sha256": "c0736467c80737de1ff5708e43e5f34a24e88e86fed48f20132524f3004c9658",
+      "search_mode": "native_structural",
+      "status": "no_gain",
+      "before_cost": 704,
+      "after_cost": 704,
+      "before": {
+        "Q": 22,
+        "toffoli": 32,
+        "instructions": 89
+      },
+      "after": {
+        "Q": 22,
+        "toffoli": 32,
+        "instructions": 89
+      },
+      "retired_clean_wires": [],
+      "private_bits": [],
+      "independent_native_check": {
+        "scope": "all physical public quantum inputs, all initial classical bits, every HMR/R outcome",
+        "quantum_input_bits": 6,
+        "classical_input_bits": 3,
+        "formal_outcome_bits": 0,
+        "total_cases": 512,
+        "primitive_adapter": "native HMR/R plus exact local outcome/sign forcing",
+        "introduced_bits_initial_values": "also exhaustively arbitrary",
+        "equivalent": true,
+        "status": "exhaustive_equal"
+      },
+      "oracle_mutations": {
+        "changed_value": false,
+        "changed_phase": false
+      },
+      "complete_parent_cost_checked": true,
+      "bank_retirement_gain": false,
+      "engine_structural_qualification": null,
+      "old_narrow_criterion": {
+        "cost": 704.0,
+        "candidate": "c0736467c80737de1ff5708e43e5f34a24e88e86fed48f20132524f3004c9658",
+        "interpretation": "baseline or verified descendant of removed_materialization_bank witness only",
+        "native_equivalent": true
+      },
+      "discovery_seconds": 0.10846593580208719,
+      "total_seconds": 0.11345944879576564,
+      "process_peak_rss_bytes": 47034368,
+      "selected_mechanism": "supplied_baseline",
+      "attempts": [
+        {
+          "mechanism": "joint_boundary_synthesis",
+          "status": "not_constructed",
+          "reason": "classical outputs require explicit private-bit declarations",
+          "cost_delta": null,
+          "check": null
+        },
+        {
+          "mechanism": "joint_storage_recomputation",
+          "status": "not_constructed",
+          "reason": "no synthesized joint function DAG to schedule",
+          "cost_delta": null,
+          "check": null
+        },
+        {
+          "mechanism": "algebraic_boundary_synthesis",
+          "status": "not_constructed",
+          "reason": "algebraic synthesis requires a quantum boundary without classical or measurement channels",
+          "cost_delta": null,
+          "check": null
+        },
+        {
+          "mechanism": "affine_representation_search",
+          "status": "not_constructed",
+          "reason": "affine representation synthesis requires a quantum-only boundary",
+          "cost_delta": null,
+          "check": null
+        },
+        {
+          "mechanism": "measurement_debt_lowering",
+          "status": "not_constructed",
+          "reason": "no synthesized joint function for phase-debt-safe lowering",
+          "cost_delta": null,
+          "check": null
+        },
+        {
+          "mechanism": "consumer_functional_decomposition",
+          "status": "not_constructed",
+          "reason": "decomposition currently requires a quantum-only boundary",
+          "cost_delta": null,
+          "check": null
+        },
+        {
+          "mechanism": "output_basis_search",
+          "status": "not_constructed",
+          "reason": "output basis requires a quantum permutation boundary",
+          "cost_delta": null,
+          "check": null
+        },
+        {
+          "mechanism": "factored_observable_search",
+          "status": "not_constructed",
+          "reason": "exact zero boundary sign",
+          "cost_delta": null,
+          "check": null
+        }
+      ]
+    }
+  ],
+  "all_failures_retained": true,
+  "independent_exhaustive_passes": 9,
+  "bank_retirement_gains": 7,
+  "errors_or_timeouts": 0,
+  "total_discovery_seconds": 29.86938452371396,
+  "max_worker_peak_rss_bytes": 55504896
+}

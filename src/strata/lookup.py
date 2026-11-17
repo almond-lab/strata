@@ -225,34 +225,50 @@ def _cubic_updates(sem,max_operations,scratch_wires):
 def resynthesize_measured_lookup(circuit,*,clean_inputs=(),max_operations=10000,
                                 max_variables=128,max_terms=65536,max_product_terms=65536,
                                 boundary_table=None):
-    """Return a complete candidate or an explicit bounded construction result.
+    """Rewrite supported lookup segments while preserving the complete phase.
 
 Only unconditional arithmetic outside condition scopes is rewritten. Every
 physical measurement/phase/control boundary is retained. The supported segment
 family is a degree-at-most-three XOR accumulator, including dirty output words.
 Cubic plans use only existing declared-zero workspace and restore it. No public
-index is changed and no extra physical wire is allocated.
+index is changed and no extra physical wire is allocated. An outstanding debt
+or nonzero external phase is retained exactly, not treated as a rewrite veto.
     """
+    return resynthesize_supported_segments(circuit, clean_inputs=clean_inputs,
+        max_operations=max_operations, max_variables=max_variables, max_terms=max_terms,
+        max_product_terms=max_product_terms, boundary_table=boundary_table,
+        mode='lookup', require_measurements=True)
+
+
+def resynthesize_supported_segments(circuit, *, clean_inputs=(), max_operations=10000,
+                                    max_variables=128, max_terms=65536, max_product_terms=65536,
+                                    boundary_table=None, mode='direct', require_measurements=False):
+    """Feed useful bounded quantum segments to constructors within an episode.
+
+    ``mode`` selects lookup factorization, direct output/phase synthesis, or
+    identity-output phase synthesis. Complete exact/factored semantics and the
+    independent final trajectory check retain phase, measurements, arbitrary
+    dirty outputs and classical state. A whole-episode XOR table is diagnostic
+    only: its stricter zero-phase family is not a prerequisite for these local
+    equalities. Unsupported segments stay byte-for-byte in their original order.
+    """
+    if mode not in {'lookup', 'direct', 'phase'}:
+        raise ValueError('segment constructor mode must be lookup, direct, or phase')
+    if not isinstance(circuit, km.Circuit): circuit = km.Circuit(circuit)
     lines=str(circuit).splitlines()
     limits=dict(max_operations=max_operations,max_variables=max_variables,max_terms=max_terms,
                 max_product_terms=max_product_terms)
     whole=analyze_complete(lines,clean_inputs=clean_inputs,**limits)
-    full_table=None
-    if whole['status']=='exact_factored':
-        from .factored_semantic import lift_lookup_table
-        full_table=boundary_table if boundary_table is not None else lift_lookup_table(
-            circuit,clean_inputs=clean_inputs,max_operations=max_operations,
-            max_variables=max_variables,max_nodes=max_terms,max_apply_steps=32*max_product_terms)
-        if full_table['status']!='exact':
-            return dict(status='unknown' if full_table['status'] in {'unknown','bounded'} else 'not_applicable',
-                        reason=full_table['reason'],full_boundary_table=full_table,semantics=whole)
-    elif whole['status']!='exact':
-        return dict(status='unknown',reason='measured lookup needs exact complete boundary',semantics=whole)
-    if not whole['measurement_events']:
+    full_table=boundary_table
+    if whole['status'] not in {'exact', 'exact_factored'}:
+        return dict(status='unknown',reason=('measured lookup' if require_measurements else 'segment construction')+
+                    ' needs exact complete boundary',semantics=whole)
+    if require_measurements and not whole['measurement_events']:
         return dict(status='not_applicable',reason='no measurement-based lookup cleanup')
-    if (whole.get('phase',{}).get('monomials') or whole.get('phase_zero') is False
-            or any(d['status']!='discharged' for d in whole['effects']['phase_debts'])):
-        return dict(status='not_applicable',reason='lookup has unresolved phase debt or a nonzero boundary phase')
+    if mode == 'lookup' and whole['status'] == 'exact_factored' and full_table is None:
+        from .factored_semantic import lift_lookup_table
+        full_table=lift_lookup_table(circuit,clean_inputs=clean_inputs,max_operations=max_operations,
+            max_variables=max_variables,max_nodes=max_terms,max_apply_steps=32*max_product_terms)
     # Construction may not discard a promised clean output leak even if the
     # supplied circuit contains one.
     if any(q not in whole['effects']['clean_outputs'] and q in whole['inputs'] for q in clean_inputs):
@@ -262,14 +278,25 @@ index is changed and no extra physical wire is allocated.
     def flush(stop):
         nonlocal segment,known_zero
         if not segment:return
-        sem=analyze_window(segment,clean_inputs=known_zero,**limits)
+        from .factored_semantic import constructor_semantics
+        sem=constructor_semantics(segment,clean_inputs=known_zero,**limits)
         row=dict(start=start,stop=stop,clean_at_entry=sorted(known_zero))
-        candidate,details=(None,'exact segment unavailable') if sem['status']!='exact' else _cubic_updates(
-            sem,max_operations,[q for q in known_zero if q<circuit.num_qubits])
+        if sem['status'] != 'exact':
+            candidate,details=None,dict(reason='exact segment unavailable',semantics=sem)
+        elif mode == 'lookup':
+            candidate,details=_cubic_updates(sem,max_operations,[q for q in known_zero if q<circuit.num_qubits])
+        elif mode == 'phase' and sem['changes']:
+            candidate,details=None,'phase segment has nonidentity outputs'
+        else:
+            from .file_optimizer import _resynthesize
+            candidate,details=_resynthesize(sem,max_operations=max_operations)
+            if candidate is None and mode == 'direct' and not sem['phase']['monomials']:
+                candidate,details=_cubic_updates(sem,max_operations,[q for q in known_zero if q<circuit.num_qubits])
+        row['semantic_source']=sem.get('source_status',sem['status'])
         chosen=segment
         if candidate is not None:
-            before_paid=sum(line.split()[0]=='CCX' for line in segment)
-            after_paid=sum(line.split()[0]=='CCX' for line in candidate)
+            before_paid=sum(line.split()[0] in {'CCX','CCZ','CSWAP'} for line in segment)
+            after_paid=sum(line.split()[0] in {'CCX','CCZ','CSWAP'} for line in candidate)
             lower_cost=(after_paid,len(candidate))<(before_paid,len(segment))
             check=(equivalent_windows(segment,candidate,clean_inputs=known_zero,**limits) if lower_cost
                    else dict(status='not_run',reason='constructed candidate is not lower cost'))
@@ -287,15 +314,16 @@ index is changed and no extra physical wire is allocated.
             # Do not transport any clean promise through an unanalysed write.
             for line in segment:
                 words=shlex.split(line)
-                if words[0]=='SWAP':known_zero.difference_update(int(w[1:]) for w in words[1:3])
-                else:known_zero.discard(int(words[-1][1:]))
+                if words[0] in {'SWAP','CSWAP'}:known_zero.difference_update(int(w[1:]) for w in words[-2:])
+                elif words[0] in {'X','CX','CCX'}:known_zero.discard(int(words[-1][1:]))
         segment=[]
 
+    supported={'X','CX','CCX','SWAP'} if mode == 'lookup' else {'X','CX','CCX','SWAP','CSWAP','Z','CZ','CCZ','NEG','Z_POW'}
     for index,line in enumerate(lines):
         words=shlex.split(line)
         if not words:continue
         op=words[0]
-        if depth==0 and 'if' not in words and op in {'X','CX','CCX','SWAP'}:
+        if depth==0 and 'if' not in words and op in supported:
             if not segment:start=index
             segment.append(line)
             continue
@@ -312,7 +340,7 @@ index is changed and no extra physical wire is allocated.
             elif op!='R' and touched:known_zero.discard(touched[-1])
     flush(len(lines))
     if not any(row['status']=='replaced' for row in attempts):
-        return dict(status='not_constructed',reason='no profitable verified measured-lookup construction within the supplied budgets',
+        return dict(status='not_constructed',reason='no profitable verified segment construction within the supplied budgets',
                     segments=attempts,full_boundary_table=full_table,semantics=whole)
     candidate='\n'.join(output)
     if km.Circuit(candidate).num_qubits<circuit.num_qubits:
@@ -322,9 +350,12 @@ index is changed and no extra physical wire is allocated.
         candidate='\n'.join(output)
     check=equivalent_windows(lines,output,clean_inputs=clean_inputs,**limits)
     if check.get('equivalent')is not True:
-        return dict(status='unknown',reason='complete measured-lookup equivalence not established',check=check,segments=attempts)
+        return dict(status='unknown',reason='complete segment-construction equivalence not established',check=check,segments=attempts)
     return dict(status='constructed',candidate=candidate,segments=attempts,check=check,
-        full_boundary_table=full_table,
-        reason='factor complete lookup updates while preserving measured values and all HMR phase repairs',
+        full_boundary_table=full_table,semantic_status=whole['status'],
+        construction_scope='local_segment_resynthesis',
+        phase_preservation=dict(phase_equal=check.get('phase_equal',True),
+                                original_phase_debts=whole['effects']['phase_debts']),
+        reason='locally resynthesize supported segments while preserving the complete phase, measured values and all HMR repairs',
         measurement_scope='same ordered wire/outcome provenance, all inputs and formal outcomes; no changed-instrument theorem',
-        scope='quadratic and cubic accumulator segments with existing declared-zero workspace; no universal lookup synthesis or width reduction claim')
+        scope=f'{mode} quantum segments with existing declared-zero workspace; no universal {mode} synthesis or width reduction claim')

@@ -11,7 +11,7 @@ from strata.semantic import lift_regions
 from strata.streaming import scan_circuit
 
 
-def test_floors_prices_proved_identity_resets_but_not_measurements():
+def test_floors_prices_identity_resets_and_zero_debt_measured_value_maps():
     text = 'R q2\nCCX q0 q1 q2\nCX q2 q3\nR q4\nCCX q0 q2 q4\nCX q4 q3'
     circuit = km.Circuit(text)
     assert circuit_floors(circuit, clean_inputs=[2,4])['status'] == 'exact'
@@ -19,7 +19,8 @@ def test_floors_prices_proved_identity_resets_but_not_measurements():
     assert circuit_floors(circuit)['reason'] == 'reset_not_proven_zero'
     assert circuit_floors(km.Circuit('R q2\nX q2\nR q2'), clean_inputs=[2])['reason'] == 'reset_not_proven_zero'
     measured = circuit_floors(km.Circuit('R q2\nHMR q2 b0'), clean_inputs=[2])
-    assert measured['status'] == 'unknown' and 'measurement' in measured['reason']
+    assert measured['status'] == 'exact' and measured['value'] == 0
+    assert measured['global_quantum_floor'] is False
 
 
 @pytest.mark.parametrize('metadata', ['', 'REGISTER r0 "public"\nAPPEND_TO_REGISTER q0 r0\n'])
@@ -152,7 +153,7 @@ def test_untouched_clean_and_hmr_zero_facts_cross_budget_cuts_with_provenance(tm
     ('X q0 if b0',[0],None,0),
     ('HMR q0 b0 if b1',[],None,0),
     ('PUSH_CONDITION if b0\nHMR q0 b1\nPOP_CONDITION',[],None,0),
-    ('Z_POW q9 0.5',[0],None,0),
+    ('Z_POW q9 0.5',[0],0,1),
 ])
 def test_zero_transport_handles_swaps_conditions_and_opaque_barriers(middle,clean,good_wire,bad_wire):
     tail = ([f'R q{good_wire}'] if good_wire is not None else []) + [f'R q{bad_wire}']

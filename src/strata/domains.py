@@ -35,6 +35,37 @@ class WindowLimit(StrataError):
     pass
 
 
+def query_text_coordinates(circuit, from_at=0, at=None, *, unit='operation'):
+    """Translate native-operation cuts into canonical text cuts with O(1) memory.
+
+    INFO_TAG and control instructions count as operations, matching discover;
+    register serialization metadata does not. SDK query internals keep their
+    historical text-line convention and all returned hashes use those cuts.
+    """
+    from .streaming import native_lines
+    if unit not in {'operation','text-line'}:
+        raise StrataError('range_unit must be operation or text-line')
+    if (type(from_at)is not int or from_at<0 or
+            (at is not None and (type(at)is not int or at<from_at))):
+        raise StrataError('query window must satisfy 0 <= from <= at')
+    if unit=='text-line':return from_at,at
+    start=None;operation=0;text_count=0
+    with native_lines(circuit) as source:
+        for index,raw in enumerate(source):
+            text_count=index+1
+            words=raw.split()
+            if words and words[0] in {'REGISTER','APPEND_TO_REGISTER'}:continue
+            if operation==from_at:
+                start=index
+                if at is None:return start,None
+            if operation==at:return start,index
+            operation+=1
+    if operation==from_at:start=text_count
+    if start is None or at is not None and at>operation:
+        raise StrataError('query range exceeds supplied circuit operation count')
+    return start,None if at is None else text_count
+
+
 def window_lines(circuit, from_at=0, at=None, *, max_lines=10000):
     """Materialize only a bounded selected native text range, never a full str."""
     from .streaming import native_lines
@@ -111,12 +142,16 @@ def _classical_boundary(lines):
     return sorted(required)
 
 
-def load_domain(spec, circuit, *, from_at=0, at=None, max_assignments=65536, max_operations=10000):
+def load_domain(spec, circuit, *, from_at=0, at=None, max_assignments=65536, max_operations=10000,
+                value_only=False, clean_inputs=(), max_variables=128, max_terms=65536,
+                max_product_terms=1048576):
     """Validate and canonically hash a complete finite boundary assignment set.
 
     Normalized domains are accepted but revalidated, including their binding.
     Completeness covers ``range(circuit.num_qubits)`` and every classical input
-    read by the selected window. Metadata names do not establish clean inputs.
+    read by the selected window. Value queries may omit classical inputs only
+    after exact ANF proves that no quantum output depends on them. Equivalence
+    callers retain the strict default, including every phase and classical bit.
     """
     _positive(max_assignments, 'max_assignments')
     lines, at = window_lines(circuit, from_at, at, max_lines=max_operations)
@@ -127,9 +162,26 @@ def load_domain(spec, circuit, *, from_at=0, at=None, max_assignments=65536, max
             raise StrataError(f'cannot read finite domain: {exc}') from exc
     width = circuit.num_qubits
     needed = _classical_boundary(lines)
+    clean = tuple(clean_inputs)
+    if any(type(q) is not int or not 0 <= q < width for q in clean):
+        raise StrataError('invalid clean inputs')
+    optional, omitted = set(), set()
+    if value_only and needed:
+        from .inference import _value_semantics
+        semantics = _value_semantics(lines, clean_inputs=clean, max_operations=max_operations,
+                                   max_variables=max_variables, max_terms=max_terms,
+                                   max_product_terms=max_product_terms)
+        if semantics['status'] == 'exact':
+            dependencies = {variable for poly in semantics['outputs'].values()
+                            for term in poly['monomials'] for variable in term}
+            optional = set(needed) - dependencies
+    # Implicit finite-domain register aliases denote quantum wires only.
+    # A native classical bit bN must never silently supply the value of qN.
+    import kickmix as km
     circuit_registers = {
-        name: [q.id for q in wires if hasattr(q, 'id')]
+        name: [q.id for q in wires]
         for name, wires in getattr(circuit, 'register_data', {}).items()
+        if len(wires) and all(isinstance(q, km.q) for q in wires)
     }
     registers, assignments = {}, set()
     total = 0
@@ -139,7 +191,8 @@ def load_domain(spec, circuit, *, from_at=0, at=None, max_assignments=65536, max
         if not isinstance(node, dict):
             raise StrataError('finite domain must be a JSON object')
         allowed = {'version', 'type', 'registers', 'assignments', 'union', 'num_qubits',
-                   'classical_inputs', 'from_at', 'at', 'domain_hash', 'scope', 'assignment_count'}
+                   'classical_inputs', 'from_at', 'at', 'domain_hash', 'scope', 'assignment_count',
+                   'omitted_classical_inputs', 'value_dependency_proof'}
         if set(node) - allowed:
             raise StrataError('unknown finite domain fields: ' + ', '.join(sorted(set(node) - allowed)))
         if type(node.get('version', 1)) is not int or node.get('version', 1) != 1 or node.get('type', 'finite') != 'finite':
@@ -167,7 +220,7 @@ def load_domain(spec, circuit, *, from_at=0, at=None, max_assignments=65536, max
         declared_bits = node.get('classical_inputs', needed)
         if (not isinstance(declared_bits, list) or
                 any(not isinstance(b,str) or not re.fullmatch(r'b[0-9]+',b) for b in declared_bits) or
-                set(declared_bits) != set(needed)):
+                not set(declared_bits) <= set(needed) or set(needed) - set(declared_bits) - optional):
             raise StrataError('classical_inputs must list every classical boundary input as bN')
         if ('union' in node) == ('assignments' in node):
             raise StrataError('finite domain needs exactly one of assignments or union')
@@ -185,7 +238,7 @@ def load_domain(spec, circuit, *, from_at=0, at=None, max_assignments=65536, max
             if total > max_assignments:
                 raise StrataError('finite domain assignment budget exceeded')
             if isinstance(row, list):
-                if len(row) != width or needed:
+                if len(row) != width or set(needed) - optional:
                     raise StrataError('bit-vector rows require complete quantum-only assignments')
                 row = {f'q{q}': value for q, value in enumerate(row)}
             if not isinstance(row, dict):
@@ -215,23 +268,38 @@ def load_domain(spec, circuit, *, from_at=0, at=None, max_assignments=65536, max
                 else:
                     raise StrataError('unknown assignment register or boundary variable: ' + key)
             expected = {f'q{q}' for q in range(width)} | set(needed)
-            if set(values) != expected:
+            if set(values) - expected or expected - set(values) - optional:
                 missing = sorted(expected - set(values))
                 raise StrataError('incomplete boundary assignment; missing ' + ', '.join(missing))
+            if any(values[f'q{q}'] for q in clean):
+                raise StrataError('finite domain contradicts declared clean boundary inputs')
+            omitted.update(expected - set(values))
+            values.update({bit: 0 for bit in expected - set(values)})
             assignments.add(tuple(values[f'q{q}'] for q in range(width)) + tuple(values[b] for b in needed))
 
     visit(spec, circuit_registers)
+    # These variables are proved irrelevant to every quantum value. Project
+    # them out consistently even if some rows happened to supply them.
+    retained_bits = [b for b in needed if b not in omitted]
+    projected = {row[:width] + tuple(row[width + needed.index(b)] for b in retained_bits)
+                 for row in assignments}
     normalized = dict(version=1, type='finite', num_qubits=width,
                       registers={k: registers[k] for k in sorted(registers)},
                       classical_inputs=needed, from_at=from_at, at=at,
                       assignments=[{**{f'q{q}': row[q] for q in range(width)},
-                                    **{b: row[width+i] for i, b in enumerate(needed)}}
-                                   for row in sorted(assignments)])
+                                    **{b: row[width+i] for i, b in enumerate(retained_bits)}}
+                                   for row in sorted(projected)])
+    if omitted:
+        normalized.update(omitted_classical_inputs=sorted(omitted),
+                          value_dependency_proof=dict(method='exact_ANF_quantum_output_independence',
+                              window_hash=digest(lines), clean_inputs=sorted(clean),
+                              variables=sorted(omitted), phase_and_classical_outputs='not projected by equivalence checks'))
     domain_hash = digest(normalized)
     if 'domain_hash' in spec and spec['domain_hash'] != domain_hash:
         raise StrataError('finite domain hash does not match validated contents')
-    return dict(normalized, domain_hash=domain_hash, assignment_count=len(assignments),
-                scope='finite_promised_boundary_assignments')
+    return dict(normalized, domain_hash=domain_hash, assignment_count=len(projected),
+                scope=('finite_promised_quantum_values_with_arbitrary_omitted_classical_inputs'
+                       if omitted else 'finite_promised_boundary_assignments'))
 
 
 class _Unknown(Exception):
