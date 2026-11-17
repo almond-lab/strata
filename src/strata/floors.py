@@ -320,6 +320,7 @@ def exact_minimum_on_rows(input_rows,output_rows,*,max_and=3,timeout=1.0,max_sta
                     model='free XOR/NOT/constants; two-input AND straight-line circuits restricted to promised rows',
                     proven_lower_bound=lower,searched_up_to=depth,
                     states=states,expansions=expansions,seconds=monotonic()-start,
+                    limits=dict(max_and=max_and,timeout=timeout,max_states=max_states,max_expansions=max_expansions),
                     witness=None,contract_hash=contract_hash)
         if witness is not None:
             current=list(available);gates=[]
@@ -358,8 +359,10 @@ def exact_minimum_on_rows(input_rows,output_rows,*,max_and=3,timeout=1.0,max_sta
             span.sort(key=lambda value:(preferred.get(value,len(native_values)),value))
             for i,a in enumerate(span):
                 for j in range(i+1,len(span)):
-                    if expansions>=max_expansions or monotonic()-start>timeout:
-                        return receipt('unknown',None,'search budget exhausted; no minimum claimed',depth)
+                    if monotonic()-start>timeout:
+                        return receipt('unknown',None,'search timeout; no minimum claimed',depth)
+                    if expansions>=max_expansions:
+                        return receipt('unknown',None,'expansion budget exhausted; no minimum claimed',depth)
                     expansions+=1;b=span[j];product=a&b
                     if _inside(product,basis):continue
                     child=_basis((*basis,product))

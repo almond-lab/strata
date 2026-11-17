@@ -163,12 +163,22 @@ def _guided_tensor(circuit, context):
                 search=search,resource_scope='Complete parent emission and equality are checked again by the construction loop.')
 
 
+def _joint_options(context):
+    timeout = context['joint_timeout']
+    wall = context.get('constructor_time_budget')
+    if wall is not None:
+        # Leave some time for native lowering and transferring the solver receipt.
+        timeout = min(timeout, 0.8 * wall) if timeout is not None else 0.8 * wall
+    return dict(max_and=context['max_and'], timeout=1.0 if timeout is None else timeout,
+                max_states=context['joint_max_states'], max_expansions=context['joint_max_expansions'])
+
+
 def _joint_boundary(circuit, context):
     """Search the composed function, not replacements for individual gates."""
     from .boolean_synthesis import joint_boundary_synthesis
     if len(context['clean_inputs']) < 2:
         return dict(status='not_applicable',reason='joint materialization-bank search needs at least two declared clean wires')
-    result=joint_boundary_synthesis(circuit,clean_inputs=context['clean_inputs'],internal_bits=context.get('internal_bits',()),
+    result=joint_boundary_synthesis(circuit,clean_inputs=context['clean_inputs'],internal_bits=context.get('internal_bits',()), **_joint_options(context),
         **{key:context[key] for key in ('max_operations','max_variables','max_terms','max_product_terms')})
     context['joint_result']=result
     return result
@@ -277,7 +287,7 @@ def _qualifying_mechanism(proposal):
     for kind in ('removed_materialization_bank', 'discovered_consumer_class_bit',
                  'paid_input_basis_change', 'paid_output_basis_change',
                  'removed_phase_word', 'factored_phase_observable', 'separated_value_and_phase',
-                 'joint_architecture_change','affine_transport_factored','factored_fractional_observable','promise_specialization'):
+                 'joint_architecture_change','affine_transport_factored','factored_fractional_observable','promise_specialization','terminal_products_fused'):
         if witness.get(kind) is True:
             return kind
     return None
@@ -340,6 +350,19 @@ def _measured_boundary(circuit,context):
         reason=p.get('reason'),resource_bill=p.get('resource_bill')) for n,p in proposals])
 
 
+def _terminal_lookup(circuit, context):
+    from .lookup_structure import terminal_cache_fusion
+    return terminal_cache_fusion(circuit, context['clean_inputs'])
+
+
+_SURROGATE_CONSTRUCTORS = {
+    'joint_boundary_synthesis', 'joint_storage_recomputation', 'algebraic_boundary_synthesis',
+    'affine_representation_search', 'consumer_functional_decomposition', 'output_basis_search',
+    'architecture_portfolio', 'affine_transport_factorization', 'measurement_debt_lowering',
+    'mixed_observable_search', 'terminal_lookup_fusion',
+}
+
+
 def default_registry():
     registry = ConstructorRegistry()
     registry.register('joint_boundary_synthesis',_joint_boundary,
@@ -374,6 +397,8 @@ def default_registry():
                       'Search factored multi-output products and emit a complete reversible accumulator using declared clean helpers.')
     registry.register('guided_bilinear_candidate_search',_guided_tensor,
                       'Use the recovered tensor and residual constraints to propose factorizations, then native-batch and exactly check finalists.')
+    registry.register('terminal_lookup_fusion',_terminal_lookup,
+                      'Keep shared lookup cache products and write copy-only terminal products directly into their consumers.')
     registry.register('measured_lookup_resynthesis',_measured_lookup,
                       'Factor supported lookup accumulators while preserving HMR measurements, dirty outputs and exact phase repairs.')
     return registry
@@ -487,7 +512,8 @@ def restructure_file(path, out, *, clean_inputs=(), cost='Q*(toffoli+t/4)',
                      external_distribution=None, _resource_measure=None,deep_only=False,
                      internal_bits=(),_classical_bit_offset=None,fast=False,
                      search_seconds=None,trial_seconds=None,cancel_file=None,_deadline=None,max_finalists=24,
-                     goal='discoveries',max_architectures=1024,domain=None,max_assignments=65536):
+                     goal='discoveries',max_architectures=1024,domain=None,max_assignments=65536,
+                     max_and=3,joint_timeout=None,joint_max_states=10000,joint_max_expansions=100000):
     """Construct and verify complete-boundary candidates; preserve every outcome.
 
     The connected skill invents further mechanisms when bounded constructors
@@ -498,6 +524,10 @@ def restructure_file(path, out, *, clean_inputs=(), cost='Q*(toffoli+t/4)',
     from .search_screen import positive_seconds, stop_reason, exact_features, inapplicable, at_zero_floor
     positive_seconds(search_seconds,'search_seconds')
     positive_seconds(trial_seconds,'trial_seconds')
+    positive_seconds(joint_timeout,'joint_timeout')
+    from .floors import _validate_search_limits
+    _validate_search_limits(max_and, joint_timeout if joint_timeout is not None else 1.0,
+                            joint_max_states, joint_max_expansions)
     if type(max_finalists) is not int or max_finalists < 0:
         raise StrataError('max_finalists must be a nonnegative integer')
     if goal not in ('discoveries','best-cost') or type(max_architectures) is not int or max_architectures<1:
@@ -538,7 +568,9 @@ def restructure_file(path, out, *, clean_inputs=(), cost='Q*(toffoli+t/4)',
                      max_variables=max_variables,max_terms=max_terms,max_product_terms=max_product_terms,archive=archive,
                      accounting=accounting,external_distribution=external_distribution,internal_bits=private)
         options.update(deep_only=deep_only,fast=fast,trial_seconds=trial_seconds,search_seconds=search_seconds,
-                       cancel_file=cancel_file,_deadline=deadline,max_finalists=max_finalists,goal=goal,max_architectures=max_architectures)
+                       cancel_file=cancel_file,_deadline=deadline,max_finalists=max_finalists,goal=goal,max_architectures=max_architectures,
+                       max_and=max_and,joint_timeout=joint_timeout,
+                       joint_max_states=joint_max_states,joint_max_expansions=joint_max_expansions)
         if scan_range is not None:
             return restructure_episode(source,circuit,root,scan_range=scan_range,range_unit=range_unit,**options)
         return restructure_regions(source,circuit,root,**options)
@@ -556,10 +588,11 @@ def restructure_file(path, out, *, clean_inputs=(), cost='Q*(toffoli+t/4)',
         constructors=[c for c in constructors if c.name in {'joint_boundary_synthesis','joint_storage_recomputation',
             'algebraic_boundary_synthesis','affine_representation_search','measurement_debt_lowering',
             'consumer_functional_decomposition','output_basis_search','factored_observable_search','mixed_observable_search',
-            'architecture_portfolio','affine_transport_factorization','fractional_observable_search'}]
+            'architecture_portfolio','affine_transport_factorization','fractional_observable_search','terminal_lookup_fusion'}]
     if promise is not None:
         def construct_on_promise(parent, context):
-            return promised_domain_synthesis(parent,promise,max_assignments=max_assignments,**_structural_options(context))
+            return promised_domain_synthesis(parent,promise,max_assignments=max_assignments,
+                try_joint=True, **_joint_options(context), **_structural_options(context))
         constructors=[Construction('promised_domain_synthesis',construct_on_promise,'Synthesize on the complete declared input promise')]
     elif not deep_only:
         constructors += [Construction('learned_'+digest(t)[:12],_template_constructor(t),'Replayed learned gate template with checked predicates') for t in memory['templates']]
@@ -573,14 +606,14 @@ def restructure_file(path, out, *, clean_inputs=(), cost='Q*(toffoli+t/4)',
     structural_ids=set()
     qualifications={}; extra_finalists=0
     screened=[]; checked={}; proof_reuses=0; stopped=None
-    started=time.monotonic();boundary_receipts={};lookup_tables={}
+    started=time.monotonic();boundary_receipts={};lookup_tables={};measurement_reductions={}
     from .fractional_equivalence import has_fractional_phase
     def verify(parent,candidate,private_bits):
         if promise is not None:
             return check_promised_candidate(circuit,candidate,promise,clean_inputs=clean,max_assignments=max_assignments,
                 internal_bits=private_bits,measurement_mode='independent-map' if private_bits else 'coupled',**limits)
         return _check(parent,candidate,clean,limits,internal_bits=private_bits)
-    for generation in range(1 if promise is not None else rounds):
+    for generation in range(rounds):
         following=[]
         for parent,parent_state in frontier:
             stopped=stop_reason(deadline,cancel_file)
@@ -603,13 +636,27 @@ def restructure_file(path, out, *, clean_inputs=(), cost='Q*(toffoli+t/4)',
                          internal_bits=tuple(parent_state['private_bits']),
                          classical_bit_offset=max(classical_offset,parent.num_bits),resource_measure=measure,
                          max_architectures=max_architectures,extra_finalist_budget=max_finalists-extra_finalists,
-                         classical_trajectory=has_classical,fractional_phase=fractional_phase,**semantic_limits)
+                         classical_trajectory=has_classical,fractional_phase=fractional_phase,
+                         max_and=max_and,joint_timeout=joint_timeout,joint_max_states=joint_max_states,
+                         joint_max_expansions=joint_max_expansions,**semantic_limits)
             if not deep_only and semantics['status']=='exact_factored' and semantics.get('phase_zero'):
                 from .factored_semantic import lift_lookup_table
                 table=lift_lookup_table(parent,clean_inputs=clean,max_operations=semantic_limits['max_operations'],
                     max_variables=max_variables,max_nodes=max_terms,max_apply_steps=32*max_product_terms)
                 context['lookup_table']=table
                 lookup_tables[parent_state['id']]=table
+            proposal_parent = parent
+            if has_classical and built_in and promise is None and not fractional_phase:
+                from .lookup_structure import measured_value_surrogate
+                pure, reduction = measured_value_surrogate(parent, context['clean_inputs'],
+                                                           context['internal_bits'], semantic_limits)
+                measurement_reductions[parent_state['id']] = reduction
+                if pure is not None:
+                    proposal_parent = pure
+                    semantics = analyze_complete(str(pure).splitlines(), clean_inputs=clean, **semantic_limits)
+                    context.update(semantics=semantics, classical_trajectory=False)
+                else:
+                    context['classical_blocker'] = reduction
             # A sign-only observable deserves the first attempt even in an
             # episode assigned a single candidate. Keep the graph producers
             # before their schedule/cleanup consumers on value boundaries.
@@ -625,10 +672,15 @@ def restructure_file(path, out, *, clean_inputs=(), cost='Q*(toffoli+t/4)',
                 if fast and built_in:
                     reason=inapplicable(constructor.name,features,context)
                     if reason:
-                        screened.append(dict(parent=parent_state['id'],round=generation,mechanism=constructor.name,reason=reason))
+                        screened.append(dict(parent=parent_state['id'],round=generation,mechanism=constructor.name,reason=reason,
+                            **({'blocking_instruction': context['classical_blocker']} if 'classical trajectory' in reason
+                               and 'classical_blocker' in context else {})))
                         continue
                 attempt=dict(round=generation,parent=parent_state['id'],mechanism=constructor.name)
                 trial_start=time.monotonic()
+                trial_parent = proposal_parent if constructor.name in _SURROGATE_CONSTRUCTORS else parent
+                if trial_parent is not parent:
+                    attempt['construction_source'] = 'verified_measured_value_surrogate'
                 try:
                     if trial_seconds is not None or deadline is not None or cancel_file is not None:
                         from .search_worker import run_bounded_constructor
@@ -638,11 +690,11 @@ def restructure_file(path, out, *, clean_inputs=(), cost='Q*(toffoli+t/4)',
                             break
                         budgets=[x for x in (remaining,trial_seconds) if x is not None]
                         context['constructor_time_budget']=min(budgets) if budgets else None
-                        proposal,updates,_=run_bounded_constructor(constructor.propose,parent,context,
+                        proposal,updates,_=run_bounded_constructor(constructor.propose,trial_parent,context,
                             timeout=context['constructor_time_budget'],cancel_file=cancel_file)
                         context.update(updates)
                     else:
-                        proposal=constructor.propose(parent,context)
+                        proposal=constructor.propose(trial_parent,context)
                     attempt['construction']=proposal
                     if proposal.get('status')!='constructed':
                         attempt.update(status='not_constructed',reason=proposal.get('reason','preconditions unavailable'))
@@ -748,7 +800,7 @@ def restructure_file(path, out, *, clean_inputs=(), cost='Q*(toffoli+t/4)',
                 source=str(source),source_sha256=file_hash(source),baseline=baseline,best=best,
                 search_goal='verified_structural_alternatives' if deep_only else 'all_supported_constructions',
                 cost_delta=best['cost']-baseline['cost'],states=states,pareto_frontier=_pareto(states),attempts=attempts,
-                boundary_receipts=boundary_receipts,lookup_tables=lookup_tables,
+                boundary_receipts=boundary_receipts,lookup_tables=lookup_tables,measurement_reductions=measurement_reductions,
                 archive=str(memory_path),learned_template_count=len(memory['templates']),seconds=time.monotonic()-started,
                 contract=dict(clean_inputs=clean,internal_bits=private,public_wires='every other physical wire, fixed indices',outputs='all physical outputs and exact sign equal to supplied baseline; only proved restored clean wires may leave the layout',
                               measurement_scope='branch-preserving or proved outcome-independent basis/sign maps; only explicitly private or fresh compiler bits may be omitted; not generic channel equivalence'),
@@ -760,7 +812,9 @@ def restructure_file(path, out, *, clean_inputs=(), cost='Q*(toffoli+t/4)',
                     'Can an alternate representation remove a dependency across the complete producer-consumer-return boundary?',
                     'Which exact support relation can produce a reversible encoder and a priced consumer adapter?',
                     'Which bounded or failed formulation could reopen under a different construction?'],
-                budgets=dict(rounds=rounds,beam=beam,max_candidates=max_candidates,**limits))
+                budgets=dict(rounds=rounds,beam=beam,max_candidates=max_candidates,
+                             max_and=max_and,joint_timeout=joint_timeout,joint_max_states=joint_max_states,
+                             joint_max_expansions=joint_max_expansions,**limits))
     if promise is not None:
         result['contract'].update(domain=promise,domain_hash=promise['domain_hash'],all_input_equivalence=False,
             outputs='all physical quantum and public classical outputs, clean restoration and phase on the declared promise')
@@ -776,10 +830,11 @@ def restructure_file(path, out, *, clean_inputs=(), cost='Q*(toffoli+t/4)',
         trial_seconds=trial_seconds,search_seconds=search_seconds,
         timed_out=sum(a.get('construction',{}).get('reason')=='constructor_timeout' for a in attempts),
         cancelled=sum(a.get('construction',{}).get('reason')=='constructor_cancelled' for a in attempts))
-    from .discovery_yield import summarize
+    from .discovery_yield import summarize, constructor_comparison
     result['discovery_yield']=summarize(states,baseline,qualifications,classical_offset,clean)
     result['discovery_yield'].update(extra_finalists_checked=extra_finalists,max_extra_finalists=max_finalists,
                                      goal=goal,max_architectures_per_portfolio=max_architectures)
+    result['discovery_yield']['constructor_comparison'] = constructor_comparison(attempts, baseline['cost'])
     result['discovery_yield']['architecture_trials'] = [
         dict(parent=attempt['parent'], **{key:ledger[key] for key in (
             'proposed_attempts','unique_formulations','unique_representations','unique_product_graphs',
@@ -798,7 +853,7 @@ def restructure_file(path, out, *, clean_inputs=(), cost='Q*(toffoli+t/4)',
                             'functional_decomposition.py','output_basis_search.py','observable_search.py','symbolic_boolean_graph.py',
                             'mixed_observable.py','search_screen.py','search_worker.py','architecture_portfolio.py','discovery_yield.py',
                             'affine_transport.py','fractional_observable.py','fractional_equivalence.py','promised_domain.py',
-                            'promised_synthesis.py')}
+                            'promised_synthesis.py','lookup_structure.py')}
         result['mechanism_archive_blob']=store.blob(memory_path.read_bytes())
         result['record']=store.put('restructure_run',result)
     finally:

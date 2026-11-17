@@ -131,6 +131,10 @@ def main(argv=None):
         p.add_argument('--max-finalists',type=int,default=24,help='additional distinct structural alternatives to price and independently check')
         p.add_argument('--goal',choices=('discoveries','best-cost'),default='discoveries',
                        help='collect different cheaper designs, or stop once a known objective floor is reached')
+        p.add_argument('--max-and', type=int, default=3, help='exact joint XOR/AND search gate bound')
+        p.add_argument('--joint-timeout', type=float, help='exact joint search seconds, within the constructor wall budget')
+        p.add_argument('--joint-max-states', type=int, default=10000, help='exact joint solver state cap')
+        p.add_argument('--joint-max-expansions', type=int, default=100000, help='exact joint solver expansion cap')
         p.add_argument('--max-architectures',type=int,default=1024,help='joint representation and factor-graph proposal budget per portfolio')
         p.add_argument('--max-operations',type=int,default=10000);p.add_argument('--max-variables',type=int,default=128)
         p.add_argument('--max-terms',type=int,default=65536)
@@ -303,7 +307,8 @@ def main(argv=None):
                 max_product_terms=args.max_product_terms,scan_range=region,range_unit=args.range_unit,width=args.width,
                 accounting=args.accounting,external_distribution=json.loads(Path(args.external_distribution).read_text()) if args.external_distribution else None,
                 deep_only=args.deep_only or args.cmd=='search',internal_bits=_bit_list(args.internal_bits),
-                domain=args.domain,max_assignments=args.max_assignments,
+                domain=args.domain,max_assignments=args.max_assignments,max_and=args.max_and,joint_timeout=args.joint_timeout,
+                joint_max_states=args.joint_max_states,joint_max_expansions=args.joint_max_expansions,
                 fast=args.cmd=='search',search_seconds=args.seconds,trial_seconds=args.trial_seconds,max_finalists=args.max_finalists,
                 goal=args.goal,max_architectures=args.max_architectures,
                 cancel_file=args.cancel_file or (Path(args.out)/'STOP' if args.cmd=='search' else None))

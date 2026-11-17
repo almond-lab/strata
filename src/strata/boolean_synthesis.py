@@ -228,7 +228,7 @@ def joint_boundary_synthesis(circuit, *, clean_inputs=(), internal_bits=(), max_
     search = exact_minimum(outputs, len(inputs), max_and=max_and, timeout=timeout,
                            max_states=max_states, max_expansions=max_expansions)
     if search['kind'] != 'exact_small':
-        return dict(status='unknown', reason='joint XOR/AND search did not establish a minimum', exact_search=search)
+        return dict(status='unknown', reason=search['reason'], exact_search=search)
     input_rows = [list(row) for row in product(range(2), repeat=len(inputs))]
     output_rows = [[sum(all(row[q] for q in term) for term in poly) % 2 for poly in outputs] for row in input_rows]
     helpers = sorted(clean - set(targets))

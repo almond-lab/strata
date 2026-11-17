@@ -131,3 +131,21 @@ def summarize(states, baseline, witnesses, parent_bits, clean=()):
                 designs_by_qualification={kind:len(values) for kind,values in sorted(families.items())},
                 designs=sorted(designs.values(),key=lambda r:(r['cost'],r['id'])),
                 scope='supplied objective and boundary; native bytes modulo display metadata and fresh private-bit naming; equivalent schedules may remain different designs')
+
+
+
+def constructor_comparison(attempts, baseline_cost):
+    """Compare independently checked native constructions against the supplied cost."""
+    families = defaultdict(list)
+    for attempt in attempts:
+        families[attempt['mechanism']].append(attempt)
+    summary = {}
+    for mechanism, trials in sorted(families.items()):
+        deltas = [trial['cumulative_cost_delta'] for trial in trials if trial['status'] == 'verified']
+        summary[mechanism] = dict(
+            attempted=len(trials), independently_verified=len(deltas),
+            best_verified_cost=baseline_cost + min(deltas) if deltas else None,
+            best_delta_from_source=min(deltas) if deltas else None,
+            source_cheaper_than_all_verified=bool(deltas) and min(deltas) > 0,
+        )
+    return dict(source_cost=baseline_cost, constructors=summary, scope='supplied artifact and objective')

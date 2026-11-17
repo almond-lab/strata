@@ -8,7 +8,7 @@ import numpy as np
 from .accounting import measured_resources
 from .cost import Formula
 from .factored_semantic import equivalent_factored
-from .model import digest
+from .model import StrataError, digest
 from .domains import window_lines, WindowLimit
 from .promised_domain import load_search_domain, promised_addresses, check_promised_candidate, _wires
 from .semantic import _parse, _limits
@@ -189,9 +189,73 @@ def _emit(circuit, native, classical):
     return result
 
 
+def _joint_on_care_rows(columns, delta, count, clean, width, solver_limits):
+    from .boolean_synthesis import lower_xor_and_witness
+    from .floors import exact_minimum_on_rows
+
+    inputs, targets = list(columns), list(delta)
+    if any(type(x) is not int for x in inputs + targets) or count > 4096:
+        return None, dict(status='screened', reason='exact care-row search needs bounded quantum-only XOR deltas')
+    rows = [[(column >> i) & 1 for column in columns.values()] for i in range(count)]
+    outputs = [[(column >> i) & 1 for column in delta.values()] for i in range(count)]
+    projected = {}
+    for row, output in zip(rows, outputs):
+        if projected.setdefault(tuple(row), output) != output:
+            return None, dict(status='screened', reason='unchanged input projection cannot distinguish output deltas')
+    try:
+        search = exact_minimum_on_rows(rows, outputs, **solver_limits)
+    except StrataError as exc:
+        return None, dict(status='unknown', reason=str(exc))
+    trial = dict(status=search['kind'], reason=search['reason'], exact_search=search)
+    if search['kind'] != 'exact_small':
+        return None, trial
+    result = lower_xor_and_witness(search, rows, outputs, input_wires=inputs, target_wires=targets,
+                                  clean_wires=clean, num_qubits=width)
+    if result['status'] != 'constructed':
+        return None, dict(trial, status='not_lowerable', reason=result['reason'])
+    return result['candidate'].splitlines(), trial
+
+
+def _shared_factorings(circuit, polynomials, clean, limits):
+    from .algebraic_synthesis import _Bound, _Budget, _Factors, _lower as lower_graph, _orders
+
+    if any(type(q) is not int for q in polynomials) or any(
+            type(q) is not int for terms in polynomials.values() for term in terms for q in term):
+        return
+    targets = sorted(polynomials)
+    expected = [frozenset(map(frozenset, polynomials[q])) for q in targets]
+    inputs = sorted({q for terms in expected for term in terms for q in term})
+    for order in _orders(inputs, expected, 4):
+        trial = dict(completion='shared_cofactor_graph', order=list(order))
+        budget = _Budget(100000, 4096, limits['max_terms'], limits['max_product_terms'], 0.25)
+        try:
+            graph = _Factors(inputs, order, budget)
+            masks = [graph.factor(poly) for poly in expected]
+            candidate, _ = lower_graph(circuit, clean, inputs, targets, graph.gates, masks,
+                                       budget, limits['max_operations'])
+            native = [line for line in str(candidate).splitlines() if _parse(line)['status'] != 'metadata']
+            yield native, trial
+        except _Bound as exc:
+            yield None, dict(trial, status='not_lowerable', reason=str(exc))
+
+
+def _output_basis_maps(polynomials, clean):
+    targets = [q for q in polynomials if type(q) is int and q not in clean]
+    pairs = sorted(combinations(targets, 2), key=lambda pair: -len(
+        set(polynomials[pair[0]]) & set(polynomials[pair[1]])))
+    for control, target in pairs[:12]:
+        common = set(polynomials[control]) & set(polynomials[target])
+        if not common:
+            break
+        changed = dict(polynomials)
+        changed[target] = sorted(set(polynomials[control]) ^ set(polynomials[target]), key=repr)
+        yield changed, control, target
+
+
 def synthesize(circuit, domain, *, clean_inputs=(), cost='Q*toffoli', resource_measure=None,
                max_operations=10000, max_assignments=65536, max_variables=128, max_terms=65536,
-               max_product_terms=65536, max_table_cells=2097152, max_address_bits=12, max_features=1024):
+               max_product_terms=65536, max_table_cells=2097152, max_address_bits=12, max_features=1024,
+               try_joint=False, max_and=3, timeout=1.0, max_states=10000, max_expansions=100000):
     """Compare low-degree GF(2) interpolation and cofactor-based Boolean completions."""
     limits = dict(max_operations=max_operations, max_variables=max_variables, max_terms=max_terms,
                   max_product_terms=max_product_terms, max_assignments=max_assignments)
@@ -231,36 +295,59 @@ def synthesize(circuit, domain, *, clean_inputs=(), cost='Q*toffoli', resource_m
     before = measure(circuit)
     before_cost = objective(before)
     trials, candidates = [], {}
+
+    def price(native, trial):
+        trials.append(trial)
+        if native is None:
+            trial.setdefault('status', 'lowering_budget')
+            return
+        candidate = _emit(circuit, native, classical)
+        if len(str(candidate).splitlines()) > max_operations:
+            trial['status'] = 'operation_budget'
+            return
+        resources = measure(candidate)
+        value = objective(resources)
+        trial.update(status='priced', cost=value, printed_gate_count=len(native))
+        if value < before_cost:
+            candidates.setdefault(str(candidate), (value, resources, candidate, trial))
+
+    factored = set()
     for reverse in (False, True):
         ordered = dict(reversed(columns.items())) if reverse else columns
         for family in ('degree_ordered_interpolation', 'compatible_cofactor_completion'):
+            trial = dict(completion=family, reversed_order=reverse)
             if family == 'degree_ordered_interpolation':
                 polys = _interpolate(ordered, delta, count, 3,
                                      min(max_features, max_table_cells // max(1, count)))
             else:
                 if (len(ordered) > max_address_bits or
                         (1 << len(ordered)) * max(1,len(delta)) > max_table_cells):
+                    trials.append(dict(trial, status='screened', reason='cofactor table budget'))
                     continue
                 polys = _cofactor_completion(ordered, delta, count)
-            trial = dict(completion=family, reversed_order=reverse)
-            trials.append(trial)
             if polys is None:
-                trial['status'] = 'no_fit'
+                trials.append(dict(trial, status='no_fit'))
                 continue
-            native = _lower(polys, clean, max_operations)
-            if native is None:
-                trial['status'] = 'lowering_budget'
+            price(_lower(polys, clean, max_operations), trial)
+            key = tuple((q, frozenset(terms)) for q, terms in polys.items())
+            if key in factored:
                 continue
-            candidate = _emit(circuit, native, classical)
-            if len(str(candidate).splitlines()) > max_operations:
-                trial['status'] = 'operation_budget'
-                continue
-            resources = measure(candidate)
-            value = objective(resources)
-            trial.update(status='priced', cost=value, printed_gate_count=len(native))
-            if value < before_cost:
-                candidates.setdefault(str(candidate), (value, resources, candidate, trial))
-    ordered_candidates = sorted(candidates.values(), key=lambda row: (row[0], len(row[2]), str(row[2])))
+            factored.add(key)
+            for native, variant in _shared_factorings(circuit, polys, clean, limits):
+                price(native, variant)
+            for changed, control, target in _output_basis_maps(polys, clean):
+                adapter = f'CX q{control} q{target}'
+                native = _lower(changed, clean, max_operations)
+                price([adapter, *native, adapter] if native is not None else None,
+                      dict(completion='encoded_output_pair', adapter=[control, target]))
+                for native, trial in _shared_factorings(circuit, changed, clean, limits):
+                    price([adapter, *native, adapter] if native is not None else None,
+                          dict(trial, completion='encoded_shared_cofactor_graph', adapter=[control, target]))
+    if try_joint:
+        native, trial = _joint_on_care_rows(columns, delta, count, clean, circuit.num_qubits,
+            dict(max_and=max_and, timeout=timeout, max_states=max_states, max_expansions=max_expansions))
+        price(native, dict(trial, completion='exact_joint_on_care_rows'))
+    ordered_candidates = sorted(candidates.values(), key=lambda row: (row[0], len(row[2])))
     base.update(source_rows_replayed=count, trials=trials, distinct_cheaper_candidates=len(candidates))
     for value, resources, candidate, trial in ordered_candidates:
         check = check_promised_candidate(circuit, candidate, bound, clean_inputs=clean,
@@ -277,7 +364,7 @@ def synthesize(circuit, domain, *, clean_inputs=(), cost='Q*toffoli', resource_m
             if full.get('equivalent') is False:
                 outside = full.get('counterexample')
         witness = dict(promise_specialization=outside is not None, off_domain_witness=outside,
-                       selected_completion=trial['completion'], reversed_order=trial['reversed_order'])
+                       selected_completion=trial['completion'], reversed_order=trial.get('reversed_order'))
         return dict(base, status='constructed', candidate=str(candidate), cost=value, resources=resources,
                     check=check, structural_witness=witness, witness_hash=digest([bound['domain_hash'],
                     check['original_hash'], check['candidate_hash'], clean, witness]),

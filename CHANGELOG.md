@@ -1,5 +1,21 @@
 # Change log
 
+## Unreleased
+
+- Extend promised-input search with exact care-row XOR/AND search, shared
+  cofactor graphs and reversible output encodings. Receipts explain skipped
+  formulations and bind independently checked replacements to the input promise.
+- Recover the pure value map of standard private measured AND cleanup before
+  proposing replacements. Verify and price each replacement against the
+  original measured source.
+- Expose joint solver AND, time, state and expansion bounds on `search` and
+  `restructure`.
+- Preserve shared lookup caches while fusing copy-only terminal products.
+  Compare each constructor's checked cost with the supplied source cost.
+- Retrieve complete product lifetimes before generic windows, deduplicate
+  overlapping selections, and replay safe commutation certificates when
+  localizing noncontiguous consumers.
+
 ## 0.5.0 — 2026-11-17
 
 - Jointly explore input and output representations and shared nonlinear
