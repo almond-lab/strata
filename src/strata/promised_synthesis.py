@@ -1,5 +1,5 @@
 """Boolean synthesis from complete finite care sets with independently checked native output."""
-from itertools import combinations
+from itertools import combinations, islice
 import math
 
 import kickmix as km
@@ -9,7 +9,7 @@ from .accounting import measured_resources
 from .cost import Formula
 from .factored_semantic import equivalent_factored
 from .model import StrataError, digest
-from .domains import window_lines, WindowLimit
+from .domains import window_lines, WindowLimit, touched_wires
 from .promised_domain import load_search_domain, promised_addresses, check_promised_candidate, _wires
 from .semantic import _parse, _limits
 
@@ -18,7 +18,7 @@ def _packed(values):
     return int.from_bytes(np.packbits(values, bitorder='little').tobytes(), 'little')
 
 
-def _native_table(circuit, bound):
+def _native_table(circuit, bound, quantum_wires):
     """Gather proposal data. A compact zero-dirty replay is never its own proof."""
     compact = bound['type'] == 'address_promise'
     count = bound['address_count'] if compact else bound['assignment_count']
@@ -34,12 +34,14 @@ def _native_table(circuit, bound):
         for name in bound['assignments'][0]:
             is_qubit = name.startswith('q')
             number = int(name[1:])
+            if is_qubit and number not in quantum_wires:
+                continue
             values = np.fromiter((row[name] for row in bound['assignments']), bool, count)
             sim.write_across_shots(km.q(number) if is_qubit else km.b(number), values)
             entry[number if is_qubit else name] = _packed(values)
     sim.do(circuit)
     delta = {}
-    for q in range(circuit.num_qubits):
+    for q in sorted(quantum_wires):
         diff = entry.get(q, 0) ^ _packed(sim.read_across_shots(km.q(q)))
         if diff:
             delta[q] = diff
@@ -55,10 +57,10 @@ def _interpolate(columns, outputs, count, max_degree, max_features):
     terms = []
     remaining = dict(outputs)
     solved = {}
+    remaining_features = max_features
     for degree in range(max_degree + 1):
-        if math.comb(len(columns), degree) + len(terms) > max_features:
-            break
-        for term in combinations(columns, degree):
+        examined = min(math.comb(len(columns), degree), remaining_features)
+        for term in islice(combinations(columns, degree), examined):
             col = (1 << count) - 1
             for key in term:
                 col &= columns[key]
@@ -84,6 +86,9 @@ def _interpolate(columns, outputs, count, max_degree, max_features):
                 del remaining[key]
         if not remaining:
             return solved
+        remaining_features -= examined
+        if not remaining_features:
+            break
     return None
 
 
@@ -252,11 +257,35 @@ def _output_basis_maps(polynomials, clean):
         yield changed, control, target
 
 
+def _ordered_in_place(entry, delta, count, scratch, max_operations, max_features):
+    """Try reversible single-target updates in forward and reverse wire order."""
+    if any(type(q) is not int for q in delta):
+        return
+    targets = sorted(delta)
+    orders = [targets, targets[::-1]] if len(targets) > 1 else [targets]
+    for order in orders:
+        values = dict(entry)
+        attempt = dict(completion='ordered_in_place_updates', target_order=order)
+        native = []
+        for target in order:
+            columns = {q: col for q, col in values.items() if q != target and q not in scratch}
+            fit = _interpolate(columns, {target:delta[target]}, count, 3, max_features)
+            update = _lower(fit, scratch, max_operations) if fit is not None else None
+            if update is None or len(native) + len(update) > max_operations:
+                yield None, dict(attempt, status='no_fit' if fit is None else 'lowering_budget',
+                                 blocked_target=target)
+                break
+            native.extend(update)
+            values[target] = values.get(target, 0) ^ delta[target]
+        else:
+            yield native, attempt
+
+
 def synthesize(circuit, domain, *, clean_inputs=(), cost='Q*toffoli', resource_measure=None,
                max_operations=10000, max_assignments=65536, max_variables=128, max_terms=65536,
                max_product_terms=65536, max_table_cells=2097152, max_address_bits=12, max_features=1024,
                try_joint=False, max_and=3, timeout=1.0, max_states=10000, max_expansions=100000,
-               internal_bits=(), classical_bit_offset=None):
+               internal_bits=(), classical_bit_offset=None, required_zero_outputs=None):
     """Compare low-degree GF(2) interpolation and cofactor-based Boolean completions."""
     limits = dict(max_operations=max_operations, max_variables=max_variables, max_terms=max_terms,
                   max_product_terms=max_product_terms, max_assignments=max_assignments)
@@ -268,13 +297,24 @@ def synthesize(circuit, domain, *, clean_inputs=(), cost='Q*toffoli', resource_m
     base = dict(family='promised_domain_boolean_completion', domain_type=bound['type'],
                 domain_hash=bound['domain_hash'], assignment_count=bound['assignment_count'],
                 all_input_equivalence=False, host_promise_proven=False)
-    if (count > max_assignments or count * max(1, circuit.num_qubits + circuit.num_bits) > max_table_cells
-            or circuit.num_qubits + circuit.num_bits > max_variables):
-        return dict(base, status='unknown', reason='promised_source_table_budget')
     try:
         lines, _ = window_lines(circuit, max_lines=max_operations)
     except WindowLimit as exc:
         return dict(base, status='unknown', reason=str(exc))
+    used = set(touched_wires(lines))
+    classical_wires = set()
+    for line in lines:
+        parsed = _parse(line)
+        classical_wires.update(parsed.get('bits', ()))
+        if parsed.get('condition'):
+            classical_wires.add(parsed['condition'])
+    active_width = len(used) + len(classical_wires)
+    base.update(table_width=active_width, table_cells=count * active_width,
+                table_limits=dict(max_table_cells=max_table_cells, max_address_bits=max_address_bits))
+    if (count > max_assignments or count * max(1, active_width) > max_table_cells
+            or active_width > max_variables):
+        return dict(base, status='unknown', reason='promised_source_table_budget')
+    required_zero = set(clean if required_zero_outputs is None else required_zero_outputs)
     original = circuit
     private = tuple(internal_bits)
     fresh = max(original.num_bits, classical_bit_offset or 0)
@@ -282,7 +322,8 @@ def synthesize(circuit, domain, *, clean_inputs=(), cost='Q*toffoli', resource_m
 
     def verify(left, right, bits=private):
         return check_promised_candidate(left, right, bound, clean_inputs=clean, internal_bits=bits,
-            measurement_mode='independent-map' if bits else 'coupled', max_table_cells=max_table_cells, **limits)
+            measurement_mode='independent-map' if bits else 'coupled', max_table_cells=max_table_cells,
+            required_zero_outputs=required_zero, **limits)
 
     if source_has_measurement:
         from .lookup_structure import measured_value_surrogate
@@ -307,23 +348,34 @@ def synthesize(circuit, domain, *, clean_inputs=(), cost='Q*toffoli', resource_m
             return dict(base, status='unknown', reason=proof.get('reason', 'reset_not_proven_zero'))
         circuit, lines = normalized, retained
 
-    classical = []
-    for line in lines:
+    from .lookup_structure import split_external_diagonals
+    table_lines, external_diagonal = split_external_diagonals(lines)
+    if external_diagonal:
+        circuit = km.Circuit('\n'.join(table_lines))
+    classical = list(external_diagonal)
+    for line in table_lines:
         parsed = _parse(line)
         if parsed['status'] == 'opaque' or parsed['op'] in ('HMR', 'Z_POW'):
             return dict(base, status='not_applicable', reason='completion requires deterministic Boolean and sign gates',
                         instruction=line)
         if parsed['op'].startswith('BIT_') or parsed['op'] in ('PUSH_CONDITION', 'POP_CONDITION'):
             classical.append(line)
-    entry, delta, count = _native_table(circuit, bound)
-    if set(clean) & delta.keys():
+    entry, delta, count = _native_table(circuit, bound, used)
+    if required_zero & delta.keys():
         return dict(base, status='not_applicable', reason='clean_output_not_restored')
+    scratch = [q for q in clean if q not in delta]
     all_ones = (1 << count) - 1
-    columns, seen = {}, {0, all_ones}
+    columns, span = {}, {count-1: all_ones}
     for key, column in entry.items():
-        if key not in delta and column not in seen:
+        if key in delta:
+            continue
+        remainder = column
+        while remainder and (pivot := remainder.bit_length() - 1) in span:
+            remainder ^= span[pivot]
+        if remainder:
             columns[key] = column
-            seen.add(column)
+            span[remainder.bit_length()-1] = remainder
+    base['projected_input_rank'] = len(columns)
     measure = resource_measure or measured_resources
     objective = Formula(cost) if isinstance(cost, str) else cost
     before = measure(original)
@@ -371,25 +423,29 @@ def synthesize(circuit, domain, *, clean_inputs=(), cost='Q*toffoli', resource_m
             if polys is None:
                 trials.append(dict(trial, status='no_fit'))
                 continue
-            price(_lower(polys, clean, max_operations), trial)
+            price(_lower(polys, scratch, max_operations), trial)
             key = tuple((q, frozenset(terms)) for q, terms in polys.items())
             if key in factored:
                 continue
             factored.add(key)
-            for native, variant in _shared_factorings(circuit, polys, clean, limits):
+            for native, variant in _shared_factorings(circuit, polys, scratch, limits):
                 price(native, variant)
             for changed, control, target in _output_basis_maps(polys, clean):
                 adapter = f'CX q{control} q{target}'
-                native = _lower(changed, clean, max_operations)
+                native = _lower(changed, scratch, max_operations)
                 price([adapter, *native, adapter] if native is not None else None,
                       dict(completion='encoded_output_pair', adapter=[control, target]))
-                for native, trial in _shared_factorings(circuit, changed, clean, limits):
+                for native, trial in _shared_factorings(circuit, changed, scratch, limits):
                     price([adapter, *native, adapter] if native is not None else None,
                           dict(trial, completion='encoded_shared_cofactor_graph', adapter=[control, target]))
     if try_joint:
-        native, trial = _joint_on_care_rows(columns, delta, count, clean, circuit.num_qubits,
+        native, trial = _joint_on_care_rows(columns, delta, count, scratch, circuit.num_qubits,
             dict(max_and=max_and, timeout=timeout, max_states=max_states, max_expansions=max_expansions))
         price(native, dict(trial, completion='exact_joint_on_care_rows'))
+    if (set(delta) - required_zero) & set(entry):
+        for native, trial in _ordered_in_place(entry, delta, count, scratch, max_operations,
+                                               min(max_features, max_table_cells // max(1, count))):
+            price(native, trial)
     ordered_candidates = sorted(candidates.values(), key=lambda row: (row[0], len(row[2])))
     base.update(source_rows_replayed=count, trials=trials, distinct_cheaper_candidates=len(candidates))
     for value, resources, candidate, trial, introduced in ordered_candidates:
@@ -412,4 +468,20 @@ def synthesize(circuit, domain, *, clean_inputs=(), cost='Q*toffoli', resource_m
                     check['original_hash'], check['candidate_hash'], clean, witness]),
                     resource_bill=dict(before=before, after=resources, before_cost=before_cost, after_cost=value,
                                        cost_expression=cost if isinstance(cost, str) else getattr(cost, 'expression', None)))
-    return dict(base, status='not_applicable', reason='no cheaper completion passed the complete promised boundary')
+    reason = 'no cheaper completion passed the complete promised boundary'
+    in_place = [trial for trial in trials if trial['completion'] == 'ordered_in_place_updates']
+    if (not candidates and (set(delta) - required_zero) & set(entry)
+            and not any(trial['status']=='priced' for trial in in_place)):
+        seen = {}
+        def rows(table):
+            vectors = [np.frombuffer(col.to_bytes((count+7)//8, 'little'), dtype=np.uint8)
+                       for col in table.values()]
+            if not vectors:
+                return [b''] * count
+            unpacked = np.unpackbits(np.stack(vectors), axis=1, count=count, bitorder='little')
+            return map(bytes, np.packbits(unpacked.T, axis=1))
+        for key, value in zip(rows(columns), rows(delta)):
+            if seen.setdefault(key, value) != value:
+                reason = 'in_place_map_out_of_scope'
+                break
+    return dict(base, status='not_applicable', reason=reason)

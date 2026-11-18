@@ -119,44 +119,131 @@ def product_lifetimes(lines, clean_inputs=()):
     return items, lifetimes
 
 
+_DIAGONALS = {'NEG', 'Z', 'CZ', 'CCZ'}
+
+
+def split_external_diagonals(lines):
+    """Extract suffix candidates whose only classical controls are entry bits."""
+    definitions = {bit for line in lines for bit in _parse(line).get('bits', ())}
+    body, diagonal = [], []
+    at = 0
+    while at < len(lines):
+        line = lines[at]
+        item = _parse(line)
+        condition = item.get('condition')
+        if condition and condition not in definitions:
+            if item['op'] in _DIAGONALS:
+                diagonal.append(line)
+                at += 1
+                continue
+            if item['op'] == 'PUSH_CONDITION':
+                stop = at + 1
+                while stop < len(lines) and _parse(lines[stop])['op'] in _DIAGONALS:
+                    stop += 1
+                if stop < len(lines) and _parse(lines[stop])['op'] == 'POP_CONDITION':
+                    diagonal.extend(lines[at:stop+1])
+                    at = stop + 1
+                    continue
+        body.append(line)
+        at += 1
+    return body, diagonal
+
+
+def _toggle(wire, monomials, width):
+    emitted = []
+    for term in monomials:
+        if any(type(q) is not int or q == wire for q in term):
+            return None
+        operands = [f'q{q}' for q in term]
+        if len(term) <= 2:
+            emitted.append(' '.join([('X','CX','CCX')[len(term)], *operands, f'q{wire}']))
+            continue
+        helper = next((q for q in range(width) if q != wire and q not in term), None)
+        if len(term) != 3 or helper is None:
+            return None
+        a, b, c = operands
+        emitted.extend([f'CCX {a} {b} q{helper}', f'CCX q{helper} {c} q{wire}'] * 2)
+    return emitted
+
+
+def _repair_toggle(lines, items, index, wire, width, proof_limits):
+    from .semantic import analyze_window
+
+    repair = items[index]
+    op = repair['op']
+    if op in _DIAGONALS:
+        gates = _toggle(wire, [repair['wires']], width)
+        return (index+1, gates) if gates is not None else None
+    if op != 'PUSH_CONDITION':
+        return None
+    stop = index + 1
+    while stop < len(items) and items[stop]['op'] not in {'PUSH_CONDITION', 'POP_CONDITION', 'HMR'}:
+        if items[stop].get('condition') or stop - index > proof_limits['max_operations']:
+            return None
+        stop += 1
+    if stop == len(items) or items[stop]['op'] != 'POP_CONDITION':
+        return None
+    sem = analyze_window(lines[index+1:stop], clean_inputs=(wire,), **proof_limits)
+    if sem['status'] != 'exact' or any(
+            value['monomials'] != ([] if int(q) == wire else [[int(q)]])
+            for q, value in sem['outputs'].items()):
+        return None
+    gates = _toggle(wire, sem['phase']['monomials'], width)
+    return (stop+1, gates) if gates is not None else None
+
+
 def measured_value_surrogate(circuit, clean_inputs, internal_bits, proof_limits, *, verify=None):
-    """Replace standard, private measured product erasures for proposal generation."""
+    """Propose reversible phase-debt replacements, then check the complete map."""
     from .measurement_equivalence import equivalent_independent_outputs
 
     lines = str(circuit).splitlines()
-    items, lifetimes = product_lifetimes(lines, clean_inputs)
+    items = [_parse(line) for line in lines]
     private = {f'b{b}' for b in internal_bits}
     bit_uses = defaultdict(list)
+    depths, depth = [], 0
     for i, item in enumerate(items):
+        depths.append(depth)
+        if item['op'] == 'PUSH_CONDITION':
+            depth += 1
+        elif item['op'] == 'POP_CONDITION':
+            depth -= 1
         if item['status'] == 'metadata':
             continue
         for bit in set(item.get('bits', ())) | ({item['condition']} if item.get('condition') else set()):
             bit_uses[bit].append(i)
     edits, matched = {}, []
-    for record in lifetimes:
-        outcome, after = record['outcome'], record['stop']
-        if not record['clean_entry'] or outcome not in private:
+    for at, event in enumerate(items):
+        if (event['op'] != 'HMR' or event['status'] != 'supported'
+                or depths[at] or event.get('condition') or event['bits'][0] not in private):
             continue
+        outcome, wire = event['bits'][0], event['wires'][0]
         references = bit_uses[outcome]
-        index = bisect_left(references, after-1)
+        index = bisect_left(references, at)
         if index + 1 >= len(references):
             continue
         repair_at = references[index+1]
         if index + 2 < len(references):
-            overwrite = items[references[index+2]]
+            next_use = references[index+2]
+            overwrite = items[next_use]
             if (overwrite['op'] not in {'HMR', 'BIT_STORE0', 'BIT_STORE1'} or overwrite['condition']
-                    or outcome not in overwrite['bits']):
+                    or depths[next_use] or outcome not in overwrite['bits']):
                 continue
-        repair = items[repair_at]
-        if (repair['status'] != 'supported' or repair['op'] != 'CZ' or repair['condition'] != outcome
-                or sorted(repair['wires']) != record['controls']):
+        if depths[repair_at] or items[repair_at].get('condition') != outcome:
             continue
-        # The repair may prepare the saved operands after HMR. At the
-        # existing CZ, those wires are available for a reversible cleanup.
-        a, b = repair['wires']
-        edits[after-1] = None
-        edits[repair_at] = f'CCX q{a} q{b} q{record["wire"]}'
-        matched.append(dict(record, phase_repair=repair_at))
+        replacement = _repair_toggle(lines, items, repair_at, wire, circuit.num_qubits, proof_limits)
+        if replacement is None:
+            continue
+        stop, gates = replacement
+        # Keep the original measured value intact until the reversible erase.
+        # The repair itself may use the erased wire as zero scratch.
+        if any(wire in item['wires'] for item in items[at+1:repair_at]):
+            continue
+        edits[at] = None
+        edits[repair_at] = '\n'.join(gates)
+        for removed in range(repair_at+1, stop):
+            edits[removed] = None
+        matched.append(dict(measurement=at, wire=wire, outcome=outcome, phase_repair=repair_at,
+                            phase_repair_stop=stop))
     if not matched:
         first = next((i for i, item in enumerate(items)
                       if item['status'] != 'metadata' and (
@@ -166,13 +253,19 @@ def measured_value_surrogate(circuit, clean_inputs, internal_bits, proof_limits,
                           instruction=lines[first] if first is not None else None,
                           reason='no certified private HMR with matching live controls and conditioned CZ')
     body = [edits.get(i, line) for i, line in enumerate(lines)]
-    body = [line for line in body if line is not None]
+    body = [entry for line in body if line is not None for entry in line.splitlines()]
+    inspected, _ = split_external_diagonals(body) if verify is not None else (body, [])
     if any((item := _parse(line))['status'] != 'metadata' and (
             item.get('condition') or item['op'] in {'HMR', 'PUSH_CONDITION', 'POP_CONDITION'}
-            or item['op'].startswith('BIT_')) for line in body):
+            or item['op'].startswith('BIT_')) for line in inspected):
         return None, dict(status='not_applicable', reason='unmatched classical operation remains after HMR normalization',
                           matched=matched)
     candidate = km.Circuit('\n'.join(body))
+    if candidate.num_qubits < circuit.num_qubits:
+        from .restructure import _boundary_metadata
+        current = _boundary_metadata(candidate)
+        extra = _boundary_metadata(candidate, circuit.num_qubits-1)[len(current):]
+        candidate = km.Circuit('\n'.join(body + extra))
     if verify is None:
         proof = equivalent_independent_outputs(lines, body, clean_inputs=clean_inputs, internal_bits=internal_bits,
             max_operations=proof_limits['max_operations'], max_variables=proof_limits['max_variables'],

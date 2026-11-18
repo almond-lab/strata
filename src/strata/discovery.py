@@ -693,10 +693,12 @@ def _stream_clean_restoration(lines, clean, max_facts):
 
 
 def evaluate_candidate(original_path, candidate_path, out, *, cost=DEFAULT_COST,
-                       hypothesis=None, regions=None, max_window=256,
+                       hypothesis=None, regions=None, max_window=None,
                        max_variables=64, max_terms=4096, domain=None, clean_inputs=(), max_proof_attempts=64,
                        measurement_mode='coupled', internal_bits=(), accounting='static', external_distribution=None,
                        max_proof_operations=None):
+    if max_window is None:
+        max_window = 1024 if measurement_mode == 'independent-map' else 256
     with ExitStack() as tapes:
         return _evaluate_candidate(original_path, candidate_path, out, cost=cost,
             hypothesis=hypothesis, regions=regions, max_window=max_window if max_proof_operations is None else max_proof_operations,
@@ -914,6 +916,9 @@ def _evaluate_candidate(original_path, candidate_path, out, *, cost, hypothesis,
             report['checks']['measurement_obligation'] = (
                 'Coupled proof requires matching measurement events. Use independent-map with '
                 'the outcome bits declared private when only public values and phase are observable.')
+    if report['status'] == 'unknown' and ('operation_budget' in (reason or '') or max(len(old), len(new)) > max_window):
+        report['checks']['proof_budget_hint'] = dict(option='--max-proof-operations',
+            current=max_window, whole_boundary_operations=max(len(old), len(new)))
     report['accepted_gain'] = max(0.0, -report['cost_delta']) if report['checks']['equivalent'] is True else None
     report['cost_delta_scope'] = 'measured diagnostic; no candidate saving is accepted before exact equivalence'
     report['feedback'] = _feedback(report)

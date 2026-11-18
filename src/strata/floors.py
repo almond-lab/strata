@@ -332,6 +332,32 @@ def exact_minimum_on_rows(input_rows,output_rows,*,max_and=3,timeout=1.0,max_sta
                           witness_encoding='bit 0 is constant 1, then boundary inputs, then preceding AND results')
             verify_minimum_witness(report,input_rows,output_rows)
         return report
+    if max_and >= 4:
+        # Compact the available affine basis without changing the XOR/AND
+        # model. The emitted witness is decoded on the original input columns.
+        from .and_sat import solve_and_count
+        from importlib.util import find_spec
+        if find_spec('pysat') is not None:
+            basis_columns = [available[0]]
+            basis = _basis(basis_columns)
+            for column in available[1:]:
+                if not _inside(column, basis):
+                    basis_columns.append(column)
+                    basis = _basis((*basis, column))
+            sat_trials = []
+            for depth in range(lower, max_and+1):
+                status, witness, clauses = solve_and_count(basis_columns, targets, len(input_rows), depth,
+                    deadline=start+timeout, clause_limit=min(max_expansions, 2_000_000),
+                    conflict_limit=min(max_states, max_expansions))
+                sat_trials.append(dict(depth=depth, status=status, clauses=clauses))
+                if status == 'sat':
+                    return dict(receipt('exact_small',depth,'minimum in exact care-row SAT search',depth,witness),
+                                backend='sat', sat_trials=sat_trials)
+                if status != 'unsat':
+                    return dict(receipt('unknown',None,status,depth-1), backend='sat', sat_trials=sat_trials)
+                lower = depth+1
+            return dict(receipt('unknown',None,'no construction within AND count bound; minimum not established',max_and),
+                        backend='sat', sat_trials=sat_trials)
     for depth in range(max_and+1):
         for basis,witness in frontier.items():
             if monotonic()-start>timeout:

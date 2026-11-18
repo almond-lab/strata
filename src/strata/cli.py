@@ -112,7 +112,7 @@ def main(argv=None):
             p.add_argument('--growth-window',type=int,default=None,
                            help='streaming window cap; defaults to explicit --max-window, otherwise 8192')
             p.add_argument('--quiet-progress',action='store_true')
-        p.add_argument('--max-window',type=int,default=None if name in {'discover','inspect-file'} else 256)
+        p.add_argument('--max-window',type=int,default=None if name in {'discover','inspect-file','evaluate-file'} else 256)
         p.add_argument('--max-variables',type=int,default=64)
         p.add_argument('--max-terms',type=int,default=4096)
         p.add_argument('--cost',default='Q*(toffoli+t/4)')
@@ -131,6 +131,8 @@ def main(argv=None):
         p.add_argument('--max-orders', type=int, help='algebraic factor order cap')
         p.add_argument('--max-partitions', type=int, help='consumer decomposition partition cap')
         p.add_argument('--max-assignments',type=int,default=65536,help='finite-domain construction row budget')
+        p.add_argument('--max-table-cells',type=int,default=2097152,help='promised table allocation budget')
+        p.add_argument('--max-address-bits',type=int,default=12,help='maximum cofactor completion address size')
         p.add_argument('--clean-inputs',default='');p.add_argument('--cost',default='Q*(toffoli+t/4)')
         p.add_argument('--internal-bits',default='',help='existing classical outputs explicitly private at the complete search boundary')
         p.add_argument('--rounds',type=int,default=2);p.add_argument('--beam',type=int,default=4)
@@ -315,6 +317,7 @@ def main(argv=None):
                 accounting=args.accounting,external_distribution=json.loads(Path(args.external_distribution).read_text()) if args.external_distribution else None,
                 deep_only=args.deep_only or args.cmd=='search',internal_bits=_bit_list(args.internal_bits),
                 domain=args.domain,domain_at_cut=args.domain_at_cut,max_assignments=args.max_assignments,
+                max_table_cells=args.max_table_cells,max_address_bits=args.max_address_bits,
                 factor_options={key: value for key, value in dict(timeout=args.factor_timeout,
                     max_factor_steps=args.max_factor_steps,max_factor_nodes=args.max_factor_nodes,
                     max_orders=args.max_orders,max_partitions=args.max_partitions).items() if value is not None},
@@ -351,6 +354,7 @@ max_and=args.max_and,joint_timeout=args.joint_timeout,
                 from .discovery import discovery_brief
                 result=discovery_brief(args.input,args.out,**options)
             elif args.cmd=='evaluate-file':
+                options['max_window'] = args.max_window
                 from .discovery import evaluate_candidate
                 hypothesis=json.loads(Path(args.hypothesis).read_text()) if args.hypothesis else None
                 regions=json.loads(Path(args.regions).read_text()) if args.regions else None

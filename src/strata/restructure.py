@@ -377,6 +377,33 @@ _SURROGATE_CONSTRUCTORS = {
 }
 
 
+def _lower_measured_finalists(candidate, private, context, verify):
+    from .lookup_structure import measured_cache_cleanup, terminal_cache_fusion
+
+    clean = tuple(q for q in context['clean_inputs'] if q < candidate.num_qubits)
+    fusion = terminal_cache_fusion(candidate, clean)
+    variants = [('terminal_fusion', km.Circuit(fusion['candidate']), set(private))] if fusion['status'] == 'constructed' else []
+    for label, intermediate, bits in [('', candidate, set(private)), *variants]:
+        fresh = max(context['classical_bit_offset'], intermediate.num_bits)
+        lowered = measured_cache_cleanup(intermediate, clean, fresh)
+        if lowered is not None:
+            variants.append((label + '+measured_erase' if label else 'measured_erase', lowered, bits | {fresh}))
+    objective = Formula(context['cost'])
+    resources = context['resource_measure']
+    cost = objective(resources(candidate))
+    evidence = []
+    variants = [(objective(resources(c)), label, c, bits) for label, c, bits in variants
+                if len(c) <= context['max_operations']]
+    for value, label, proposed, bits in sorted(variants, key=lambda row: row[0]):
+        if value >= cost:
+            continue
+        checked = verify(proposed, bits)
+        evidence.append(dict(lowering=label, cost=value, check=checked))
+        if checked.get('equivalent') is True:
+            return proposed, bits, checked, evidence
+    return candidate, private, None, evidence
+
+
 def default_registry():
     registry = ConstructorRegistry()
     registry.register('joint_boundary_synthesis',_joint_boundary,
@@ -528,7 +555,8 @@ def restructure_file(path, out, *, clean_inputs=(), cost='Q*(toffoli+t/4)',
                      search_seconds=None,trial_seconds=None,cancel_file=None,_deadline=None,max_finalists=24,
                      goal='discoveries',max_architectures=1024,domain=None,max_assignments=65536,
                      max_and=3,joint_timeout=None,joint_max_states=10000,joint_max_expansions=100000,
-                     factor_options=None,domain_at_cut=False):
+                     factor_options=None,domain_at_cut=False,max_table_cells=2097152,max_address_bits=12,
+                     _preserve_clean_outputs=True):
     """Construct and verify complete-boundary candidates; preserve every outcome.
 
     The connected skill invents further mechanisms when bounded constructors
@@ -578,12 +606,15 @@ def restructure_file(path, out, *, clean_inputs=(), cost='Q*(toffoli+t/4)',
     clean=tuple(sorted(set(clean_inputs)))
     if any(type(q)is not int or not 0<=q<circuit.num_qubits for q in clean):
         raise StrataError('clean inputs must be physical wires of the supplied circuit; use width for an explicit larger parent layout')
+    if any(type(n) is not int or n < 1 for n in (max_table_cells, max_address_bits)):
+        raise StrataError('table cell and address-bit budgets must be positive integers')
+    required_zero_outputs = clean if _preserve_clean_outputs else ()
     promise=None
     if domain is not None and not domain_at_cut:
         if scan_range is not None or len(circuit)>max_operations:
             raise StrataError('a search promise applies at artifact entry; use --domain-at-cut with an explicit range or increase --max-operations')
         from .promised_domain import load_search_domain, check_promised_candidate, promised_domain_synthesis
-        promise=load_search_domain(domain,circuit,clean_inputs=clean,max_assignments=max_assignments,max_operations=max_operations)
+        promise=load_search_domain(domain,circuit,clean_inputs=clean,max_assignments=max_assignments,max_operations=max_operations,max_table_cells=max_table_cells)
     if scan_range is not None or len(circuit)>max_operations:
         from .episode_search import restructure_episode, restructure_regions
         options=dict(clean_inputs=clean,cost=cost,registry=registry,rounds=rounds,beam=beam,
@@ -596,7 +627,8 @@ def restructure_file(path, out, *, clean_inputs=(), cost='Q*(toffoli+t/4)',
                        joint_max_states=joint_max_states,joint_max_expansions=joint_max_expansions, factor_options=factor_options)
         if scan_range is not None:
             return restructure_episode(source,circuit,root,scan_range=scan_range,range_unit=range_unit,
-                                       domain=domain if domain_at_cut else None, max_assignments=max_assignments, **options)
+                                       domain=domain if domain_at_cut else None, max_assignments=max_assignments,
+                                       max_table_cells=max_table_cells,max_address_bits=max_address_bits,**options)
         return restructure_regions(source,circuit,root,**options)
     from .accounting import measured_resources
     measure=_resource_measure or (lambda c:measured_resources(c,accounting=accounting,external_distribution=external_distribution))
@@ -615,7 +647,12 @@ def restructure_file(path, out, *, clean_inputs=(), cost='Q*(toffoli+t/4)',
             'architecture_portfolio','affine_transport_factorization','fractional_observable_search','terminal_lookup_fusion'}]
     if promise is not None:
         def construct_on_promise(parent, context):
-            return promised_domain_synthesis(parent,promise,max_assignments=max_assignments,
+            declaration = promise
+            if parent is not circuit and promise['type'] == 'finite':
+                declaration = dict(type='finite', assignments=promise['assignments'])
+            return promised_domain_synthesis(parent, declaration, max_assignments=max_assignments,
+                max_table_cells=max_table_cells, max_address_bits=max_address_bits,
+                required_zero_outputs=required_zero_outputs,
                 try_joint=True, internal_bits=context['internal_bits'], classical_bit_offset=context['classical_bit_offset'],
                 **_joint_options(context), **_structural_options(context))
         constructors=[Construction('promised_domain_synthesis',construct_on_promise,'Synthesize on the complete declared input promise')]
@@ -636,7 +673,8 @@ def restructure_file(path, out, *, clean_inputs=(), cost='Q*(toffoli+t/4)',
     def verify(parent,candidate,private_bits):
         if promise is not None:
             return check_promised_candidate(circuit,candidate,promise,clean_inputs=clean,max_assignments=max_assignments,
-                internal_bits=private_bits,measurement_mode='independent-map' if private_bits else 'coupled',**limits)
+                internal_bits=private_bits,measurement_mode='independent-map' if private_bits else 'coupled',
+                required_zero_outputs=required_zero_outputs,max_table_cells=max_table_cells,**limits)
         return _check(parent,candidate,clean,limits,internal_bits=private_bits)
     for generation in range(rounds):
         following=[]
@@ -732,9 +770,17 @@ def restructure_file(path, out, *, clean_inputs=(), cost='Q*(toffoli+t/4)',
                                 not context['classical_bit_offset']<=b<candidate.num_bits for b in introduced)):
                             raise StrataError('constructor private bits collide with an existing parent bit or lie outside candidate')
                         child_private=set(parent_state['private_bits'])|set(introduced)
+                        lowering_check = None
+                        if trial_parent is not parent and not stop_reason(deadline,cancel_file):
+                            candidate, child_private, lowering_check, variants = _lower_measured_finalists(
+                                candidate, child_private, context, lambda c, bits: verify(parent,c,bits))
+                            if variants:
+                                attempt['native_lowering_trials'] = variants
                         proof_key=(parent_state['id'],hashlib.sha256(str(candidate).encode()).digest(),
                                    tuple(sorted(child_private)))
-                        if fast and proof_key in checked:
+                        if lowering_check is not None:
+                            check = lowering_check
+                        elif fast and proof_key in checked:
                             check=checked[proof_key]
                             proof_reuses+=1
                         else:
@@ -770,11 +816,15 @@ def restructure_file(path, out, *, clean_inputs=(), cost='Q*(toffoli+t/4)',
                                     if not kind:continue
                                     alt=km.Circuit(alternative['candidate'])
                                     if len(alt)>max_operations:continue
-                                    key=hashlib.sha256(str(alt).encode()).hexdigest()
                                     bits=alternative.get('introduced_private_bits',[])
                                     if not isinstance(bits,(list,tuple)):continue
                                     if any(type(b)is not int or not context['classical_bit_offset']<=b<alt.num_bits for b in bits):continue
                                     alt_private=set(parent_state['private_bits'])|set(bits)
+                                    proof = None
+                                    if trial_parent is not parent:
+                                        alt, alt_private, proof, _ = _lower_measured_finalists(
+                                            alt, alt_private, context, lambda c, bits: verify(parent,c,bits))
+                                    key=hashlib.sha256(str(alt).encode()).hexdigest()
                                     if key in by_id:
                                         known=by_id[key]
                                         if known['cost'] < baseline['cost'] and set(known['private_bits'])==alt_private:
@@ -784,7 +834,7 @@ def restructure_file(path, out, *, clean_inputs=(), cost='Q*(toffoli+t/4)',
                                         continue
                                     if formula(measure(alt))>=baseline['cost']:continue
                                     extra_finalists+=1
-                                    proof=verify(parent,alt,alt_private)
+                                    proof=proof or verify(parent,alt,alt_private)
                                     if proof.get('equivalent') is not True:continue
                                     finalist=state(alt,parent_state['id'],constructor.name,alt_private)
                                     finalist['check']=proof
@@ -842,7 +892,8 @@ def restructure_file(path, out, *, clean_inputs=(), cost='Q*(toffoli+t/4)',
                              joint_max_expansions=joint_max_expansions,factor_options=factor_options,**limits))
     if promise is not None:
         result['contract'].update(domain=promise,domain_hash=promise['domain_hash'],all_input_equivalence=False,
-            outputs='all physical quantum and public classical outputs, clean restoration and phase on the declared promise')
+            outputs='all physical quantum and public classical outputs and phase on the declared promise',
+            required_zero_outputs=required_zero_outputs)
         result['search_goal']='verified_alternatives_on_declared_input_domain'
     elif has_fractional_phase(circuit):
         result['contract']['outputs']='all physical values and phase modulo one turn on the declared clean boundary'
@@ -860,6 +911,12 @@ def restructure_file(path, out, *, clean_inputs=(), cost='Q*(toffoli+t/4)',
     result['discovery_yield'].update(extra_finalists_checked=extra_finalists,max_extra_finalists=max_finalists,
                                      goal=goal,max_architectures_per_portfolio=max_architectures)
     result['discovery_yield']['constructor_comparison'] = constructor_comparison(attempts, baseline['cost'])
+    if promise is not None:
+        result['discovery_yield']['domain_formulations'] = [
+            dict(parent=attempt['parent'], formulation=trial['completion'], status=trial['status'],
+                 reason=trial.get('reason'), cost=trial.get('cost'))
+            for attempt in attempts for trial in attempt.get('construction', {}).get('trials', ())
+        ]
     result['discovery_yield']['architecture_trials'] = [
         dict(parent=attempt['parent'], **{key:ledger[key] for key in (
             'proposed_attempts','unique_formulations','unique_representations','unique_product_graphs',
@@ -878,7 +935,7 @@ def restructure_file(path, out, *, clean_inputs=(), cost='Q*(toffoli+t/4)',
                             'functional_decomposition.py','output_basis_search.py','observable_search.py','symbolic_boolean_graph.py',
                             'mixed_observable.py','search_screen.py','search_worker.py','architecture_portfolio.py','discovery_yield.py',
                             'affine_transport.py','fractional_observable.py','fractional_equivalence.py','promised_domain.py',
-                            'promised_synthesis.py','lookup_structure.py')}
+                            'promised_synthesis.py','lookup_structure.py','and_sat.py')}
         result['mechanism_archive_blob']=store.blob(memory_path.read_bytes())
         result['record']=store.put('restructure_run',result)
     finally:

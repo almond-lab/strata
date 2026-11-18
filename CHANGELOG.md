@@ -1,5 +1,22 @@
 # Change log
 
+## 0.5.2 — 2026-11-18
+
+- Preserve the finite input binding when replaying a cut candidate in its
+  parent. Producer cuts can leave declared-clean inputs holding live outputs.
+- Use active wires and independent care-row columns for proposal budgets.
+  Search exposes `--max-table-cells` and `--max-address-bits`.
+- Use bounded SAT for exact joint searches requesting at least four ANDs.
+  Replay each SAT witness and retain the per-depth solver receipts.
+- Recover reversible proposal models for cancelling carry offsets, proved
+  scoped phase repairs, and preserved externally controlled diagonal phases.
+  Price measured cleanup and terminal-product variants against the measured source.
+- Try ordered in-place updates under an explicit promise and report the
+  limitation when the available formulations cannot represent the map.
+- Verify candidates that omit trailing proved-clean scratch under a domain.
+  Price the emitted width. Independent-map evaluation defaults to 1,024
+  proof operations and reports how to raise the limit when needed.
+
 ## 0.5.1 — 2026-11-18
 
 - Bind a complete domain directly to an explicit episode with

@@ -493,7 +493,7 @@ def _independent_maps(before, after, bound, width, evidence, *, internal_bits,
 def equivalent_on_domain(original, candidate, domain, *, from_at=0, at=None,
                          max_assignments=65536, max_outcomes=1024, max_operations=10000,
                          measurement_mode='coupled', internal_bits=(), max_trajectories=1000000,
-                         required_zero_outputs=()):
+                         required_zero_outputs=(), omitted_clean_wires=()):
     """Check every complete promised assignment with explicit HMR semantics.
 
     Equal physical width, full outputs, exact sign, and all classical outputs
@@ -537,7 +537,10 @@ def equivalent_on_domain(original, candidate, domain, *, from_at=0, at=None,
                     from_at=from_at, at=stop, outputs='all physical quantum and classical outputs; exact sign phase',
                     semantic_scope='finite native outcome-parametric basis trajectories; not a general quantum-channel proof',
                     evidence='independent_exhaustive_basis_sign_interpreter')
-    if candidate.num_qubits != original.num_qubits:
+    missing = set(range(candidate.num_qubits, original.num_qubits))
+    omitted = set(omitted_clean_wires)
+    if (candidate.num_qubits > original.num_qubits or missing != omitted
+            or any(row[f'q{q}'] for row in bound['assignments'] for q in omitted)):
         return dict(evidence, status='unknown', equivalent=None, reason='physical_boundary_layout_mismatch',
                     layout_scope='finite-domain checker requires equal physical width; no omitted public outputs or clean-layout mapping is inferred')
     if measurement_mode == 'independent-map':

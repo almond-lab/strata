@@ -208,7 +208,7 @@ def _episode_private_bits(body, suffix, declared):
 def restructure_episode(source, circuit, out, *, scan_range, range_unit,
                         clean_inputs, cost, accounting='static',external_distribution=None,internal_bits=(),
                         _parent_catalog=None, _parent_design_dir=None, _region_index=None, _localization=None,
-                        domain=None, max_assignments=65536, **options):
+                        domain=None, max_assignments=65536, max_table_cells=2097152, max_address_bits=12, **options):
     from .restructure import restructure_file, _check
     import re
     root = Path(out); root.mkdir(parents=True, exist_ok=True)
@@ -253,7 +253,8 @@ def restructure_episode(source, circuit, out, *, scan_range, range_unit,
                            cost=cost, width=circuit.num_qubits,accounting=accounting,
                            external_distribution=external_distribution,_resource_measure=price_in_parent,
                            internal_bits=local_private,_classical_bit_offset=circuit.num_bits,
-                           domain=domain,max_assignments=max_assignments,**options)
+                           domain=domain,max_assignments=max_assignments,max_table_cells=max_table_cells,
+                           max_address_bits=max_address_bits,_preserve_clean_outputs=domain is None,**options)
     from .discovery_yield import design_key
     from .restructure import _boundary_metadata
     from .search_screen import stop_reason
@@ -322,9 +323,15 @@ def restructure_episode(source, circuit, out, *, scan_range, range_unit,
                 check = _check(contract,parent_layout(changed),clean_at_cut,limits,internal_bits=private)
             else:
                 from .promised_domain import check_promised_candidate
-                check = check_promised_candidate(contract, parent_layout(changed), run['contract']['domain'],
+                # Proof coordinates and alias bindings come from the actual
+                # extracted baseline. The added register metadata is compile-time.
+                domain_source = km.Circuit.from_file(run['baseline']['path'])
+                local_limits = dict(limits, max_operations=max(limits['max_operations'],
+                                          *[len(str(c).splitlines()) for c in (domain_source, proposed)]))
+                check = check_promised_candidate(domain_source, proposed, run['contract']['domain'],
                     clean_inputs=clean_at_cut, max_assignments=max_assignments, internal_bits=private,
-                    measurement_mode='independent-map' if private else 'coupled', **limits)
+                    max_table_cells=max_table_cells, required_zero_outputs=(),
+                    measurement_mode='independent-map' if private else 'coupled', **local_limits)
                 contextual.update(domain_hash=check['domain_hash'], host_reachability_verified=False)
             row.update(check=check,contextual_proof=contextual,private_bits=private)
             if not layout_valid or check.get('equivalent') is not True:

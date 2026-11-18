@@ -4,7 +4,9 @@ import hashlib
 import json
 from pathlib import Path
 
-from .domains import equivalent_on_domain, load_domain, window_lines, WindowLimit
+import kickmix as km
+
+from .domains import _classical_boundary, equivalent_on_domain, load_domain, window_lines, WindowLimit
 from .factored import DecisionBudget, DecisionDAG
 from .factored_semantic import _parsed, _execute
 from .model import StrataError, digest
@@ -99,7 +101,8 @@ def load_search_domain(domain, circuit, *, clean_inputs=(), max_assignments=6553
             spec.get('value_dependency_proof') or
             spec.get('scope', 'finite_promised_boundary_assignments') != 'finite_promised_boundary_assignments'):
         raise StrataError('discovery requires a complete finite input promise')
-    width = circuit.num_qubits + circuit.num_bits
+    lines, _ = window_lines(circuit, max_lines=max_operations)
+    width = circuit.num_qubits + len(_classical_boundary(lines))
     row_budget = min(max_assignments, max_table_cells // max(1, width))
     if not row_budget:
         raise StrataError('finite domain physical size exceeds table-cell budget')
@@ -140,7 +143,7 @@ def _address_root(dag, bound):
     return trie(len(wires)-1, 0, len(values), 0)
 
 
-def _compact_check(original, candidate, bound, clean, mode, private, limits, evidence):
+def _compact_check(original, candidate, bound, clean, required_zero, mode, private, limits, evidence):
     try:
         left, right = [_parsed(window_lines(c, max_lines=limits['max_operations'])[0], limits)
                        for c in (original, candidate)]
@@ -167,7 +170,7 @@ def _compact_check(original, candidate, bound, clean, mode, private, limits, evi
             values = {f'q{q}': result['state'].get(q, 0 if q in clean else dag.variable(q)) for q in wires}
             values.update({b: result['classical'].get(b, dag.variable(b)) for b in bits if b not in private})
             values['phase'] = result['phase']
-            for q in clean & wires:
+            for q in required_zero & wires:
                 leaked = dag.product(care, values[f'q{q}'])
                 if leaked:
                     return dict(evidence, status='different', equivalent=False, side=side,
@@ -222,10 +225,24 @@ def _canonical_hash(circuit):
     return result.hexdigest()
 
 
+def _active_classical_bits(circuit):
+    from .semantic import _parse
+
+    active = set()
+    with native_lines(circuit) as lines:
+        for line in lines:
+            item = _parse(line)
+            active.update(item.get('bits', ()))
+            if item.get('condition'):
+                active.add(item['condition'])
+    return {int(bit[1:]) for bit in active}
+
+
 def check_promised_candidate(original, candidate, domain, *, clean_inputs=(), max_operations=10000,
                              max_assignments=65536, max_variables=128, max_terms=65536,
                              max_product_terms=65536, measurement_mode='coupled', internal_bits=(),
-                             max_outcomes=1024, max_trajectories=1000000, max_table_cells=2097152):
+                             max_outcomes=1024, max_trajectories=1000000, max_table_cells=2097152,
+                             required_zero_outputs=None):
     """Independently check the full physical output, ordered registers, public bits and exact sign.
 
     Compact domains use a symbolic care mask with universal arbitrary inputs.
@@ -235,6 +252,7 @@ def check_promised_candidate(original, candidate, domain, *, clean_inputs=(), ma
                   max_product_terms=max_product_terms)
     _limits(**limits, max_outcomes=max_outcomes, max_trajectories=max_trajectories)
     clean = set(_wires(list(clean_inputs), original.num_qubits))
+    required_zero = clean if required_zero_outputs is None else set(_wires(list(required_zero_outputs), original.num_qubits))
     bound = load_search_domain(domain, original, clean_inputs=clean, max_assignments=max_assignments,
                                max_operations=max_operations, max_table_cells=max_table_cells)
     private = set(internal_bits)
@@ -249,23 +267,31 @@ def check_promised_candidate(original, candidate, domain, *, clean_inputs=(), ma
                     original_hash=_canonical_hash(original), candidate_hash=_canonical_hash(candidate),
                     all_input_equivalence=False, host_promise_proven=False,
                     outputs='all physical quantum outputs, public classical outputs, exact sign phase')
-    if original.num_qubits != candidate.num_qubits or any(bit not in private for bit in
-            range(min(original.num_bits, candidate.num_bits), max(original.num_bits,candidate.num_bits))):
+    missing = set(range(candidate.num_qubits, original.num_qubits))
+    active_overflow = set()
+    if original.num_bits != candidate.num_bits:
+        first_unmatched = min(original.num_bits, candidate.num_bits)
+        active_overflow = {b for c in (original, candidate) for b in _active_classical_bits(c)
+                           if b >= first_unmatched}
+    if candidate.num_qubits > original.num_qubits or missing - clean or active_overflow - private:
         return dict(evidence, status='unknown', equivalent=None, reason='physical_boundary_layout_mismatch')
-    if any(candidate.register_data.get(name) != members for name, members in original.register_data.items()):
-        return dict(evidence, status='different', equivalent=False, reason='public_named_register_binding_changed')
+    for name, members in original.register_data.items():
+        shared = [wire for wire in members if not isinstance(wire, km.q) or wire.id not in missing]
+        if list(candidate.register_data.get(name, ())) != shared:
+            return dict(evidence, status='different', equivalent=False, reason='public_named_register_binding_changed')
+    evidence.update(omitted_trailing_clean_wires=sorted(missing), required_zero_outputs=sorted(required_zero))
     if bound['type'] == 'address_promise':
         evidence.update(address_count=bound['address_count'], arbitrary_wires=bound['arbitrary_wires'],
                         classical_input_scope='all boundary classical inputs arbitrary',
                         evidence='complete_symbolic_basis_sign_difference_under_address_predicate')
-        return _compact_check(original, candidate, bound, clean, measurement_mode, private_names, limits, evidence)
+        return _compact_check(original, candidate, bound, clean, required_zero, measurement_mode, private_names, limits, evidence)
     if measurement_mode == 'coupled':
         with native_lines(original) as lines:
             event_count = sum(line.startswith('HMR ') for line in lines)
         if (1 << event_count) * bound['assignment_count'] > max_trajectories:
             return dict(evidence, status='unknown', equivalent=None, reason='measurement_trajectory_budget')
     check = equivalent_on_domain(original, candidate, bound, max_assignments=max_assignments, max_operations=max_operations,
-                                 measurement_mode=measurement_mode, internal_bits=private, required_zero_outputs=clean,
+                                 measurement_mode=measurement_mode, internal_bits=private, required_zero_outputs=required_zero, omitted_clean_wires=missing,
                                  max_outcomes=max_outcomes, max_trajectories=max_trajectories)
     return dict(evidence, **{k:v for k,v in check.items() if k not in ('original_hash','candidate_hash')},
                 **({} if 'clean_outputs_restored' in check or not check.get('equivalent') else {'clean_outputs_restored': True}))

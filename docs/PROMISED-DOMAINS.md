@@ -61,3 +61,19 @@ require other constructors. The independent-map check covers exact native
 basis/sign semantics.
 
 A regression fixture uses 1,220 legal 11-bit addresses, 40 arbitrary dirty bits, one clean work bit and a public classical output. Its source spends 42 Toffoli-like gates on a multi-output lookup with sign. Completion uses one. The checker covers all `1220 * 2^40` promised quantum inputs and all external classical inputs. This is a synthetic circuit result.
+
+
+## Search scope in v0.5.2
+
+A clean input can hold a live output at an explicit interior cut. The proof
+compares that output with the baseline before the unchanged suffix runs.
+Whole-artifact promises still require declared clean wires to return to zero.
+The evaluator can embed a narrower emitted candidate when the omitted trailing
+wires are declared clean and the source returns those wires to zero.
+
+Search prices reachable care rows using the wires the episode actually touches.
+It factors independent boundary columns first and tries ordered in-place
+updates where the output overwrites an input. General in-place synthesis remains
+bounded. Increase the table or cofactor limits with `--max-table-cells` and
+`--max-address-bits`. Requests of `--max-and 4` or more can use a bounded SAT
+search that verifies the resulting XOR/AND witness on the declared care rows.

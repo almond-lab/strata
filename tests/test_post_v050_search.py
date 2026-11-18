@@ -72,7 +72,9 @@ def test_wrong_phase_repair_is_never_normalized(tmp_path):
     source.write_text(stored_terminal('HMR q4 b0\nCZ q0 q2 if b0'))
     report = restructure_file(source, tmp_path / 'out', clean_inputs=(4,5), internal_bits=(0,),
                               cost='toffoli', deep_only=True, fast=True, rounds=1)
-    assert report['measurement_reductions'][report['baseline']['id']]['status'] == 'not_applicable'
+    failed = report['measurement_reductions'][report['baseline']['id']]
+    assert failed['status'] != 'verified'
+    assert failed['proof']['reason'] == 'public_value_or_phase_depends_on_outcomes'
     assert report['status'] == 'no_gain'
 
 
