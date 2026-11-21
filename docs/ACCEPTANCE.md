@@ -1,4 +1,6 @@
-# Acceptance ledger — v0.5.0
+# Acceptance ledger
+
+The [0.6.1 generator example](GENERATOR-WORKFLOW.md) checks two explicit GF(4) algorithms on every two-bit input and accumulator. The measured saving belongs to this stage. The earlier capability and competition milestones below retain their individual evidence requirements.
 
 Implemented APIs and passing fixtures do not establish historical competition
 acceptance. This ledger records the distinction; detailed issue-by-issue scope

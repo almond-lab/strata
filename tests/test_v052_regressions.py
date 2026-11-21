@@ -78,7 +78,8 @@ def test_sat_proves_and_replays_four_and_minimum():
                                    max_states=500000, max_expansions=500000)
     assert result['backend'] == 'sat'
     assert result['kind'] == 'exact_small' and result['value'] == 4
-    assert [(trial['depth'],trial['status']) for trial in result['sat_trials']] == [(3,'unsat'),(4,'sat')]
+    assert result['structural_lower_bounds']['quadratic_quotient'] == 4
+    assert [(trial['depth'],trial['status']) for trial in result['sat_trials']] == [(4,'sat')]
     assert verify_minimum_witness(result,rows,targets)['status'] == 'verified'
 
 

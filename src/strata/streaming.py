@@ -37,15 +37,13 @@ def native_lines(circuit):
         with io.StringIO(circuit) as f:
             yield f
         return
-    with tempfile.TemporaryFile(mode='w+b') as f:
-        circuit.to_file(f, format='kmx')
-        f.seek(0)
-        import io
-        wrapper = io.TextIOWrapper(f, encoding='utf-8')
-        try:
-            yield wrapper
-        finally:
-            wrapper.detach()
+    # Kickmix 1.0.0 retains a duplicate descriptor for file-object output.
+    # Use its path API so repeated probes release the native file promptly.
+    with tempfile.TemporaryDirectory(prefix='strata-lines-') as directory:
+        path = Path(directory) / 'circuit.kmx'
+        circuit.to_file(str(path), format='kmx')
+        with path.open(encoding='utf-8') as stream:
+            yield stream
 
 
 def canonical_kernel(lines):

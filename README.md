@@ -1,30 +1,24 @@
 # Strata
 
-**Contract-driven circuit restructuring on kickmix.** Version 0.5
-adds automatic joint-function factorization, consumer-derived intermediate
-values, input and output encodings, direct phase synthesis and reversible
-storage/cleanup search. Read the [v0.5 design and acceptance gates](docs/V0.5-DISCOVERY.md)
-and the [latest v0.5.2 release](https://github.com/almond-lab/strata/releases/tag/v0.5.2).
-Search also supports [declared input domains](docs/PROMISED-DOMAINS.md) and
-[exact fractional phase endpoints](docs/FRACTIONAL-OBSERVABLES.md). Strata 0.4 added an experiment
-workflow for existing scripts, sweeps, shared job ownership and structured agent
-feedback. Its circuit layer recovers bounded
-semantic functions and effects, constructs candidates through generic mechanisms,
-and retains checked alternatives and reusable transformations. The connected agent
-uses its evidence to propose further structural changes. Automatic understanding of a
-supplied circuit is a required core capability; broad arithmetic-stage recovery
-and the historical discovery benchmarks remain incomplete.
+Strata helps you redesign one stage of a circuit generator and check whether the new algorithm pays for itself. Start with the source function, its caller and the mathematical result the caller needs. Kickmix runs each emitted circuit. Strata checks the boundary on a tiny instance, helps price the alternatives, and retains evidence for scaling, verification and replay.
 
-The [product specification](docs/SPECIFICATION.md) is preserved verbatim.
-The [acceptance ledger](docs/ACCEPTANCE.md) separates implemented APIs from
-unmet research milestones. See [v0.4.2 fixes](docs/POST-0.4.1-FIXES.md),
-[v0.4.1 fixes](docs/V0.4.1-FIXES.md),
-[v0.3.1 fixes](docs/V0.3.1-FIXES.md),
-[v0.3 issue coverage](docs/V0.3-ISSUES.md) and
-[release changes](CHANGELOG.md).
+## Compare two generator designs
+
+From a source checkout with a compatible Kickmix wheel available:
+
+```sh
+python3.14 -m venv .venv
+.venv/bin/python -m pip install -e '.[test]'
+.venv/bin/python -m strata.examples.field_product
+```
+
+The [example source](src/strata/examples/field_product.py) implements the same GF(4) multiply-accumulate stage with schoolbook and Karatsuba multiplication. Each preserves the two inputs and works for every incoming accumulator. The exact check covers 64 cases per algorithm. At six qubits the generators use four and three Toffolis respectively. This measures the example stage.
+
+For your own generator, [follow one stage from source to a verified candidate](docs/GENERATOR-WORKFLOW.md). Include the cost of any new representation, its consumer and the return path before projecting a score gain. For a runnable end-to-end project with a verifier and replay, see the [structural example](#original-structural-example). For work starting from compiled bytes, see [circuit-file analysis and optimization](#circuit-file-analysis-and-optimization).
 
 ## Documentation
 
+- [Generator workflow](docs/GENERATOR-WORKFLOW.md) for a stage contract, a tiny exact check, and a complete cost estimate.
 - [Twenty submitted circuit episodes](benchmarks/v05-transfer/README.md) and [issue-by-issue fixes](docs/POST-0.4.2-FIXES.md).
 - [v0.5 automatic discovery](docs/V0.5-DISCOVERY.md): whole-function candidates, symbolic scaling, representation costs, measurement debts and release gates.
 - [v0.5 measurement semantics](docs/V0.5-MEASUREMENTS.md): outcome-aware costs and bounded exact verification.
@@ -46,15 +40,11 @@ unmet research milestones. See [v0.4.2 fixes](docs/POST-0.4.1-FIXES.md),
 - [Troubleshooting](docs/TROUBLESHOOTING.md), [first real targets](docs/FIRST-REAL-TARGETS.md), and [connected-agent trial](docs/CONNECTED-AGENT-TRIAL.md).
 - [Agent skill](skills/strata-research/SKILL.md): the repository's research workflow. It is not automatically installed globally.
 
-## Install and start with a file
+## Circuit-file analysis and optimization
 
-Requires Python 3.11+ with a compatible kickmix wheel. The checked environment
-uses Python 3.14 and kickmix distribution 1.0.0.
+Use this workflow for a compiled artifact or to investigate the output of a generator. After installing Strata as above, run:
 
 ```bash
-python3.14 -m venv .venv
-.venv/bin/python -m pip install -e '.[test]'
-.venv/bin/python -m pytest -q
 .venv/bin/strata inspect-file circuit.kmb --out work/inspection
 .venv/bin/strata discover circuit.kmb --out work/research
 .venv/bin/strata optimize circuit.kmb --out work/automatic --cost 'Q*(toffoli+t/4)'
@@ -75,6 +65,33 @@ For multi-output Boolean functions it can jointly change the input basis,
 output basis and nonlinear factorization. The discovery receipt reports priced
 and verified alternatives, their resource tradeoffs and, on small circuits,
 how many different sets of nonlinear functions those alternatives compute.
+
+## Earlier releases and capabilities
+
+The 0.6 release candidate adds exact screening for partial Boolean tables, affine control fitting with counterexamples, repair-cost bounds and carrier-width certificates at named cuts. See the [finite table guide](docs/finite_tables.md) and [carrier guide](docs/carrier_screen.md). Combine edits with a shared parent using the [patch composition guide](docs/patch-composition.md).
+
+**Contract-driven circuit restructuring on kickmix.** Version 0.5
+adds automatic joint-function factorization, consumer-derived intermediate
+values, input and output encodings, direct phase synthesis and reversible
+storage/cleanup search. Read the [v0.5 design and acceptance gates](docs/V0.5-DISCOVERY.md)
+and the [v0.5.2 release](https://github.com/almond-lab/strata/releases/tag/v0.5.2).
+Search also supports [declared input domains](docs/PROMISED-DOMAINS.md) and
+[exact fractional phase endpoints](docs/FRACTIONAL-OBSERVABLES.md). Strata 0.4 added an experiment
+workflow for existing scripts, sweeps, shared job ownership and structured agent
+feedback. Its circuit layer recovers bounded
+semantic functions and effects, constructs candidates through generic mechanisms,
+and retains checked alternatives and reusable transformations. The connected agent
+uses its evidence to propose further structural changes. Automatic understanding of a
+supplied circuit is a required core capability; broad arithmetic-stage recovery
+and the historical discovery benchmarks remain incomplete.
+
+The [product specification](docs/SPECIFICATION.md) is preserved verbatim.
+The [acceptance ledger](docs/ACCEPTANCE.md) separates implemented APIs from
+unmet research milestones. See [v0.4.2 fixes](docs/POST-0.4.1-FIXES.md),
+[v0.4.1 fixes](docs/V0.4.1-FIXES.md),
+[v0.3.1 fixes](docs/V0.3.1-FIXES.md),
+[v0.3 issue coverage](docs/V0.3-ISSUES.md) and
+[release changes](CHANGELOG.md).
 
 ## What 0.4 adds
 

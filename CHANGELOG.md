@@ -1,5 +1,24 @@
 # Change log
 
+## 0.6.1
+
+- Start generator research at one source entry point and its consumer. The README, getting-started guide, CLI help, research skill and agent packet now direct researchers to this workflow.
+- Run `python -m strata.examples.field_product` to compare two GF(4) multiplication algorithms against an independent exact reference. The generator guide explains how to test a third implementation and price a complete stage in its parent.
+
+## 0.6.0rc1
+
+- Derive finite-row quadratic quotient and polar-rank AND bounds. A bounded constructor searches a target span augmented by one helper and replays a construction when it reaches a proved minimum.
+
+- Expose the cheapest verified circuit state in search summaries even when it lacks a structural discovery qualification. Clarify that the exact joint time, state and expansion budgets are independent.
+
+- Screen Boolean candidates on packed finite care sets and return the first conflicting row. Fit an entire affine feature family or return a parity witness that excludes it.
+- Bound the AND gates needed to repair donor outputs and the affine carrier width needed to retain supplied helpers at a circuit cut.
+- Price a fully materialized product schedule alongside existing width-constrained schedules, with independently verified measured erasure.
+- Reconstruct multi-term private measurement corrections at their actual gates, including linear and bilinear repairs separated by reversible basis changes.
+- Keep each HMR-debt diagnostic with the degree that produced it. A successful witness now drops the failed lower-degree diagnostic.
+- Close native spool descriptors when scanning circuits or reopening binary and text bundle components with Kickmix 1.0.0.
+- Compare edits against an immutable common parent and compose verified disjoint native intervals with a source fingerprint for each donor. The receipt records geometry separately from semantic equivalence.
+
 ## 0.5.2 — 2026-11-18
 
 - Preserve the finite input binding when replaying a cut candidate in its

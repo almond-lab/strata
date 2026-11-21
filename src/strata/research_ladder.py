@@ -15,6 +15,10 @@ _RESOURCES = ('wall_seconds', 'threads', 'memory_bytes', 'storage_bytes')
 
 def default_research_ladder():
     return dict(version=1, recommended_stage='tiny_exact', target_tiny_seconds=1,
+        generator_workflow=('When circuit generator source is available, select one named source stage and its consumer. '
+                            'Compare source implementations on the same independent contract. Include conversion, '
+                            'return, cleanup and peak live width in the score estimate. Use compiled analysis for '
+                            'source-less artifacts or to diagnose emitted behavior.'),
         stages=[
             dict(stage='tiny_exact', action='Run the same parameterized mechanism on a tiny exact case; aim below one second when feasible.'),
             dict(stage='scaling', action='Use retained tiny measurements to predict full cost, time, memory and storage; state assumptions.'),

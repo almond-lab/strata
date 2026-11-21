@@ -162,6 +162,34 @@ def verify_measured_witness_candidate(candidate, receipt, input_rows, output_row
                 scope='specified witness input rows and all formal outcomes; exact basis/sign maps, not a general channel theorem')
 
 
+def _full_materialization_schedule(nodes, gates, dummy, input_count, public_width, bit):
+    """Compute each reachable product once, consume every output, then erase in reverse."""
+    costs = {}
+    for node in nodes:
+        gate = gates[node]
+        args = (gate['left_coefficients'], gate['right_coefficients'],
+                dummy[:input_count + node], len(dummy))
+        block = _product_update(*args)
+        cleanup = _cleanup_template(*args, bit)['lines']
+        costs[node] = (sum(line.startswith('CCX ') for line in block),
+                       sum(line.startswith('CCX ') for line in cleanup))
+
+    def action(op, before, after, price, **detail):
+        return dict(action=op, width_before=before, width_after=after, scratch_width=0,
+                    operation_peak=max(before, after), cost=str(price), **detail)
+
+    peak = public_width + len(nodes)
+    steps = [action('compute', public_width+i, public_width+i+1, costs[n][0], node=n)
+             for i, n in enumerate(nodes)]
+    steps.append(action('consume', peak, peak, 0, nodes=list(nodes)))
+    for i, n in reversed(list(enumerate(nodes))):
+        steps.append(action('uncompute', public_width+i+1, public_width+i, costs[n][1], node=n))
+    return dict(policy='full_materialization', materialized_nodes=list(nodes), cost=str(sum(map(sum, costs.values()))),
+                peak_width=peak, final_width=public_width, schedule=steps, recomputations=0,
+                compute_counts={n: 1 for n in nodes}, uncompute_counts={n: 1 for n in nodes},
+                cleanup_complete=True, consumer_executed=True)
+
+
 def measured_xor_and_witness(receipt, input_rows, output_rows, *, input_wires, target_wires,
                              clean_wires, num_qubits, classical_bit_offset=0, internal_bits=(),
                              max_states=100000, max_operations=100000, max_variables=512,
@@ -206,11 +234,11 @@ def measured_xor_and_witness(receipt, input_rows, output_rows, *, input_wires, t
     def referenced(mask):
         return {i for i in range(len(gates)) if mask >> (offset + i) & 1}
 
-    def consumer(available):
+    def consumer(available, stored):
         emitted = []
         for mask, target in zip(output_masks, targets):
             affine = mask
-            for index in sorted(referenced(mask) - materialized):
+            for index in sorted(referenced(mask) - stored):
                 affine ^= 1 << (offset + index); gate = gates[index]
                 emitted.extend(_product_update(gate['left_coefficients'], gate['right_coefficients'],
                                                 available[:len(inputs) + index], target))
@@ -218,7 +246,19 @@ def measured_xor_and_witness(receipt, input_rows, output_rows, *, input_wires, t
         return emitted
 
     public = set(range(num_qubits)) - set(clean)
-    for scheduled in plan['alternatives']:
+    schedules = [(scheduled, materialized) for scheduled in plan['alternatives']]
+    # The pebbler's consumer can inline terminal products separately in each output.
+    # Offer another native schedule whose consumer uses only affine fanout.
+    reachable = set().union(*(referenced(mask) for mask in output_masks))
+    for node in reversed(range(len(gates))):
+        if node in reachable:
+            gate = gates[node]
+            reachable.update(referenced(gate['left_coefficients'] | gate['right_coefficients']))
+    if reachable and len(reachable) <= len(clean):
+        full = _full_materialization_schedule(sorted(reachable), gates, dummy, len(inputs),
+                                              len(public), classical_bit_offset)
+        schedules.append((full, reachable))
+    for scheduled, stored in schedules:
         slots = clean[:scheduled['peak_width'] - len(public)]
         available, placement, free = inputs + [None] * len(gates), {}, set(slots)
         emitted, ledger, fresh, fallbacks = [], [], [], []
@@ -226,7 +266,7 @@ def measured_xor_and_witness(receipt, input_rows, output_rows, *, input_wires, t
         for action in scheduled['schedule']:
             proof = None
             if action['action'] == 'consume':
-                block = consumer(available)
+                block = consumer(available, stored)
             else:
                 index = action['node']; gate = gates[index]
                 if action['action'] == 'compute':

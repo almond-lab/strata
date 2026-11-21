@@ -74,10 +74,12 @@ def hmr_debt(circuit, measurement, cuts, *, support=None, clean_inputs=(), domai
             witness=_function_search(state,virtual,available,family=dict(max_degree=d,support=available),
                 degree=d,max_forms=max_forms,timeout=timeout,start=monotonic(),from_at=0,domain=promise,
                 budgets=dict(max_terms=max_terms))
+            row.clear()
             row.update(witness)
+            row.update(at=cut, text_cut=at)
             if witness['status']=='yes':
                 row.pop('wire',None)
-                row.update(at=cut,minimum_degree_in_support=d,
+                row.update(minimum_degree_in_support=d,
                            conditioned_ccz_in_this_polynomial=sum(len(term)==3 for term in witness['form']['monomials']))
                 break
             if witness['status']=='unknown':break

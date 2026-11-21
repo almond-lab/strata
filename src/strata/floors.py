@@ -310,7 +310,19 @@ def exact_minimum_on_rows(input_rows,output_rows,*,max_and=3,timeout=1.0,max_sta
     input_rows,output_rows=_canonical_rows(input_rows,output_rows)
     available,targets=_row_tables(input_rows,output_rows)
     initial=_basis(available)
-    lower=max(_lower_bound,len(_basis((*initial,*targets)))-len(initial))
+    nonlinear_dimension = len(_basis((*initial, *targets))) - len(initial)
+    lower = max(_lower_bound, nonlinear_dimension)
+    bounds = {}
+    # A bounded finite-row certificate, valid even on an incomplete care set.
+    if max_and >= 4 and len(initial) <= 12 and len(input_rows) <= 256:
+        from .tight_span import quadratic_quotient_floor
+        bounds['quadratic_quotient'] = quadratic_quotient_floor(initial, targets)
+        lower = max(lower, bounds['quadratic_quotient'])
+    from .quadratic_rank_floor import quadratic_rank_floor
+    polar = quadratic_rank_floor(input_rows, output_rows)
+    if polar is not None:
+        bounds['quadratic_polar_rank'] = polar
+        lower = max(lower, polar['value'])
     contract_hash=digest(dict(inputs=input_rows,outputs=output_rows))
     frontier={initial:()};expansions=states=0
     def receipt(kind,value,reason,depth,witness=None):
@@ -322,6 +334,8 @@ def exact_minimum_on_rows(input_rows,output_rows,*,max_and=3,timeout=1.0,max_sta
                     states=states,expansions=expansions,seconds=monotonic()-start,
                     limits=dict(max_and=max_and,timeout=timeout,max_states=max_states,max_expansions=max_expansions),
                     witness=None,contract_hash=contract_hash)
+        if bounds:
+            report['structural_lower_bounds'] = bounds
         if witness is not None:
             current=list(available);gates=[]
             for a,b in witness:
@@ -332,6 +346,13 @@ def exact_minimum_on_rows(input_rows,output_rows,*,max_and=3,timeout=1.0,max_sta
                           witness_encoding='bit 0 is constant 1, then boundary inputs, then preceding AND results')
             verify_minimum_witness(report,input_rows,output_rows)
         return report
+    if 5 <= lower <= max_and and lower == nonlinear_dimension + 1:
+        from .tight_span import construct_one_helper
+        gates, pairs = construct_one_helper(initial, targets,
+            max_pairs=min(max_expansions, max_states, 100000), deadline=start+timeout/4)
+        if gates is not None and len(gates) == lower:
+            return dict(receipt('exact_small',lower,'replayed witness meets the proved rank floor',
+                                lower,gates), backend='one_helper_span', pairs_checked=pairs)
     if max_and >= 4:
         # Compact the available affine basis without changing the XOR/AND
         # model. The emitted witness is decoded on the original input columns.
@@ -429,4 +450,4 @@ def verify_minimum_witness(receipt,input_rows,output_rows):
             raise StrataError('exact minimum witness output replay mismatch')
     except (KeyError,TypeError) as exc:
         raise StrataError('malformed exact minimum witness') from exc
-    return dict(status='verified',and_count=len(gates),scope='construction on the specified care set only; optimality comes from exhaustive search')
+    return dict(status='verified',and_count=len(gates),scope='construction on the specified care set only; see the independent lower-bound evidence for optimality')

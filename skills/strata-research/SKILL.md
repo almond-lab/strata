@@ -10,6 +10,12 @@ Strata. Preserve the user's chosen circuit, objective and experiment budget.
 The skill does not authorize submissions, publishing, VM creation or unrelated
 research. Existing user authorization still applies.
 
+## Start with one generator stage
+
+When source is available, locate the actual generator entry point and an independent reference. Map the few costly stages once and select one whose replacement could meet the requested gain. Keep the caller, consumer, phase and restoration obligations in scope. Try different algorithms in that function and run each on the smallest meaningful exact instance. Price the full change including repeated calls, conversions, cleanup and simultaneous live width. Record the source revision, counterexample or cost, and which variants remain open. Build the full candidate when the estimate supports the target.
+
+Read the [generator workflow](../../docs/GENERATOR-WORKFLOW.md) for a runnable source comparison. Investigate compiled regions when only an artifact is available or when diagnosing the output of a specific generator.
+
 ## Locate the implementation
 
 Find the Strata checkout and read its `docs/ACCEPTANCE.md` before relying on an
@@ -36,7 +42,7 @@ skill was copied out of the checkout, resolve these paths in that checkout.
   designs, distinct nonlinear function sets where available, parent-level cost
   deltas and the best prior candidate. Keep formulation counts, equivalent
   schedules and elapsed time separate from discovery yield.
-- Run Strata's algorithmic discovery before manually enumerating supported
+- For research on a compiled region, run Strata's algorithmic discovery before manually enumerating supported
   rewrites. It can recover joint Boolean maps and search factorizations,
   representations and storage/cleanup schedules. The connected AI handles
   unsupported mathematics, extends the candidate language and plans decisive
@@ -178,7 +184,7 @@ Missing witnesses remain `STRUCTURAL_AUDIT_REQUIRED`. A replay failure
 quarantines that design from `best` while retaining the failed attempt.
 Read the checkout's `docs/STRUCTURAL-RESEARCH.md` for the current API and limits.
 
-## Default loop for a supplied circuit
+## File workflow for a supplied compiled circuit
 
 1. Start with `strata discover FILE --out RUN`. Read the structured brief and its
    referenced profiles, exact functions, effects, phase debts and repeated

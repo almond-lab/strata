@@ -94,14 +94,16 @@ def nonlinear_function_key(circuit, clean):
 
 def summarize(states, baseline, witnesses, parent_bits, clean=()):
     designs = {}
+    cheaper_states = [state for state in states if state['cost'] < baseline['cost']]
+    lowest = min(cheaper_states, key=lambda state: (state['cost'], state['id']), default=None)
     families = defaultdict(set)
     coordinates = ('Q','toffoli','t','rotations','instructions','reaction_depth')
     points = set()
     nonlinear_classes = set()
     unclassified = 0
-    for state in states:
+    for state in cheaper_states:
         mechanisms = witnesses.get(state['id'],set())
-        if state['cost'] >= baseline['cost'] or not mechanisms:
+        if not mechanisms:
             continue
         circuit = km.Circuit.from_file(state['path'])
         key = design_key(circuit,parent_bits,state.get('private_bits',()))
@@ -122,7 +124,9 @@ def summarize(states, baseline, witnesses, parent_bits, clean=()):
         row['qualifications']=sorted(row['qualifications'])
     frontier = [p for p in sorted(points) if not any(other!=p and all(x<=y for x,y in zip(other,p))
                                                      for other in points)]
-    return dict(unique_verified_cheaper_native_designs=len(designs),qualification_family_count=len(families),
+    return dict(verified_cheaper_state_count=len(cheaper_states),
+                cheapest_verified_state={k: lowest[k] for k in ('id', 'path', 'cost')} if lowest else None,
+                unique_verified_cheaper_native_designs=len(designs),qualification_family_count=len(families),
                 unique_resource_points=len(points),pareto_resource_points=[dict(zip(coordinates,p)) for p in frontier],
                 distinct_costs=sorted({row['cost'] for row in designs.values()}),
                 distinct_nonlinear_function_sets=len(nonlinear_classes),

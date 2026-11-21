@@ -223,7 +223,8 @@ def test_twelve_input_symbolic_dag_reaches_reverse_scheduling_and_measured_clean
     reverse = [row for row in result['alternatives'] if row['cleanup_strategy'] == 'reverse']
     measured = [row for row in result['alternatives'] if row['cleanup_strategy'] == 'guarded_hmr']
     assert [(row['resources']['Q'], row['resources']['toffoli']) for row in reverse] == [(16, 11), (17, 9)]
-    assert [(row['resources']['Q'], row['resources']['toffoli']) for row in measured] == [(16, 6), (17, 5)]
+    assert [(row['resources']['Q'], row['resources']['toffoli']) for row in measured] == [(16, 6), (17, 5), (18, 5)]
+    assert measured[-1]['schedule']['policy'] == 'full_materialization'
     assert all(row['proof']['truth_rows_enumerated'] == 0 for row in result['alternatives'])
     assert all(row['whole_boundary_check']['equivalent'] is True for row in result['alternatives'])
     broken = dict(algebraic['dag'], output_coefficients=[0])

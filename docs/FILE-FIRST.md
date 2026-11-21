@@ -5,6 +5,8 @@ feature. The project originally delivered experiment management before this
 capability. File mode begins correcting that order; it does not declare the
 full specification complete.
 
+If the generator is available, start with its [stage contract and source alternatives](GENERATOR-WORKFLOW.md). Use file discovery to inspect emitted behavior or to study a source-less artifact.
+
 ## What the connected agent receives
 
 ```mermaid

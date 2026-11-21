@@ -1,14 +1,6 @@
 # Getting started with Strata
 
-For existing fit, rounding, generator or simulation scripts, start with the
-[v0.4 ten-minute workflow](TEN-MINUTES.md). The circuit-file workflow below remains
-available alongside it.
-
-Start with a circuit file. Strata produces bounded semantic evidence, profiles
-and candidate feedback; a connected agent uses those facts to propose changes.
-A project is useful when you also have a generator, a full task verifier, a
-numeric bundle or an explicit promised domain. See [acceptance status](ACCEPTANCE.md)
-for capabilities that remain partial.
+Start with a stage of your generator. Choose the value its caller requires and the resource saving you need. Use the [generator workflow](GENERATOR-WORKFLOW.md) to compare source implementations. Existing scripts and numeric fits can use [experiment runs and sweeps](TEN-MINUTES.md). See the [acceptance ledger](ACCEPTANCE.md) for the scope of the available checks.
 
 ## Install
 
@@ -23,7 +15,15 @@ python3.14 -m venv .venv
 
 The examples assume the repository root and use an explicit environment path.
 
-## Give the connected agent a circuit
+## Run a tiny generator comparison
+
+```bash
+.venv/bin/python -m strata.examples.field_product
+```
+
+The two generators implement the same field product using different algebra. See [the example source](../src/strata/examples/field_product.py) to change an implementation and recheck the contract.
+
+## Give the connected agent a compiled circuit
 
 ```bash
 .venv/bin/strata inspect-file /absolute/path/circuit.kmb --out work/inspection

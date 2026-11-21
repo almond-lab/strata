@@ -50,3 +50,18 @@ def test_search_routes_in_place_update_to_affine_transport_on_first_attempt(tmp_
     assert result['best']['mechanism']=='affine_transport_factorization'
     assert result['best']['resources']['toffoli']==1
     assert result['discovery_yield']['designs_by_qualification']['affine_transport_factored']>=1
+
+
+def test_unqualified_verified_saving_is_visible_without_a_structural_discovery():
+    from strata.discovery_yield import summarize
+
+    # These are the independently verified states handed to the yield reporter.
+    source = dict(id='source', cost=7, path='original.kmx')
+    cheaper = dict(id='cheaper', cost=3, path='smaller.kmx')
+    receipt = summarize([source, cheaper], source, {}, 0)
+    assert receipt['unique_verified_cheaper_native_designs'] == 0
+    assert receipt['verified_cheaper_state_count'] == 1
+    assert receipt['cheapest_verified_state'] == cheaper
+    unchanged = summarize([source], source, {}, 0)
+    assert unchanged['verified_cheaper_state_count'] == 0
+    assert unchanged['cheapest_verified_state'] is None

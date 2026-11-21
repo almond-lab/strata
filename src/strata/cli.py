@@ -49,7 +49,8 @@ def _memory_status(store, contract, scale):
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(description='Strata contract restructuring and evidence')
+    parser = argparse.ArgumentParser(description='Redesign one generator stage and check its contract with Kickmix.',
+        epilog='Generator quickstart: python -m strata.examples.field_product. See docs/GENERATOR-WORKFLOW.md for source-stage research and docs/FILE-FIRST.md for compiled artifacts.')
     parser.add_argument('--project', default='strata.toml')
     sub = parser.add_subparsers(dest='cmd', required=True)
     from .experiment_cli import add_parsers, COMMANDS as EXPERIMENT_COMMANDS
@@ -141,7 +142,7 @@ def main(argv=None):
         p.add_argument('--goal',choices=('discoveries','best-cost'),default='discoveries',
                        help='collect different cheaper designs, or stop once a known objective floor is reached')
         p.add_argument('--max-and', type=int, default=3, help='exact joint XOR/AND search gate bound')
-        p.add_argument('--joint-timeout', type=float, help='exact joint search seconds, within the constructor wall budget')
+        p.add_argument('--joint-timeout', type=float, help='wall time for exact joint search; state and expansion caps remain independent (see --joint-max-states and --joint-max-expansions)')
         p.add_argument('--joint-max-states', type=int, default=10000, help='exact joint solver state cap')
         p.add_argument('--joint-max-expansions', type=int, default=100000, help='exact joint solver expansion cap')
         p.add_argument('--max-architectures',type=int,default=1024,help='joint representation and factor-graph proposal budget per portfolio')
@@ -183,8 +184,21 @@ def main(argv=None):
     for name in ['run','status','park']:
         q=ss.add_parser(name);q.add_argument('line')
         if name=='park':q.add_argument('--reason',required=True);q.add_argument('--reopen',required=True)
+    from .carrier_screen import register_carrier_screen
+    register_carrier_screen(sub)
+    from .patch_composition import register_patch_composition
+    register_patch_composition(sub)
+    p = sub.add_parser('table-screen', help='Check packed Boolean candidates or bound the AND cost of repairing donor outputs')
+    p.add_argument('mode', choices=('care', 'fit', 'repair'))
+    p.add_argument('input', help='packed finite-table NPZ fixture')
     args = parser.parse_args(argv)
     try:
+        if hasattr(args, 'handler'):
+            return args.handler(args)
+        if args.cmd == 'table-screen':
+            from .table_screen import run_table_screen
+            print(json.dumps(run_table_screen(args.input, args.mode), indent=2))
+            return 0
         if args.cmd in EXPERIMENT_COMMANDS:
             from .experiment_cli import execute
             return execute(args)
@@ -328,9 +342,13 @@ max_and=args.max_and,joint_timeout=args.joint_timeout,
                 cancel_file=args.cancel_file or (Path(args.out)/'STOP' if args.cmd=='search' else None))
             if args.summary:
                 best = result.get('best', {})
+                discovery = result.get('discovery_yield', {})
                 result = dict(status=result['status'], cost_delta=result.get('cost_delta'),
                               best_cost=best.get('cost'), best_path=best.get('path'),
                               report=str(Path(args.out).resolve() / 'restructure.json'))
+                if 'verified_cheaper_state_count' in discovery:
+                    result['verified_cheaper_state_count'] = discovery['verified_cheaper_state_count']
+                    result['cheapest_verified_state'] = discovery['cheapest_verified_state']
             print(json.dumps(result,indent=2,default=str));return 0
         if args.cmd in {'inspect-file','optimize','discover','evaluate-file','note'}:
             from .file_workflow import inspect_file, optimize_file

@@ -50,7 +50,7 @@ def test_nonzero_stderr_timeout_and_bounded_output(tmp_path, local_process_doubl
     failed = run_owned(board, token, [sys.executable, '-c', 'import sys; print("bad library", file=sys.stderr); sys.exit(3)'], tmp_path)
     assert failed['status'] == 'nonzero_exit' and failed['returncode'] == 3
     assert failed['stderr'] == 'bad library\n'
-    timeout = run_owned(board, token, [sys.executable, '-u', '-c', 'import time; print("checkpoint saved"); time.sleep(10)'], tmp_path, timeout=.1)
+    timeout = run_owned(board, token, [sys.executable, '-u', '-c', 'import time; print("checkpoint saved"); time.sleep(10)'], tmp_path, timeout=1)
     assert timeout['status'] == 'timed_out' and 'checkpoint saved' in timeout['stdout']
     noisy = run_owned(board, token, [sys.executable, '-c', 'print("x"*10000)'], tmp_path, max_output=50)
     assert noisy['status'] == 'output_limit' and len(noisy['output']) == 50

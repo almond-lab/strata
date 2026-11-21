@@ -11,6 +11,8 @@ it does not contact an external AI service. Self-improvement here means that the
 connected AI revises its hypotheses and constructions using the evidence from
 previous attempts.
 
+If the generator is available, start with its [stage contract and source alternatives](GENERATOR-WORKFLOW.md). Use file discovery to inspect emitted behavior or to study a source-less artifact.
+
 ## Start from an untagged file
 
 ```bash

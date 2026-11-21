@@ -22,4 +22,5 @@ def test_search_timeout_does_not_become_false_floor():
     outputs=[[[0,2],[1,3]],[[0,3],[1,2],[1,3]]]
     r=exact_minimum(outputs,4,max_expansions=1)
     assert r['kind']=='unknown' and r['value'] is None
-    assert r['proven_lower_bound']==2
+    assert r['proven_lower_bound']==3
+    assert r['structural_lower_bounds']['quadratic_polar_rank']['value']==3

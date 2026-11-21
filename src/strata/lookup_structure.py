@@ -195,7 +195,12 @@ def _repair_toggle(lines, items, index, wire, width, proof_limits):
 def measured_value_surrogate(circuit, clean_inputs, internal_bits, proof_limits, *, verify=None):
     """Propose reversible phase-debt replacements, then check the complete map."""
     from .measurement_equivalence import equivalent_independent_outputs
+    from .model import StrataError
+    from .word_debt import prove_word_cleanup
 
+    clean_inputs, internal_bits = tuple(clean_inputs), tuple(internal_bits)
+    if any(type(v) is not int or v < 0 for v in (*clean_inputs, *internal_bits)):
+        raise StrataError('wire and classical bit indices must be nonnegative integers')
     lines = str(circuit).splitlines()
     items = [_parse(line) for line in lines]
     private = {f'b{b}' for b in internal_bits}
@@ -219,31 +224,37 @@ def measured_value_surrogate(circuit, clean_inputs, internal_bits, proof_limits,
         outcome, wire = event['bits'][0], event['wires'][0]
         references = bit_uses[outcome]
         index = bisect_left(references, at)
-        if index + 1 >= len(references):
-            continue
-        repair_at = references[index+1]
-        if index + 2 < len(references):
-            next_use = references[index+2]
-            overwrite = items[next_use]
-            if (overwrite['op'] not in {'HMR', 'BIT_STORE0', 'BIT_STORE1'} or overwrite['condition']
-                    or depths[next_use] or outcome not in overwrite['bits']):
-                continue
-        if depths[repair_at] or items[repair_at].get('condition') != outcome:
-            continue
-        replacement = _repair_toggle(lines, items, repair_at, wire, circuit.num_qubits, proof_limits)
-        if replacement is None:
-            continue
-        stop, gates = replacement
-        # Keep the original measured value intact until the reversible erase.
-        # The repair itself may use the erased wire as zero scratch.
-        if any(wire in item['wires'] for item in items[at+1:repair_at]):
+        repairs = []
+        previous_stop = at + 1
+        for cursor in range(index+1, len(references)):
+            repair_at = references[cursor]
+            item = items[repair_at]
+            if (item['op'] in {'HMR', 'BIT_STORE0', 'BIT_STORE1'} and not item.get('condition')
+                    and not depths[repair_at] and outcome in item['bits']):
+                break
+            if (depths[repair_at] or item.get('condition') != outcome or repair_at < previous_stop
+                    or any(wire in items[i]['wires'] for i in range(previous_stop, repair_at))):
+                repairs = []
+                break
+            repair = _repair_toggle(lines, items, repair_at, wire, circuit.num_qubits, proof_limits)
+            if repair is None:
+                repairs = []
+                break
+            stop, gates = repair
+            repairs.append((repair_at, stop, gates))
+            # Between repairs, the measured wire contains a partially erased value.
+            # Other wires can change basis; emit each toggle at the original phase.
+            previous_stop = stop
+        if not repairs:
             continue
         edits[at] = None
-        edits[repair_at] = '\n'.join(gates)
-        for removed in range(repair_at+1, stop):
-            edits[removed] = None
-        matched.append(dict(measurement=at, wire=wire, outcome=outcome, phase_repair=repair_at,
-                            phase_repair_stop=stop))
+        for repair_at, stop, gates in repairs:
+            edits[repair_at] = '\n'.join(gates)
+            for removed in range(repair_at+1, stop):
+                edits[removed] = None
+        matched.append(dict(measurement=at, wire=wire, outcome=outcome, phase_repair=repairs[0][0],
+                            phase_repair_stop=repairs[-1][1],
+                            phase_repairs=[[start, stop] for start, stop, _ in repairs]))
     if not matched:
         first = next((i for i, item in enumerate(items)
                       if item['status'] != 'metadata' and (
@@ -251,7 +262,7 @@ def measured_value_surrogate(circuit, clean_inputs, internal_bits, proof_limits,
                           or item['op'].startswith('BIT_'))), None)
         return None, dict(status='not_applicable', blocking_text_line=first,
                           instruction=lines[first] if first is not None else None,
-                          reason='no certified private HMR with matching live controls and conditioned CZ')
+                          reason='no private HMR has a supported sequence of conditional phase repairs on live controls')
     body = [edits.get(i, line) for i, line in enumerate(lines)]
     body = [entry for line in body if line is not None for entry in line.splitlines()]
     inspected, _ = split_external_diagonals(body) if verify is not None else (body, [])
@@ -267,9 +278,11 @@ def measured_value_surrogate(circuit, clean_inputs, internal_bits, proof_limits,
         extra = _boundary_metadata(candidate, circuit.num_qubits-1)[len(current):]
         candidate = km.Circuit('\n'.join(body + extra))
     if verify is None:
-        proof = equivalent_independent_outputs(lines, body, clean_inputs=clean_inputs, internal_bits=internal_bits,
-            max_operations=proof_limits['max_operations'], max_variables=proof_limits['max_variables'],
-            max_nodes=4*proof_limits['max_terms'], max_apply_steps=32*proof_limits['max_product_terms'])
+        proof = prove_word_cleanup(lines, body, clean_inputs, internal_bits, proof_limits)
+        if proof is None:
+            proof = equivalent_independent_outputs(lines, body, clean_inputs=clean_inputs, internal_bits=internal_bits,
+                max_operations=proof_limits['max_operations'], max_variables=proof_limits['max_variables'],
+                max_nodes=4*proof_limits['max_terms'], max_apply_steps=32*proof_limits['max_product_terms'])
     else:
         proof = verify(circuit, candidate)
     evidence = dict(status='verified' if proof.get('equivalent') is True else 'unknown', matched=matched, proof=proof)

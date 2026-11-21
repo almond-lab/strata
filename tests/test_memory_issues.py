@@ -129,14 +129,29 @@ def test_actual_local_historical_logs_without_copying_private_bodies(tmp_path):
     if not all(path.is_file() for path in sources):
         pytest.skip('local historical inputs are not available')
     store = Store(tmp_path / 'store')
-    total = 0
     for source in sources:
         before = source.read_bytes()
+        if source.suffix == '.csv':
+            import io
+            expected = sum(1 for _ in csv.DictReader(io.StringIO(before.decode('utf-8-sig'))))
+        elif source.suffix == '.jsonl':
+            expected = sum(bool(line.strip()) for line in before.splitlines())
+        else:
+            document = json.loads(before)
+            expected = len(document) if isinstance(document, list) else sum(
+                len(rows) for rows in document.values() if isinstance(rows, list))
         counts = import_attempts(store, source)
-        total += counts['imported'] + counts['unbound']
+        assert counts['imported'] + counts['unbound'] == expected
         assert counts['closed'] == 0
         assert source.read_bytes() == before
-    assert total >= 100
+
+
+def test_hundred_historical_rows_are_accounted_for(tmp_path):
+    path = tmp_path / 'history.jsonl'
+    path.write_text(''.join(json.dumps({'id': str(i), 'move': 'lookup'}) + '\n'
+                            for i in range(160)))
+    assert import_attempts(Store(tmp_path / 'store'), path) == {
+        'imported': 0, 'unbound': 160, 'priced': 0, 'closed': 0}
 
 
 def test_actual_multi_hundred_event_log_stays_unbound_without_contracts(tmp_path):

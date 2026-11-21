@@ -9,6 +9,8 @@ to a competition.
 The same CLI is available as `python -m strata` (use the interpreter from your
 environment). A source checkout can use `PYTHONPATH=src python -m strata`.
 
+For circuit redesign, start by [comparing two implementations of a generator stage](GENERATOR-WORKFLOW.md). Use the workflow below to wrap an existing script and sweep its settings.
+
 ## Try an included pipeline
 
 From a source checkout, the reference fit has a separate verifier and a declared

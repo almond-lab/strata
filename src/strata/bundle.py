@@ -9,7 +9,7 @@ from types import MappingProxyType
 import base64
 import hashlib
 import json
-import io
+import tempfile
 import kickmix as km
 from .model import Contract, Region, StrataError, canonical, digest
 from .kickmix import Kickmix, instructions
@@ -63,7 +63,11 @@ class BundleFrontend:
     def circuit(content):
         """Let the SDK detect kmx/kmb without changing the artifact bytes."""
         try:
-            return km.Circuit.from_file(io.BytesIO(content), format='auto')
+            # Kickmix 1.0.0 leaks the native spool for file-object inputs.
+            with tempfile.TemporaryDirectory(prefix='strata-component-') as directory:
+                path = Path(directory) / 'component'
+                path.write_bytes(content)
+                return km.Circuit.from_file(str(path), format='auto')
         except (ValueError, RuntimeError) as exc:
             raise StrataError('invalid kickmix bundle component') from exc
 
