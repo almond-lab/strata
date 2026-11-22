@@ -1,16 +1,36 @@
 # Strata
 
-Strata helps you redesign one stage of a circuit generator and check whether the new algorithm pays for itself. Start with the source function, its caller and the mathematical result the caller needs. Kickmix runs each emitted circuit. Strata checks the boundary on a tiny instance, helps price the alternatives, and retains evidence for scaling, verification and replay.
+**Algorithmic Co-Design & Ultra-Low-Latency Circuit Restructuring on Kickmix.**
 
-## Compare two generator designs
+Strata helps you discover structural quantum-circuit optimizations across the **classical-quantum boundary** and screen thousands of candidate rewrites per second in a persistent C++20 memory-mapped workspace. Instead of treating numerical tables, classical preprocessors, qubit-lifetime schedules, and gate synthesis as isolated steps, Strata prices and optimizes them jointly while binding every candidate to verifiable Kickmix evidence.
 
-From a source checkout with a compatible Kickmix wheel available:
+## Start in 5 Minutes (`Strata 0.7`)
+
+From a source checkout with Python 3.12+, a C++20 compiler, and a compatible Kickmix wheel:
 
 ```sh
 python3.14 -m venv .venv
 .venv/bin/python -m pip install -e '.[test]'
+.venv/bin/strata benchmark-latency --ops 100000 --qubits 48 --cones 16
 .venv/bin/python -m strata.examples.field_product
 ```
+
+Read the [5-Minute Quickstart](docs/QUICKSTART-5MIN.md) to open a hot `strata.Session` on any `.kmb` or `.kmx` circuit, profile live-wire freedom in milliseconds, convert reversible `CCX` uncompute trees to `0`-Toffoli `HMR + CZ_IF` cascades, discover affine idle-wire ancilla loans, and screen candidate edits via checkpointed 256-lane causal-cone replay.
+
+## Co-Design Playbooks (`v0.7.0`)
+
+Order-of-magnitude circuit wins come from changing **what** the quantum circuit computes and **how** live width and uncomputation are scheduled. Pick the playbook matching your bottleneck:
+
+| Bottleneck | Strata `v0.7` Modules | Playbook |
+| :--- | :--- | :--- |
+| Frozen tables, Hamiltonian leaves, or Givens angles | `BoundarySlider`, `GaugeSweep`, `DeadSlotPlanter`, `CircuitAwareRounder`, `QuotientChainDP` | [PLAYBOOK-COFIT.md](docs/PLAYBOOK-COFIT.md) |
+| Carry / precision bit truncation failing worst-case tolerance | `CompensatedTruncator` (minimax `L_inf` downstream rotation refitting) | [PLAYBOOK-TRUNCATION-LP.md](docs/PLAYBOOK-TRUNCATION-LP.md) |
+| Peak-qubit islands & reversible recomputation overhead | `ScoreModel`, `ShapeExplorer`, `solve_mbu_pebble_schedule`, `find_affine_wire_loans` | [PLAYBOOK-SHAPES-PEBBLING.md](docs/PLAYBOOK-SHAPES-PEBBLING.md) |
+| Expensive Bennett uncompute trees & `SWAP` chains | `demolish_and_piggyback`, `fit_multi_cut_phase`, `hoist_hmr_across_swaps` | [PLAYBOOK-MBU-PHASE.md](docs/PLAYBOOK-MBU-PHASE.md) |
+| Quantum syndrome math, `GF(2^k)` divisions, or QROM rank | `ClassicalProgram` (with OOM guards), `ProjectiveGF2k`, `lovasz_matroid_parity_rank`, `flip_graph_reduce`, `scan_cross_cell_invariants`, `price_failure_budget` | [PLAYBOOK-BOUNDARY-TENSORS.md](docs/PLAYBOOK-BOUNDARY-TENSORS.md) |
+| Slow file reloads & full-circuit simulation loops | `KmbTape`, `BitSlicedSim`, `Session.funnel`, `compose_kmb_fast` | [LATENCY-ARCHITECTURE.md](docs/LATENCY-ARCHITECTURE.md) |
+
+## Compare two generator designs
 
 The [example source](src/strata/examples/field_product.py) implements the same GF(4) multiply-accumulate stage with schoolbook and Karatsuba multiplication. Each preserves the two inputs and works for every incoming accumulator. The exact check covers 64 cases per algorithm. At six qubits the generators use four and three Toffolis respectively. This measures the example stage.
 
@@ -18,6 +38,8 @@ For your own generator, [follow one stage from source to a verified candidate](d
 
 ## Documentation
 
+- [5-minute quickstart](docs/QUICKSTART-5MIN.md) and [v0.7 latency architecture](docs/LATENCY-ARCHITECTURE.md): zero-copy `.kmb` indexing, hot `Session` workspace, and 4-tier candidate screening.
+- Co-design playbooks: [numerical co-fitting](docs/PLAYBOOK-COFIT.md), [minimax truncation refitting](docs/PLAYBOOK-TRUNCATION-LP.md), [shapes, pebbling & wire loans](docs/PLAYBOOK-SHAPES-PEBBLING.md), [MBU & multi-cut phase](docs/PLAYBOOK-MBU-PHASE.md), and [boundary `BIT_*`, projective `GF(2^k)` & tensors](docs/PLAYBOOK-BOUNDARY-TENSORS.md).
 - [Generator workflow](docs/GENERATOR-WORKFLOW.md) for a stage contract, a tiny exact check, and a complete cost estimate.
 - [Twenty submitted circuit episodes](benchmarks/v05-transfer/README.md) and [issue-by-issue fixes](docs/POST-0.4.2-FIXES.md).
 - [v0.5 automatic discovery](docs/V0.5-DISCOVERY.md): whole-function candidates, symbolic scaling, representation costs, measurement debts and release gates.

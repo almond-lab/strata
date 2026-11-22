@@ -6,3 +6,4 @@ __pycache__/
 .strata/
 build/
 dist/
+*.so

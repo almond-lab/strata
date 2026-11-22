@@ -1,4 +1,7 @@
-"""Strata: contract-driven restructuring on kickmix."""
+"""Strata: algorithmic co-design and low-latency restructuring on Kickmix."""
+
+__version__ = "0.7.0"
+
 from .project import Project, Design, Line
 from .model import Contract, Region, Register, Debt, Floor, StrataError
 from .engine import Patch
@@ -23,6 +26,24 @@ from .experiments import (load_manifest, create_experiment, run_experiment,
                           experiment_status, create_sweep, run_sweep, sweep_status)
 from .experiment_policy import ScreeningPolicy, ContinuationPolicy
 from .experiment_reports import experiment_report, agent_packet, record_agent_decision
+
+# v0.7.0 Low-Latency Native Engine & Session Funnel
+from .native import (NATIVE_AVAILABLE, KmbTape, BitSlicedSim,
+                     gf2_rank_fast, solve_zmod_fast, lovasz_rank_fast, eval_phase_margin_fast)
+from .session import Session, FunnelCandidate, benchmark_latency
+
+# v0.7.0 Layer A Optimization-Discovery Modules
+from .cofit import (BoundarySlider, SlideResult, GaugeSweep, GaugeResult,
+                    DeadSlotPlanter, CircuitAwareRounder, QuotientChainDP,
+                    CompensatedTruncator, TruncationChoice)
+from .mbu import fit_multi_cut_phase, demolish_and_piggyback, hoist_hmr_across_swaps
+from .shapes import (ScoreModel, PebbleSchedule, solve_mbu_pebble_schedule,
+                     find_affine_wire_loans, apply_affine_wire_loan, ShapeExplorer)
+from .boundary import ClassicalProgram, hoist_classical_prefix, ProjectiveGF2k, ProjectiveCostEstimate
+from .tensors import (lovasz_matroid_parity_rank, search_relation_hyperplanes,
+                      plan_multipass_qroam, flip_graph_reduce)
+from .invariants import scan_cross_cell_invariants, price_failure_budget, audit_shot_paired_dominance
+from .patch_composition import compose_kmb_fast
 
 
 def open(path='strata.toml', adapters=None):

@@ -198,7 +198,7 @@ def _emit(stream, tape, start, stop):
         stream.write(line.encode("utf-8") + b"\n")
 
 
-def compose_patches(parent_path, plan_paths, output_path):
+def compose_patches(parent_path, plan_paths, output_path, *, verify_cone=False, seed=1, clean_inputs=()):
     """Publish a new native artifact only after verifying every donor and its geometry."""
     output = Path(output_path)
     if output.suffix.lower() not in {".kmx", ".kmb"}:
@@ -219,6 +219,33 @@ def compose_patches(parent_path, plan_paths, output_path):
             sources.append(dict(donor_sha256=donor.sha, plan_sha256=plan_hash))
         edits.sort(key=lambda e: (e.start, e.stop))
         _check_geometry(edits)
+        cone_receipts = None
+        if verify_cone:
+            from .session import Session
+            cone_receipts = []
+            with Session.open(parent_path) as sess:
+                for edit in edits:
+                    rep_kmx = "\n".join(edit.donor.tape.iter_span(edit.donor_start, edit.donor_stop)) + "\n"
+                    chk = sess.verify_cone(
+                        edit.start,
+                        edit.stop,
+                        rep_kmx,
+                        seed=seed,
+                        clean_wires=clean_inputs,
+                    )
+                    if not chk["passed"]:
+                        raise StrataError(
+                            f"causal-cone equivalence failed at [{edit.start}, {edit.stop}): {chk['reason']}"
+                        )
+                    cone_receipts.append(
+                        dict(
+                            parent=[edit.start, edit.stop],
+                            donor=[edit.donor_start, edit.donor_stop],
+                            passed=True,
+                            cone_qubits=chk["cone_qubits"],
+                            elapsed_ms=chk["elapsed_ms"],
+                        )
+                    )
         text = root / "result.kmx"
         p = 0
         with text.open("wb") as stream, parent.metadata.open("rb") as regs:
@@ -237,18 +264,48 @@ def compose_patches(parent_path, plan_paths, output_path):
             count = len(parent.tape) + sum((e.donor_stop - e.donor_start) - (e.stop - e.start) for e in edits)
             if count != len(circuit):
                 raise StrataError("merged native instruction count differs from composed spans")
+            sem_status = "cone_sampled_256_verified" if verify_cone else "unverified"
             receipt = dict(schema="strata.patch-composition.v1", coordinates=COORDINATES,
                            parent_sha256=parent.sha, donors=sorted(sources, key=lambda s: s["plan_sha256"]),
                            result_sha256=result_sha, result_operations=count,
                            edits=[dict(**_record(e), donor_sha256=e.donor.sha, after_sha256=e.after_sha256)
-                                  for e in edits], geometry="verified", semantic_equivalence="unverified",
+                                  for e in edits], geometry="verified", semantic_equivalence=sem_status,
                            accepted=False)
+            if cone_receipts is not None:
+                receipt["cone_checks"] = cone_receipts
             # link publishes atomically and never overwrites another job or a pinned input.
             try:
                 os.link(result, output)
             except FileExistsError as error:
                 raise StrataError(f"output already exists: {output}") from error
         return receipt
+
+
+def compose_kmb_fast(parent_kmb, edits, output_kmb, *, verify_cone=False, seed=1, clean_inputs=()):
+    """Zero-copy binary ``.kmb`` v2 columnar splicer with optional 256-lane causal-cone verification."""
+    output = Path(output_kmb)
+    if output.exists():
+        raise StrataError(f"output already exists: {output}")
+    from .native import KmbTape
+    from .session import Session
+
+    tape = KmbTape.open(parent_kmb)
+    cone_checks = []
+    if verify_cone:
+        with Session(tape) as sess:
+            for start, stop, donor in edits:
+                chk = sess.verify_cone(start, stop, donor, seed=seed, clean_wires=clean_inputs)
+                if not chk["passed"]:
+                    raise StrataError(f"causal-cone equivalence failed at [{start}, {stop}): {chk['reason']}")
+                cone_checks.append(chk)
+    res = tape.compose_kmb(edits, output)
+    return dict(
+        schema="strata.kmb-fast-compose.v1",
+        output=str(output),
+        verify_cone=bool(verify_cone),
+        cone_checks=cone_checks,
+        **res,
+    )
 
 
 def register_patch_composition(subparsers):
@@ -262,6 +319,9 @@ def register_patch_composition(subparsers):
     compose.add_argument("parent")
     compose.add_argument("plans", nargs="+")
     compose.add_argument("--output", required=True)
+    compose.add_argument("--verify-cone", action="store_true",
+                         help="Verify each edit on 256 random basis states via checkpointed causal-cone replay")
+    compose.add_argument("--seed", type=int, default=1)
     compose.set_defaults(handler=_run_compose)
 
 
@@ -271,5 +331,6 @@ def _run_plan(args):
 
 
 def _run_compose(args):
-    print(json.dumps(compose_patches(args.parent, args.plans, args.output), indent=2))
+    print(json.dumps(compose_patches(args.parent, args.plans, args.output,
+                                     verify_cone=args.verify_cone, seed=args.seed), indent=2))
     return 0

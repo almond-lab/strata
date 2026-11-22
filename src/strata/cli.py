@@ -191,10 +191,83 @@ def main(argv=None):
     p = sub.add_parser('table-screen', help='Check packed Boolean candidates or bound the AND cost of repairing donor outputs')
     p.add_argument('mode', choices=('care', 'fit', 'repair'))
     p.add_argument('input', help='packed finite-table NPZ fixture')
+
+    p = sub.add_parser('benchmark-latency', help='Benchmark C++20 zero-copy KmbTape and 256-lane causal-cone kernels')
+    p.add_argument('--ops', type=int, default=100_000)
+    p.add_argument('--qubits', type=int, default=48)
+    p.add_argument('--cones', type=int, default=16)
+
+    p = sub.add_parser('profile-fast', help='Zero-copy mmap columnar summary of a .kmb or .kmx artifact')
+    p.add_argument('input')
+
+    p = sub.add_parser('trace-cuts', help='Trace 256-lane basis states across multiple operation cuts')
+    p.add_argument('input')
+    p.add_argument('--cuts', required=True, help='comma-separated operation cuts')
+    p.add_argument('--seed', type=int, default=1)
+    p.add_argument('--clean-inputs', default='')
+
+    p = sub.add_parser('phase-fit', help='Fit multi-cut Z_2 / Z_4 / Z_8 diagonal phase repairs via native solver')
+    p.add_argument('input')
+    p.add_argument('--cuts', required=True, help='comma-separated operation cuts')
+    p.add_argument('--modulus', type=int, choices=(2, 4, 8), default=8)
+    p.add_argument('--seed', type=int, default=1)
+    p.add_argument('--clean-inputs', default='')
+
+    p = sub.add_parser('wire-loans', help='Discover affine idle-wire ancilla loans (LEND) in START:STOP')
+    p.add_argument('input')
+    p.add_argument('--range', dest='loan_range', required=True, help='START:STOP operation window')
+    p.add_argument('--max-support', type=int, default=6)
+    p.add_argument('--seed', type=int, default=1)
+    p.add_argument('--clean-inputs', default='')
+
     args = parser.parse_args(argv)
     try:
         if hasattr(args, 'handler'):
             return args.handler(args)
+        if args.cmd == 'benchmark-latency':
+            from .session import benchmark_latency
+            print(json.dumps(benchmark_latency(num_ops=args.ops, num_qubits=args.qubits, num_cones=args.cones), indent=2))
+            return 0
+        if args.cmd == 'profile-fast':
+            from .session import Session
+            with Session.open(args.input) as sess:
+                print(json.dumps(sess.summary(), indent=2))
+            return 0
+        if args.cmd == 'trace-cuts':
+            from .session import Session
+            cuts = _wire_list(args.cuts)
+            with Session.open(args.input) as sess:
+                tr = sess.trace_cuts(cuts, seed=args.seed, clean_wires=_wire_list(args.clean_inputs))
+                out = dict(
+                    cuts=list(cuts),
+                    num_qubits=sess.num_qubits,
+                    num_bits=sess.num_bits,
+                    elapsed_ms=tr['elapsed_ms'],
+                    active_qubits_per_cut=[int((entry['packed_qubits'] != 0).any(axis=1).sum()) for entry in tr['cuts']],
+                )
+                print(json.dumps(out, indent=2))
+            return 0
+        if args.cmd == 'phase-fit':
+            from .session import Session
+            from .mbu import fit_multi_cut_phase
+            cuts = _wire_list(args.cuts)
+            with Session.open(args.input) as sess:
+                res = fit_multi_cut_phase(sess, cuts, modulus=args.modulus,
+                                          seed=args.seed, clean_wires=_wire_list(args.clean_inputs))
+                print(json.dumps(res, indent=2, default=str))
+            return 0
+        if args.cmd == 'wire-loans':
+            from .session import Session
+            from .shapes import find_affine_wire_loans
+            parts = args.loan_range.split(':')
+            if len(parts) != 2:
+                raise StrataError('range must be START:STOP')
+            s_op, e_op = int(parts[0]), int(parts[1])
+            with Session.open(args.input) as sess:
+                loans = find_affine_wire_loans(sess, s_op, e_op, max_support=args.max_support,
+                                               seed=args.seed, clean_wires=_wire_list(args.clean_inputs))
+                print(json.dumps(dict(range=[s_op, e_op], count=len(loans), loans=loans), indent=2))
+            return 0
         if args.cmd == 'table-screen':
             from .table_screen import run_table_screen
             print(json.dumps(run_table_screen(args.input, args.mode), indent=2))

@@ -1,5 +1,14 @@
 # Change log
 
+## 0.7.0
+
+- Add compiled C++20 / OpenMP native latency engine (`strata._native` and `strata.native`) with zero-copy `mmap` columnar `.kmb` v2 indexing (`KmbTape`), direct binary `.kmb` span splicing (`compose_kmb_fast`), cache-line-aligned 256-lane bit-sliced simulation (`BitSlicedSim`), checkpointed causal-cone differential verification across dual `HMR` branch policies, and native `GF(2)`, `Z_2 / Z_4 / Z_8`, `GF(2^64)` Lovasz matroid-parity, and Chebyshev phase-margin kernels.
+- Add persistent hot workspace `strata.Session` and the 4-tier candidate screening funnel (`FunnelCandidate`, `Session.funnel`, `benchmark_latency`) plus CLI subcommands `benchmark-latency`, `profile-fast`, `trace-cuts`, `phase-fit`, `wire-loans`, and `patch-compose --verify-cone`.
+- Add classical-quantum numerical co-fitting (`strata.cofit`): tangent-nullspace `BoundarySlider` with damped Gauss-Newton restoration, analytical zero-crossing orthogonal `GaugeSweep`, `DeadSlotPlanter` (including binary Givens-tree dead-subtree propagation), progressive `CircuitAwareRounder`, `O(N * B)` bitwise `QuotientChainDP`, and `CompensatedTruncator` minimax `L_inf` rotation refitting (supporting HiGHS when `scipy` is installed and pure-NumPy Lawson IRLS + minimax polish out of the box).
+- Add Measurement-Based Uncomputation and multi-cut phase synthesis (`strata.mbu`): backward-cascade `demolish_and_piggyback` (`CCX -> HMR + CZ_IF`), `fit_multi_cut_phase` isolating untouched `Z_POW` wires cleanly modulo `2`, `4`, or `8`, and `hoist_hmr_across_swaps`.
+- Add algorithmic shape exploration (`strata.shapes`), boundary representation adapters (`strata.boundary`), bilinear tensor synthesis (`strata.tensors`), and cross-cell / stochastic verification tools (`strata.invariants`): `ScoreModel`, `ShapeExplorer`, `solve_mbu_pebble_schedule`, `find_affine_wire_loans` / `apply_affine_wire_loan`, `ClassicalProgram` (with explicit container OOM `max_ops` and `max_kmb_bytes` safety guards), `ProjectiveGF2k`, `lovasz_matroid_parity_rank`, `search_relation_hyperplanes`, `plan_multipass_qroam`, `flip_graph_reduce`, `scan_cross_cell_invariants`, `price_failure_budget`, and `audit_shot_paired_dominance`.
+- Add 5-minute quickstart, latency architecture guide, and five task-oriented co-design playbooks in `docs/`.
+
 ## 0.6.1
 
 - Start generator research at one source entry point and its consumer. The README, getting-started guide, CLI help, research skill and agent packet now direct researchers to this workflow.

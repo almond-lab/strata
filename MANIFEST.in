@@ -1,4 +1,5 @@
-include README.md CHANGELOG.md
+include README.md CHANGELOG.md setup.py src/strata/_native.cpp
+global-exclude *.so *.pyc __pycache__
 recursive-include docs *.md *.json
 recursive-include skills *.md
 recursive-include examples *.toml *.kmx
