@@ -1,7 +1,0 @@
-{
-  "passed": true,
-  "network_namespace_isolated": true,
-  "secret_environment_not_inherited": true,
-  "runner": "bubblewrap-unshare-all",
-  "scope": "runner smoke, not adversarial container-security audit"
-}
